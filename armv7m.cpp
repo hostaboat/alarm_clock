@@ -94,7 +94,7 @@ int SCB::executionPriority(void)
         }
     }
 
-    __asm__ volatile ("mrs %0, basepri\n" : "=r" (basepri));
+    __asm__ volatile ("mrs %0, basepri" : "=r" (basepri));
     if (basepri != 0)
     {
         boostedpri = basepri;
@@ -104,11 +104,11 @@ int SCB::executionPriority(void)
         boostedpri -= subgroupvalue;
     }
 
-    __asm__ volatile ("mrs %0, primask\n" : "=r" (primask));
+    __asm__ volatile ("mrs %0, primask" : "=r" (primask));
     if (primask == 1)
         boostedpri = 0;
 
-    __asm__ volatile ("mrs %0, faultmask\n" : "=r" (faultmask));
+    __asm__ volatile ("mrs %0, faultmask" : "=r" (faultmask));
     if (faultmask == 1)
         boostedpri = -1;
 

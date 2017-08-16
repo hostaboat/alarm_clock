@@ -17,14 +17,9 @@
 class UI
 {
     public:
-        // Call this to get the one and only instance
         static UI & acquire(void) { static UI ui; return ui; }
 
-        // This is the one and only function to call in the loop().
         void process(void);
-
-        // Check this to make sure nothing is wrong though little
-        // to no chance of these being null.
         bool valid(void);
 
         UI(UI const &) = delete;
@@ -201,7 +196,7 @@ class UI
                 bool _alarm_music = false;
                 uint16_t _touch_threshold = 0;
                 static constexpr uint32_t const _s_snooze_time = 600000;  // 10 minutes
-                static constexpr uint32_t const _s_alarm_time = 7200000; // 2 hours max
+                static constexpr uint32_t const _s_alarm_time = 7200000;  // 2 hours max
         };
 
         class UIState
@@ -701,7 +696,7 @@ class UI
 
                 ts_e _state = TS_READ;
                 uint16_t _touch_read = 0;
-                static constexpr uint32_t const _s_touch_read_interval = 500;  // milliseconds
+                static constexpr uint32_t const _s_touch_read_interval = 500;
         };
 
         Player _player;

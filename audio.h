@@ -18,7 +18,8 @@ class DevBeeper : public DevPin < PinOut, PIN > , public Toggle
     public:
         static DevBeeper & acquire(
                 uint32_t on_time = _s_beep_on_time,
-                uint32_t off_time = _s_beep_off_time) { static DevBeeper b(on_time, off_time); return b; }
+                uint32_t off_time = _s_beep_off_time)
+        { static DevBeeper b(on_time, off_time); return b; }
 
         virtual void start(void) { reset(); this->_pin.set(); }
         virtual void stop(void) { this->_pin.clear(); }
@@ -180,15 +181,10 @@ template < pin_t CS, pin_t DCS, pin_t DREQ, pin_t RST,
     template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
 DevVS1053B < CS, DCS, DREQ, RST, SPI, MOSI, MISO, SCK >::DevVS1053B(void)
 {
-    // Max writes are CLKI/4 and reads CLKI/7
-    // Initially set SPI clock to 1Mhz until SCI_CLOCKF is set which should be around 43MHz
-    // Then to 10MHz for writes and 6MHz for reads.
-    // Maybe just set to 10MHz when sending data and 6MHz otherwise
-
     if (!valid())
         return;
 
-    // Starts out in the off state
+    // Start out in the off state
     TReset::_pin.clear();
     _stop_time = msecs();
 
@@ -209,7 +205,15 @@ void DevVS1053B < CS, DCS, DREQ, RST, SPI, MOSI, MISO, SCK >::start(void)
         delay_msecs(now - _stop_time);
 
     TReset::_pin.set();
-    delay_msecs(5);  // Datasheet says about a 1.8 ms delay before DREQ goes back up
+
+    // Datasheet says about a 1.8 ms delay before DREQ goes back up
+    // This delay is necessary - DREQ may be high or low during this time.
+    delay_msecs(5);
+
+    // Max control writes are CLKI/4 and reads CLKI/7
+    // Initially set SPI clock to 1Mhz until SCI_CLOCKF is set which should be around 43MHz
+    // Then to 10MHz for writes and 6MHz for reads.
+    // Maybe just set to 10MHz when sending data and 6MHz otherwise
 
     // This needs to be set low until clock is set
     // CLKI == XTALI == 12288000
@@ -251,6 +255,8 @@ void DevVS1053B < CS, DCS, DREQ, RST, SPI, MOSI, MISO, SCK >::softReset(void)
     //  ctrlSet(VC_MODE, mode | VS1053_SM_RESET);
     // But do this:
     ctrlSet(VC_MODE, VS1053_SM_DEFAULT | VS1053_SM_RESET);
+
+    // Delay only seems necessary when RESET pin is asserted.
     //delay_msecs(5);
     //while (!ready());
 
@@ -341,20 +347,14 @@ void DevVS1053B < CS, DCS, DREQ, RST, SPI, MOSI, MISO, SCK >::send(uint8_t const
     for (uint16_t i = 0; i < send32s; i++)
     {
         while (!ready());
-
-        //TData::_spi.begin(TData::_pin, TData::_cta);
         TData::_spi.tx(data, 32);
-        //TData::_spi.end(TData::_pin);
-
         data += 32;
     }
 
     if (sendleft != 0)
     {
         while (!ready());
-        //TData::_spi.begin(TData::_pin, TData::_cta);
         TData::_spi.tx(data, sendleft);
-        //TData::_spi.end(TData::_pin);
     }
 
     TData::_spi.end(TData::_pin);
@@ -372,17 +372,13 @@ void DevVS1053B < CS, DCS, DREQ, RST, SPI, MOSI, MISO, SCK >::send(uint8_t byte,
     for (uint16_t i = 0; i < send32s; i++)
     {
         while (!ready());
-        //TData::_spi.begin(TData::_pin, TData::_cta);
         TData::_spi.tx(byte, 32);
-        //TData::_spi.end(TData::_pin);
     }
 
     if (sendleft != 0)
     {
         while (!ready());
-        //TData::_spi.begin(TData::_pin, TData::_cta);
         TData::_spi.tx(byte, sendleft);
-        //TData::_spi.end(TData::_pin);
     }
 
     TData::_spi.end(TData::_pin);
@@ -422,7 +418,9 @@ void DevVS1053B < CS, DCS, DREQ, RST, SPI, MOSI, MISO, SCK >::finish(void)
         softReset();
 }
 
+// Use this since cancel doesn't seem to work reliably
 #define VS_CANCEL_SOFT_RESET
+
 template < pin_t CS, pin_t DCS, pin_t DREQ, pin_t RST,
     template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
 void DevVS1053B < CS, DCS, DREQ, RST, SPI, MOSI, MISO, SCK >::cancel(File * fp)
@@ -474,8 +472,8 @@ void DevVS1053B < CS, DCS, DREQ, RST, SPI, MOSI, MISO, SCK >::cancel(File * fp)
     // it often took ~15 ms for these to clear:
     // http://www.vsdsp-forum.com/phpbb/viewtopic.php?t=920
     // Also, it doesn't seem to affect decoding the next song so just
-    // don't bother checking.
-    // On second thought just do a softReset()
+    // don't bother checking.  On second thought just do a softReset()
+    // if not finished.
     if (!finished())
         softReset();
 #endif

@@ -427,6 +427,11 @@ class PinSPI : public PinAltN < PIN, MUX_ALT2 >
         PinSPI(uint8_t flags) : PinAltN < PIN, MUX_ALT2 > (flags) {}
 };
 
+// PIN_PCR_DSE is Drive Strength Enable
+// The core teensy code sometimes uses this and sometimes not for
+// certain pins.  Not sure if/when it's necessary.
+// Found it to be necessary for pin 14 SCK
+
 template < pin_t PIN >
 class PinMOSI : public PinSPI < PIN >
 {

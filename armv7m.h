@@ -41,6 +41,7 @@ class SCB
             if (e < EXCEPT_MEM_MANAGE) return;
             _s_shpr_base[e - 4] = priority;
         }
+
         static int getPriority(except_e e)
         {
             switch (e)
@@ -51,6 +52,7 @@ class SCB
                 default:                return _s_shpr_base[e - 4];
             }
         }
+
         static bool sysTickIntrPending(void) { return *_s_icsr & SCB_ICSR_PENDSTSET; }
         static void setSleepDeep(void) { *_s_scr |= SCB_SCR_SLEEPDEEP; }
         static void clearSleepDeep(void) { *_s_scr &= ~SCB_SCR_SLEEPDEEP; }

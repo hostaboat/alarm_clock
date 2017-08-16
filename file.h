@@ -335,12 +335,12 @@ class Fat32File : public TFile < DD, FST_FAT32 >
         uint32_t _cluster = 0;
         uint32_t _sofc = 0;  // sector of cluster
 
-        uint32_t _ds = 0; // data sector
+        uint32_t _ds = 0;       // data sector
         uint32_t _dsb_off = 0;  // data buffer offset
-        sector_u _dsb;  // data buffer
+        sector_u _dsb;          // data buffer
 
         uint32_t _ts = 0; // table sector
-        sector_u _tsb;  // table buffer
+        sector_u _tsb;    // table buffer
 };
 
 template < class DD >
@@ -362,7 +362,8 @@ bool Fat32File < DD >::nextSector(void)
     if (Fat32 < DD >::nextCluster(*this->_dd, _cluster, _ts, _tsb))
         return get_sector(Fat32 < DD >::dataSector(_cluster));
 
-    this->close();  // Failure
+    // Failure - close and invalidate
+    this->close();
     return this->valid();
 }
 
@@ -750,18 +751,5 @@ int Fat32 < DD >::getFiles(uint32_t cluster, uint8_t level, FileInfo * infos,
 // Templates ///////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 using TFs = Fat32 < TDisk >;
-
-#if 0
-template
-    < template < uint16_t, pin_t, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
-    class DD, uint16_t RBL, pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
-class TEST
-{
-    private:
-        DD < RBL, CS, SPI, MOSI, MISO, SCK > d;
-};
-
-using TTest = TEST < DevDisk, 512, PIN_SD_CS, SPI0, PIN_MOSI, PIN_MISO, PIN_SCK >;
-#endif
 
 #endif

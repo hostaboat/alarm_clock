@@ -181,7 +181,7 @@ class Leds : public DevPin < PinOut, PIN >
 
         // For GRB the second, then the first then the last of the CRGB - 1 0 2
         static constexpr uint8_t const _s_rgb_order = 0x42; // GRB 0100 0010
-        template < uint8_t X > uint8_t RB(void) { return (_s_rgb_order >> (3 * (2 - X))) & 0x03; }
+        template < uint8_t X > constexpr uint8_t RB(void) { return (_s_rgb_order >> (3 * (2 - X))) & 0x03; }
 
         template < uint8_t SLOT > uint8_t loadByte(void) { return _data[RB<SLOT>()]; }
         template < uint8_t SLOT > uint8_t dither(uint8_t b) { return b ? qadd8(b, _d[RB<SLOT>()]) : 0; }
@@ -221,29 +221,26 @@ void Leds < PIN, N >::ditherInit(void)
 template < pin_t PIN, uint8_t N >
 void Leds < PIN, N >::binaryDitherInit(void)
 {
-    // Set 'virtual bits' of dithering to the highest level
-    // that is not likely to cause excessive flickering at
-    // low brightness levels + low update rates.
-    // These pre-set values are a little ambitious, since
-    // a 400Hz update rate for WS2811-family LEDs is only
-    // possible with 85 pixels or fewer.
-    // Once we have a 'number of milliseconds since last update'
-    // value available here, we can quickly calculate the correct
-    // number of 'virtual bits' on the fly with a couple of 'if'
-    // statements -- no division required.  At this point,
-    // the division is done at compile time, so there's no runtime
-    // cost, but the values are still hard-coded.
+    // Set 'virtual bits' of dithering to the highest level that is not likely to
+    // cause excessive flickering at low brightness levels + low update rates.
+    // These pre-set values are a little ambitious, since a 400Hz update rate for
+    // WS2811-family LEDs is only possible with 85 pixels or fewer.
+    // Once we have a 'number of milliseconds since last update' value available
+    // here, we can quickly calculate the correct number of 'virtual bits' on the
+    // fly with a couple of 'if' statements -- no division required.  At this
+    // point, the division is done at compile time, so there's no runtime cost,
+    // but the values are still hard-coded.
 #define MAX_LIKELY_UPDATE_RATE_HZ     400
 #define MIN_ACCEPTABLE_DITHER_RATE_HZ  50
 #define UPDATES_PER_FULL_DITHER_CYCLE (MAX_LIKELY_UPDATE_RATE_HZ / MIN_ACCEPTABLE_DITHER_RATE_HZ)
-#define RECOMMENDED_VIRTUAL_BITS ((UPDATES_PER_FULL_DITHER_CYCLE>1) + \
-        (UPDATES_PER_FULL_DITHER_CYCLE>2) + \
-        (UPDATES_PER_FULL_DITHER_CYCLE>4) + \
-        (UPDATES_PER_FULL_DITHER_CYCLE>8) + \
-        (UPDATES_PER_FULL_DITHER_CYCLE>16) + \
-        (UPDATES_PER_FULL_DITHER_CYCLE>32) + \
-        (UPDATES_PER_FULL_DITHER_CYCLE>64) + \
-        (UPDATES_PER_FULL_DITHER_CYCLE>128) )
+#define RECOMMENDED_VIRTUAL_BITS ((UPDATES_PER_FULL_DITHER_CYCLE > 1) + \
+        (UPDATES_PER_FULL_DITHER_CYCLE > 2) + \
+        (UPDATES_PER_FULL_DITHER_CYCLE > 4) + \
+        (UPDATES_PER_FULL_DITHER_CYCLE > 8) + \
+        (UPDATES_PER_FULL_DITHER_CYCLE > 16) + \
+        (UPDATES_PER_FULL_DITHER_CYCLE > 32) + \
+        (UPDATES_PER_FULL_DITHER_CYCLE > 64) + \
+        (UPDATES_PER_FULL_DITHER_CYCLE > 128))
 #define VIRTUAL_BITS RECOMMENDED_VIRTUAL_BITS
 
     // R is the dither signal 'counter'.
@@ -367,6 +364,5 @@ void Leds < PIN, N >::showPixels(void)
 }
 
 using TLeds = Leds < PIN_NEO, 16 >;
-//using TLeds = Leds < PIN_NEO, 8 >;
 
 #endif

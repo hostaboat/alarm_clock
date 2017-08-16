@@ -251,7 +251,7 @@ class DevHT16K33 : public DevI2C < ADDR, I2C, SDA, SCL > , public Seg7Display
         virtual bool isAwake(void) { return _awake && this->_i2c.running(); }
         virtual void on(void);
         virtual void off(void);
-        virtual bool isOn(void) { return _on; }
+        virtual bool isOn(void) { return _on && isAwake(); }
         virtual br_e brightness(void) { return (br_e)_brightness; }
         virtual void brightness(br_e level);
         virtual void up(void);
@@ -291,37 +291,25 @@ DevHT16K33 < ADDR, I2C, SDA, SCL >::DevHT16K33(void)
 template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >
 void DevHT16K33 < ADDR, I2C, SDA, SCL >::wake(void)
 {
-    if (isAwake())
-        return;
-
-    _awake = true;
-
-    // Have to turn the I2C module back on
-    this->_i2c.start();
-
+    if (isAwake()) return;
+    this->_i2c.start(); // Have to turn the I2C module back on
     send(HT16K33_WAKEUP);
+    _awake = true;
 }
 
 template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >
 void DevHT16K33 < ADDR, I2C, SDA, SCL >::sleep(void)
 {
-    if (!isAwake())
-        return;
-
-    _awake = false;
-
+    if (!isAwake()) return;
     send(HT16K33_STANDBY);
-
-    // This saves some power by turning the I2C module off
-    this->_i2c.stop();
+    this->_i2c.stop(); // This saves some power by turning the I2C module off
+    _awake = false;
 }
 
 template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >
 void DevHT16K33 < ADDR, I2C, SDA, SCL >::on(void)
 {
-    if (isOn())
-        return;
-
+    if (isOn()) return;
     wake();
     send(HT16K33_ON);
     _on = true;
@@ -330,9 +318,7 @@ void DevHT16K33 < ADDR, I2C, SDA, SCL >::on(void)
 template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >
 void DevHT16K33 < ADDR, I2C, SDA, SCL >::off(void)
 {
-    if (!isOn())
-        return;
-
+    if (!isOn()) return;
     wake();
     send(HT16K33_OFF);
     _on = false;
@@ -341,6 +327,8 @@ void DevHT16K33 < ADDR, I2C, SDA, SCL >::off(void)
 template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >
 void DevHT16K33 < ADDR, I2C, SDA, SCL >::up(void)
 {
+    wake();
+
     if (_brightness == HT16K33_MAX_BRIGHTNESS)
         return;
 
@@ -352,6 +340,8 @@ void DevHT16K33 < ADDR, I2C, SDA, SCL >::up(void)
 template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >
 void DevHT16K33 < ADDR, I2C, SDA, SCL >::down(void)
 {
+    wake();
+
     if (_brightness == HT16K33_MIN_BRIGHTNESS)
     {
         off();
@@ -366,6 +356,8 @@ void DevHT16K33 < ADDR, I2C, SDA, SCL >::down(void)
 template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >
 void DevHT16K33 < ADDR, I2C, SDA, SCL >::brightness(br_e level)
 {
+    wake();
+
     if (level == BR_OFF)
     {
         off();
@@ -381,11 +373,14 @@ void DevHT16K33 < ADDR, I2C, SDA, SCL >::brightness(br_e level)
         _brightness = HT16K33_MAX_BRIGHTNESS;
 
     send(HT16K33_BRIGHTNESS_REG | _brightness);
+    on();
 }
 
 template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >
 void DevHT16K33 < ADDR, I2C, SDA, SCL >::show(void)
 {
+    wake();
+
     this->_i2c.begin(ADDR, this->_frequency);
     this->_i2c.tx8(0x00);  // Command code
 

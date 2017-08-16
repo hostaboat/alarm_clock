@@ -111,29 +111,29 @@ class Eeprom : public Module
 
         static constexpr int const _s_ready_times = 96000;
 
-        static reg8 _s_base_reg;
+        static reg8 _s_base;
         static reg8 _s_fstat;
         static reg8 _s_fcnfg;
-        static reg8 _s_fsec;
-        static reg8 _s_fopt;
-        static reg8 _s_fccob3;
-        static reg8 _s_fccob2;
-        static reg8 _s_fccob1;
+        //static reg8 _s_fsec;
+        //static reg8 _s_fopt;
+        //static reg8 _s_fccob3;
+        //static reg8 _s_fccob2;
+        //static reg8 _s_fccob1;
         static reg8 _s_fccob0;
-        static reg8 _s_fccob7;
-        static reg8 _s_fccob6;
+        //static reg8 _s_fccob7;
+        //static reg8 _s_fccob6;
         static reg8 _s_fccob5;
         static reg8 _s_fccob4;
-        static reg8 _s_fccobb;
-        static reg8 _s_fccoba;
-        static reg8 _s_fccob9;
-        static reg8 _s_fccob8;
-        static reg8 _s_fprot3;
-        static reg8 _s_fprot2;
-        static reg8 _s_fprot1;
-        static reg8 _s_fprot0;
-        static reg8 _s_feprot;
-        static reg8 _s_fdprot;
+        //static reg8 _s_fccobb;
+        //static reg8 _s_fccoba;
+        //static reg8 _s_fccob9;
+        //static reg8 _s_fccob8;
+        //static reg8 _s_fprot3;
+        //static reg8 _s_fprot2;
+        //static reg8 _s_fprot1;
+        //static reg8 _s_fprot0;
+        //static reg8 _s_feprot;
+        //static reg8 _s_fdprot;
 
         static reg32 _s_sim_fcfg1;
 };

@@ -31,11 +31,7 @@ class Tsi : public Module
             friend Tsi;
 
             public:
-                uint16_t read(void)
-                {
-                    //while (_tsi.scanning());
-                    return _tsi.read(_channel);
-                }
+                uint16_t read(void) { return _tsi.read(_channel); }
 
                 Channel(Channel const &) = delete;
                 Channel & operator=(Channel const &) = delete;
@@ -99,7 +95,8 @@ class Tsi : public Module
             // PS = 4 (Electrode Oscillator Frequency divided by N) 
             // STM (Scan Trigger Mode) - periodic scan
             //*_s_gencs = (0x09 << 19) | (0x02 << 16) | TSI_GENCS_STM;
-            // Doesn't make sense to have it scanning continuously so use soft trigger
+            // Doesn't make sense to have it scanning continuously
+            // and I couldn't get it to work, so use soft trigger.
             *_s_gencs = (0x09 << 19) | (0x02 << 16);
         }
 

@@ -23,11 +23,11 @@
 #define LPTMR_CMR_COMPARE(cv)  (uint16_t)(cv)
 //#define LPTMR_CNR_COUNTER  Read only
 
-reg32 Lptmr::_s_base_reg = (reg32)0x40040000;
-reg32 Lptmr::_s_csr = _s_base_reg;
-reg32 Lptmr::_s_psr = _s_base_reg + 1;
-reg32 Lptmr::_s_cmr = _s_base_reg + 2;
-reg32 Lptmr::_s_cnr = _s_base_reg + 3;
+reg32 Lptmr::_s_base = (reg32)0x40040000;
+reg32 Lptmr::_s_csr = _s_base;
+reg32 Lptmr::_s_psr = _s_base + 1;
+reg32 Lptmr::_s_cmr = _s_base + 2;
+reg32 Lptmr::_s_cnr = _s_base + 3;
 reg32 Lptmr::_s_sim_sopt1 = (reg32)0x40047000;
 
 void Lptmr::enable(void)

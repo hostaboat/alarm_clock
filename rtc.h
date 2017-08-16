@@ -151,7 +151,8 @@ class Rtc : public Module
         // Stores contents of Time Seconds Register before MCU goes to sleep
         uint32_t _tsr;
 
-        static constexpr uint8_t const _s_days_in_month[12] = {
+        static constexpr uint8_t const _s_days_in_month[12] =
+        {
             31,  // January
             28,  // February
             31,  // March

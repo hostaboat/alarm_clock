@@ -37,7 +37,7 @@ class Lptmr : public Module
 #define SIM_SOPT1_OSC_LPO_1KHZ  (0x03 << 18)
         uint32_t _osc32ksel = (uint32_t)SIM_SOPT1_OSC_LPO_1KHZ;
 
-        static reg32 _s_base_reg;
+        static reg32 _s_base;
         static reg32 _s_csr;
         static reg32 _s_psr;
         static reg32 _s_cmr;
@@ -46,7 +46,7 @@ class Lptmr : public Module
         static reg32 _s_sim_sopt1;
 };
 
-/*
+/*******************************************************************************
  * LPTMR0_PSR[PCS]    Prescaler/glitch filter    Chip Clock
  *                         clock number
  *       00                      0               MCGIRCLK - internal reference clock (not available in VLPS/LLS/VLLS
@@ -73,6 +73,6 @@ class Lptmr : public Module
  * Write CSR first with timer disabled
  * Then PSR and CMR
  * Then CSR[TIE] as last step - is this before, during or after setting CSR[TEN]?
- */
+ ******************************************************************************/
 
 #endif

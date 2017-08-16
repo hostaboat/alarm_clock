@@ -190,7 +190,6 @@ void UI::process(void)
     {
         _states[slast]->uisEnd();
 
-        // This shouldn't fail.  If it does, there's a major problem.
         if (!_states[_state]->uisBegin())
             error(_state);
     }
@@ -550,6 +549,7 @@ void UI::Player::process(void)
             if (t == 0) break;
             t <<= i;
         }
+
         val += (t >> i) + 1;
         if (val > INT16_MAX) val = INT16_MAX;
         return val;
@@ -878,11 +878,11 @@ void UI::SetClock::uisWait(void)
 
 void UI::SetClock::uisUpdate(ev_e ev)
 {
-    if (_update_actions[_state] != nullptr)
-    {
-        MFC(_update_actions[_state])(ev);
-        display();
-    }
+    if (_update_actions[_state] == nullptr)
+        return;
+
+    MFC(_update_actions[_state])(ev);
+    display();
 }
 
 void UI::SetClock::uisChange(void)
@@ -1024,11 +1024,11 @@ void UI::SetTimer::uisWait(void)
 
 void UI::SetTimer::uisUpdate(ev_e ev)
 {
-    if (_update_actions[_state] != nullptr)
-    {
-        MFC(_update_actions[_state])(ev);
-        display();
-    }
+    if (_update_actions[_state] == nullptr)
+        return;
+
+    MFC(_update_actions[_state])(ev);
+    display();
 }
 
 void UI::SetTimer::uisChange(void)
@@ -1407,6 +1407,9 @@ bool UI::Touch::uisBegin(void)
 {
     _state = TS_READ;
     _touch_read = 0;
+
+    // Using this as a display update to show touch value when reading
+    // as well as a display blink for setting.
     _blink.reset(_s_touch_read_interval);
 
     return true;

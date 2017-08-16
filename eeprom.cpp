@@ -46,29 +46,29 @@
 #define FTFL_FCNFG_EEERDY  (1 << 0)
 #define FTFL_FCNFG_RAMRDY  (1 << 1)
 
-reg8 Eeprom::_s_base_reg = (reg8)0x40020000;
-reg8 Eeprom::_s_fstat = _s_base_reg;
-reg8 Eeprom::_s_fcnfg = _s_base_reg + 0x01;
-reg8 Eeprom::_s_fsec = _s_base_reg + 0x02;
-reg8 Eeprom::_s_fopt = _s_base_reg + 0x03;
-reg8 Eeprom::_s_fccob3 = _s_base_reg + 0x04;
-reg8 Eeprom::_s_fccob2 = _s_base_reg + 0x05;
-reg8 Eeprom::_s_fccob1 = _s_base_reg + 0x06;
-reg8 Eeprom::_s_fccob0 = _s_base_reg + 0x07;
-reg8 Eeprom::_s_fccob7 = _s_base_reg + 0x08;
-reg8 Eeprom::_s_fccob6 = _s_base_reg + 0x09;
-reg8 Eeprom::_s_fccob5 = _s_base_reg + 0x0A;
-reg8 Eeprom::_s_fccob4 = _s_base_reg + 0x0B;
-reg8 Eeprom::_s_fccobb = _s_base_reg + 0x0C;
-reg8 Eeprom::_s_fccoba = _s_base_reg + 0x0D;
-reg8 Eeprom::_s_fccob9 = _s_base_reg + 0x0E;
-reg8 Eeprom::_s_fccob8 = _s_base_reg + 0x0F;
-reg8 Eeprom::_s_fprot3 = _s_base_reg + 0x10;
-reg8 Eeprom::_s_fprot2 = _s_base_reg + 0x11;
-reg8 Eeprom::_s_fprot1 = _s_base_reg + 0x12;
-reg8 Eeprom::_s_fprot0 = _s_base_reg + 0x13;
-reg8 Eeprom::_s_feprot = _s_base_reg + 0x16;
-reg8 Eeprom::_s_fdprot = _s_base_reg + 0x17;
+reg8 Eeprom::_s_base = (reg8)0x40020000;
+reg8 Eeprom::_s_fstat = _s_base;
+reg8 Eeprom::_s_fcnfg = _s_base + 0x01;
+//reg8 Eeprom::_s_fsec = _s_base + 0x02;
+//reg8 Eeprom::_s_fopt = _s_base + 0x03;
+//reg8 Eeprom::_s_fccob3 = _s_base + 0x04;
+//reg8 Eeprom::_s_fccob2 = _s_base + 0x05;
+//reg8 Eeprom::_s_fccob1 = _s_base + 0x06;
+reg8 Eeprom::_s_fccob0 = _s_base + 0x07;
+//reg8 Eeprom::_s_fccob7 = _s_base + 0x08;
+//reg8 Eeprom::_s_fccob6 = _s_base + 0x09;
+reg8 Eeprom::_s_fccob5 = _s_base + 0x0A;
+reg8 Eeprom::_s_fccob4 = _s_base + 0x0B;
+//reg8 Eeprom::_s_fccobb = _s_base + 0x0C;
+//reg8 Eeprom::_s_fccoba = _s_base + 0x0D;
+//reg8 Eeprom::_s_fccob9 = _s_base + 0x0E;
+//reg8 Eeprom::_s_fccob8 = _s_base + 0x0F;
+//reg8 Eeprom::_s_fprot3 = _s_base + 0x10;
+//reg8 Eeprom::_s_fprot2 = _s_base + 0x11;
+//reg8 Eeprom::_s_fprot1 = _s_base + 0x12;
+//reg8 Eeprom::_s_fprot0 = _s_base + 0x13;
+//reg8 Eeprom::_s_feprot = _s_base + 0x16;
+//reg8 Eeprom::_s_fdprot = _s_base + 0x17;
 reg32 Eeprom::_s_sim_fcfg1 = (reg32)0x4004804C;
 
 // This is basically a carbon copy taken from the teensy3 core file eeprom.c
@@ -118,30 +118,14 @@ Eeprom::Eeprom(void)
 
     switch ((*_s_sim_fcfg1 & 0x000F0000) >> 16) // EESIZE
     {
-        case EE_SIZE(2048):
-            _max_index = EE_MAX_INDEX(2048);
-            break;
-        case EE_SIZE(1024):
-            _max_index = EE_MAX_INDEX(1024);
-            break;
-        case EE_SIZE(512):
-            _max_index = EE_MAX_INDEX(512);
-            break;
-        case EE_SIZE(256):
-            _max_index = EE_MAX_INDEX(256);
-            break;
-        case EE_SIZE(128):
-            _max_index = EE_MAX_INDEX(128);
-            break;
-        case EE_SIZE(64):
-            _max_index = EE_MAX_INDEX(64);
-            break;
-        case EE_SIZE(32):
-            _max_index = EE_MAX_INDEX(32);
-            break;
-        case EE_SIZE(0):
-            _max_index = -1;
-            break;
+        case EE_SIZE(2048): _max_index = EE_MAX_INDEX(2048); break;
+        case EE_SIZE(1024): _max_index = EE_MAX_INDEX(1024); break;
+        case EE_SIZE(512):  _max_index = EE_MAX_INDEX(512); break;
+        case EE_SIZE(256):  _max_index = EE_MAX_INDEX(256); break;
+        case EE_SIZE(128):  _max_index = EE_MAX_INDEX(128); break;
+        case EE_SIZE(64):   _max_index = EE_MAX_INDEX(64); break;
+        case EE_SIZE(32):   _max_index = EE_MAX_INDEX(32); break;
+        case EE_SIZE(0):    _max_index = -1; break;
     }
 }
 
@@ -150,8 +134,8 @@ bool Eeprom::ready(eei_e index) const
     if ((int16_t)index > _max_index)
         return false;
 
-    int i;
-    for (i = 0; i < _s_ready_times; i++)
+    int i = 0;
+    for (; i < _s_ready_times; i++)
     {
         if (*_s_fcnfg & FTFL_FCNFG_EEERDY)
             break;

@@ -495,8 +495,7 @@ void ResetHandler(void)
     start_clocks();  // Gets from FEI to PEE mode
 
     // I don't think this is necessary since PRIMASK is set to zero on reset
-    // anyway.  It's just an alias for "CPSIE i" which sets the PRIMASK to
-    // zero.
+    // anyway.  It's just an alias for "CPSIE i" which sets the PRIMASK to zero.
     //__enable_irq();
 
     __libc_init_array();  // Run the deferred C library initialization

@@ -4,14 +4,14 @@
 #include "pin.h"
 #include "lptmr.h"
 
-#define MCG_C1_CLKS(val) (uint8_t)(((val) & 0x03) << 6)
-#define MCG_C2_LP        (uint8_t)(1 << 1)
-#define MCG_C6_CME0      (uint8_t)(1 << 5)
-#define MCG_S_CLKST_MASK (uint8_t)(0x03 << 2)
-#define MCG_S_CLKST(val) (uint8_t)(((val) & 0x03) << 2)
-#define MCG_S_IREFST     (uint8_t)(1 << 4)
-#define MCG_S_PLLST      (uint8_t)(1 << 5)
-#define MCG_S_LOCK0      (uint8_t)(1 << 6)
+#define MCG_C1_CLKS(val) (((val) & 0x03) << 6)
+#define MCG_C2_LP        (1 << 1)
+#define MCG_C6_CME0      (1 << 5)
+#define MCG_S_CLKST_MASK (0x03 << 2)
+#define MCG_S_CLKST(val) (((val) & 0x03) << 2)
+#define MCG_S_IREFST     (1 << 4)
+#define MCG_S_PLLST      (1 << 5)
+#define MCG_S_LOCK0      (1 << 6)
 
 wus_e volatile Llwu::_s_wakeup_source = WUS_NONE;
 wums_e volatile Llwu::_s_wakeup_module = WUMS_NOT;
@@ -19,38 +19,38 @@ int8_t volatile Llwu::_s_wakeup_pin = -1;
 Lptmr * Llwu::_s_lptmr = nullptr;
 constexpr int8_t const Llwu::_s_wups_to_pin[16];
 
-reg8 Llwu::_s_base_reg = (reg8)0x4007C000;
-reg8 Llwu::_s_pe1 = _s_base_reg;
-reg8 Llwu::_s_pe2 = _s_base_reg + 1;
-reg8 Llwu::_s_pe3 = _s_base_reg + 2;
-reg8 Llwu::_s_pe4 = _s_base_reg + 3;
-reg8 Llwu::_s_me  = _s_base_reg + 4;
-reg8 Llwu::_s_f1  = _s_base_reg + 5;
-reg8 Llwu::_s_f2  = _s_base_reg + 6;
-reg8 Llwu::_s_f3  = _s_base_reg + 7;
-//reg8 Llwu::_s_filt1 = _s_base_reg + 8;
-//reg8 Llwu::_s_filt2 = _s_base_reg + 9;
-//reg8 Llwu::_s_rst = _s_base_reg + 10;
+reg8 Llwu::_s_base = (reg8)0x4007C000;
+reg8 Llwu::_s_pe1 = _s_base;
+reg8 Llwu::_s_pe2 = _s_base + 1;
+reg8 Llwu::_s_pe3 = _s_base + 2;
+reg8 Llwu::_s_pe4 = _s_base + 3;
+reg8 Llwu::_s_me  = _s_base + 4;
+reg8 Llwu::_s_f1  = _s_base + 5;
+reg8 Llwu::_s_f2  = _s_base + 6;
+reg8 Llwu::_s_f3  = _s_base + 7;
+//reg8 Llwu::_s_filt1 = _s_base + 8;
+//reg8 Llwu::_s_filt2 = _s_base + 9;
+//reg8 Llwu::_s_rst = _s_base + 10;
 
-reg8 Llwu::_s_smc_base_reg = (reg8)0x4007E000;
-//reg8 Llwu::_s_smc_pmprot   = _s_smc_base_reg;
-reg8 Llwu::_s_smc_pmctrl   = _s_smc_base_reg + 1;
-//reg8 Llwu::_s_smc_vllsctrl = _s_smc_base_reg + 2;
-//reg8 Llwu::_s_smc_pmstat   = _s_smc_base_reg + 3;
+reg8 Llwu::_s_smc_base = (reg8)0x4007E000;
+//reg8 Llwu::_s_smc_pmprot   = _s_smc_base;
+reg8 Llwu::_s_smc_pmctrl   = _s_smc_base + 1;
+//reg8 Llwu::_s_smc_vllsctrl = _s_smc_base + 2;
+//reg8 Llwu::_s_smc_pmstat   = _s_smc_base + 3;
 
-reg8 Llwu::_s_mcg_base_reg = (reg8)0x40064000;
-reg8 Llwu::_s_mcg_c1 = _s_mcg_base_reg;
-reg8 Llwu::_s_mcg_c2 = _s_mcg_base_reg + 1;
-//reg8 Llwu::_s_mcg_c3 = _s_mcg_base_reg + 2;
-//reg8 Llwu::_s_mcg_c4 = _s_mcg_base_reg + 3;
-//reg8 Llwu::_s_mcg_c5 = _s_mcg_base_reg + 4;
-reg8 Llwu::_s_mcg_c6 = _s_mcg_base_reg + 5;
-reg8 Llwu::_s_mcg_s  = _s_mcg_base_reg + 6;
-//reg8 Llwu::_s_mcg_sc = _s_mcg_base_reg + 8;
-//reg8 Llwu::_s_mcg_atcvh = _s_mcg_base_reg + 10;
-//reg8 Llwu::_s_mcg_atcvl = _s_mcg_base_reg + 11;
-//reg8 Llwu::_s_mcg_c7 = _s_mcg_base_reg + 12;
-//reg8 Llwu::_s_mcg_c8 = _s_mcg_base_reg + 13;
+reg8 Llwu::_s_mcg_base = (reg8)0x40064000;
+reg8 Llwu::_s_mcg_c1 = _s_mcg_base;
+reg8 Llwu::_s_mcg_c2 = _s_mcg_base + 1;
+//reg8 Llwu::_s_mcg_c3 = _s_mcg_base + 2;
+//reg8 Llwu::_s_mcg_c4 = _s_mcg_base + 3;
+//reg8 Llwu::_s_mcg_c5 = _s_mcg_base + 4;
+reg8 Llwu::_s_mcg_c6 = _s_mcg_base + 5;
+reg8 Llwu::_s_mcg_s  = _s_mcg_base + 6;
+//reg8 Llwu::_s_mcg_sc = _s_mcg_base + 8;
+//reg8 Llwu::_s_mcg_atcvh = _s_mcg_base + 10;
+//reg8 Llwu::_s_mcg_atcvl = _s_mcg_base + 11;
+//reg8 Llwu::_s_mcg_c7 = _s_mcg_base + 12;
+//reg8 Llwu::_s_mcg_c8 = _s_mcg_base + 13;
 
 void Llwu::enable(void)
 {
@@ -99,9 +99,9 @@ bool Llwu::timerEnable(uint16_t msecs)
         return false;
 
     _s_lptmr = &Lptmr::acquire();
-
     _s_lptmr->enable();
     _s_lptmr->setTime(msecs);
+
     *_s_me |= (1 << WUMS_LPTMR);
 
     return true;
@@ -113,6 +113,7 @@ bool Llwu::timerDisable(void)
         return false;
 
     *_s_me &= ~(1 << WUMS_LPTMR);
+
     _s_lptmr->disable();
     _s_lptmr = nullptr;
 
@@ -146,15 +147,9 @@ wus_e Llwu::sleep(void)
     // since clocks will stop when the wfi instruction is executed.
     *_s_mcg_c6 &= ~MCG_C6_CME0;
 
-    // The Teensy Snooze code does this, but in testing it doesn't seem to be needed
-    // and it's not a possible wakeup source.
-    //SYST_CSR &= ~SYST_CSR_TICKINT;
-
     // Wait For Interrupt instruction
     // Puts the MCU into DEEPSLEEP / LLS mode
     __asm__ volatile ("wfi");
-
-    //SYST_CSR |= SYST_CSR_TICKINT;
 
     *_s_mcg_c6 |= MCG_C6_CME0;
 
@@ -166,10 +161,6 @@ wus_e Llwu::sleep(void)
 
 void wakeup_isr(void)
 {
-    // If there is a pending interrupt with the LPTMR then clear the flag
-    // and pending interrupt in that order.  If the order is reversed then
-    // after clearing the pending interrupt, another interrupt is immediately
-    // generated since the LPTMR_CSR_TCF flag hasn't been cleared yet.
     uint16_t wufp = (uint16_t)*Llwu::_s_f2 << 8 | *Llwu::_s_f1;
     uint8_t wufm = *Llwu::_s_f3;
 
@@ -177,6 +168,10 @@ void wakeup_isr(void)
     {
         if (wufm & (1 << WUMS_LPTMR))
         {
+            // If there is a pending interrupt with the LPTMR then clear the flag
+            // and pending interrupt in that order.  If the order is reversed then
+            // after clearing the pending interrupt, another interrupt is immediately
+            // generated since the LPTMR_CSR_TCF flag hasn't been cleared yet.
             Llwu::_s_lptmr->clear();
             Llwu::_s_wakeup_module = WUMS_LPTMR;
         }
@@ -202,7 +197,6 @@ void wakeup_isr(void)
             && (status & MCG_S_PLLST)      // check PLLS mux has selected PLL
             && (!(*Llwu::_s_mcg_c2 & MCG_C2_LP)))   // check Low Power bit not set
     {
-        // This lock check may not be necessary
         while (!(*Llwu::_s_mcg_s & MCG_S_LOCK0));
         *Llwu::_s_mcg_c1 &= ~MCG_C1_CLKS(0x03);
         while ((*Llwu::_s_mcg_s & MCG_S_CLKST_MASK) != MCG_S_CLKST(0x03));

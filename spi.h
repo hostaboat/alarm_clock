@@ -68,28 +68,17 @@ class SPI0 : public Module
 
         template < class CS > bool begin(CS & cs, uint32_t cta)
         {
-            if (!begin(cta))
-                return false;
-
-            // Chip Select Assert
-            cs.clear();
-
-            // Simulated delay before SCK
-            delay_usecs(1);
-
+            if (!begin(cta)) return false;
+            cs.clear();     // Chip Select Assert
+            delay_usecs(1); // Simulated delay before SCK
             return true;
         }
 
         template < class CS > void end(CS & cs)
         {
-            // Simulated delay after SCK
-            delay_usecs(1);
-
-            cs.set();
-
-            // Simulated delay between chip select assertions
-            delay_usecs(1);
-
+            delay_usecs(1); // Simulated delay after SCK
+            cs.set();       // Chip Select deassert
+            delay_usecs(1); // Simulated delay between chip select assertions
             end();
         }
 
@@ -142,10 +131,6 @@ class SPI0 : public Module
     private:
         SPI0(void);
 
-        // PIN_PCR_DSE is Drive Strength Enable
-        // The core teensy code sometimes uses this and sometimes not for
-        // certain pins.  Not sure if/when it's necessary.
-        // Found it to be necessary for pin 14 SCK
         PinMOSI < MOSI > & _mosi = PinMOSI < MOSI >::acquire();
         PinMISO < MISO > & _miso = PinMISO < MISO >::acquire();
         PinSCK < SCK > & _sck = PinSCK < SCK >::acquire();
@@ -153,8 +138,6 @@ class SPI0 : public Module
         uint32_t _cta = 0;  // Clock and Transfer Attributes Register
         bool _busy = false;
 
-        // XXX Only one instance will be created so keep these here so there
-        // isn't a source file with only static data defined.
         reg8 _base_reg = (reg8)0x4002C000;
         reg32 _mcr = (reg32)_base_reg;
         reg32 _tcr = (reg32)(_base_reg + 0x08);
@@ -215,9 +198,7 @@ void SPI0 < MOSI, MISO, SCK >::stop(void)
 template < pin_t MOSI, pin_t MISO, pin_t SCK >
 bool SPI0 < MOSI, MISO, SCK >::begin(uint32_t cta)
 {
-    if (_busy)
-        return false;
-
+    if (_busy) return false;
     _busy = true;
 
     if (restart(cta))
@@ -275,7 +256,7 @@ void SPI0 < MOSI, MISO, SCK >::clearStatusFlags(void)
     *_sr |=
         SPI_SR_TCF
         // | SPI_SR_TXRXS  // Don't think this should be cleared
-                            // Sounds like a w1c will stop the module.                 
+                           // Sounds like a w1c will stop the module.
         | SPI_SR_EOQF
         | SPI_SR_TFUF
         | SPI_SR_TFFF

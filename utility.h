@@ -4,25 +4,17 @@
 #include "types.h"
 #include "armv7m.h"
 
+// Member Function Call
 #define MFC(member_func) ((*this).*(member_func))
 
 // Sets the PRIMASK to 1, raising the execution priority to 0
 // effectively making the current executing handler uninterruptable
 // except by Reset, NMI and HardFault exceptions.
 #define __disable_irq() __asm__ volatile ("CPSID i":::"memory");
-// ARM states that no memory barrier is needed.
-//#define __disable_irq() __asm__ volatile ("CPSID i");
 
 // Sets PRIMASK to 0, thus setting execution priority back to what
 // it is configured as.
 #define __enable_irq()  __asm__ volatile ("CPSIE i":::"memory");
-// ARM states that no memory barrier is needed for Cortex-M when
-// __disable_irq() immediately follows.  However  one may want to
-// insert an ISB instruction to ensure any pending interrupts are
-// taken before code after is executed.  For Cortex-M4 this could
-// be up to 2 instructions.
-//#define __enable_irq()  __asm__ volatile ("CPSIE i");
-//#define __enable_irq()  __asm__ volatile ("CPSIE i\n\t ISB");
 
 inline uint32_t msecs(void)
 {
@@ -43,8 +35,7 @@ inline uint32_t usecs(void)
     // CVR was zero when reading CVR or CVR reached zero after reading CVR. Only
     // off by a couple of ticks in any case (including the below case where there
     // is no pending interrupt) so just add an extra millisecond.
-    if (pending)
-        return (ms + 1) * 1000;
+    if (pending) return (ms + 1) * 1000;
 
     return (ms * 1000) + ((TICKS_PER_MSEC - cv) / TICKS_PER_USEC);
 }
@@ -78,6 +69,57 @@ inline void delay_usecs(uint32_t us)
          "subs %0, #1\n\t"
          "bne L_%=_delay_usecs\n\t" : "+r" (us)
         );
+}
+
+// Set bit
+template < typename T, typename = typename enable_if < !is_pointer < T >::value >::type >
+inline void setBit(T & a, uint8_t offset) { a |= (1 << offset); }
+
+template < typename T, typename = typename enable_if < is_pointer < T >::value >::type >
+inline void setBit(T a, uint8_t offset) { *a |= (1 << offset); }
+
+// Clear bit
+template < typename T, typename = typename enable_if < !is_pointer < T >::value >::type >
+inline void clearBit(T & a, uint8_t offset) { a &= ~(1 << offset); }
+
+template < typename T, typename = typename enable_if < is_pointer < T >::value >::type >
+inline void clearBit(T a, uint8_t offset) { *a &= ~(1 << offset); }
+
+// Check bit
+template < typename T, typename = typename enable_if < !is_pointer < T >::value >::type >
+inline bool checkBit(T const & a, uint8_t offset) { return (a & (1 << offset)); }
+
+template < typename T, typename = typename enable_if < is_pointer < T >::value >::type >
+inline bool checkBit(T const a, uint8_t offset) { return (*a & (1 << offset)); }
+
+// Set bits
+template < typename T, typename = typename enable_if < !is_pointer < T >::value >::type >
+inline void setBits(T & a, T val, uint8_t offset) { a |= (val << offset); }
+
+template < typename T, typename = typename enable_if < is_pointer < T >::value >::type >
+inline void setBits(T a, typename pointer_type < T >::type val, uint8_t offset)
+{
+    *a |= (val << offset);
+}
+
+// Clear bits
+template < typename T, typename = typename enable_if < !is_pointer < T >::value >::type >
+inline void clearBits(T & a, T val, uint8_t offset) { a &= ~(val << offset); }
+
+template < typename T, typename = typename enable_if < is_pointer < T >::value >::type >
+inline void clearBits(T a, typename pointer_type < T >::type val, uint8_t offset)
+{
+    *a &= ~(val << offset);
+}
+
+// Check bits
+template < typename T, typename = typename enable_if < !is_pointer < T >::value >::type >
+inline bool checkBits(T const & a, T val, uint8_t offset) { return ((a & (val << offset)) >> offset) == val; }
+
+template < typename T, typename = typename enable_if < is_pointer < T >::value >::type >
+inline bool checkBits(T a, typename pointer_type < T >::type val, uint8_t offset)
+{
+    return ((*a & (val << offset)) >> offset) == val;
 }
 
 // Taken from FastLED code - see opti.* for license

@@ -107,11 +107,8 @@ I2C < SDA, SCL, X >::I2C(void)
 template < pin_t SDA, pin_t SCL, i2c_e X >
 void I2C < SDA, SCL, X >::start(void)
 {
-    if (running())
-        return;
-
+    if (running()) return;
     _tx_len = 0;
-
     *_c2 = I2C_C2_HDRS;
     *_c1 = I2C_C1_IICEN;
 }
@@ -119,11 +116,8 @@ void I2C < SDA, SCL, X >::start(void)
 template < pin_t SDA, pin_t SCL, i2c_e X >
 void I2C < SDA, SCL, X >::stop(void)
 {
-    if (!running() || _busy)
-        return;
-
+    if (!running() || _busy) return;
     _tx_len = 0;
-
     *_c1 = 0;
     *_c2 = 0;
 }
@@ -131,21 +125,16 @@ void I2C < SDA, SCL, X >::stop(void)
 template < pin_t SDA, pin_t SCL, i2c_e X >
 bool I2C < SDA, SCL, X >::begin(uint8_t addr, uint32_t freq)
 {
-    if (_busy)
-        return false;
-
-    if (!running())
-        start();
+    if (_busy) return false;
+    if (!running()) start();
 
     _busy = true;
 
     if (freq != _freq)
     {
         stop();
-
         _freq = freq;
         setClock(_freq);
-
         start();
     }
 

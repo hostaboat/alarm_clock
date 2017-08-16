@@ -273,7 +273,7 @@ template < pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin
 void DevSD < CS, SPI, MOSI, MISO, SCK >::endCmd(void)
 {
     this->_spi.end(this->_pin);
-    (void)this->_spi.txrx8(0xFF);  // Spec says to do this
+    (void)this->_spi.txrx8(0xFF);  // I think spec says to do this or at least wait 8 clocks.
     _busy = false;
 }
 

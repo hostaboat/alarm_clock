@@ -29,7 +29,6 @@
 // More likely for it to be 0 than this
 #define RTC_TSR_INVALID  UINT32_MAX
 
-uint32_t volatile Rtc::_s_rtc_seconds = 0;
 uint16_t Rtc::_s_clock_min_year = 2017;
 constexpr uint8_t const Rtc::_s_days_in_month[12];
 
@@ -44,6 +43,8 @@ reg32 Rtc::_s_lr  = _s_base + 6;
 reg32 Rtc::_s_ier = _s_base + 7;
 reg32 Rtc::_s_war = _s_base + 8;
 reg32 Rtc::_s_rar = _s_base + 9;
+
+uint32_t volatile Rtc::_s_rtc_seconds = 0;
 
 void rtc_seconds_isr(void)
 {
@@ -139,7 +140,7 @@ void Rtc::start(void)
     // Teensy code uses 16pF and 4pF - 20pF - load though the crystal it says
     // to use has a 12.5pF load.  There is nothing in the schematic that
     // indicates an extra 8pF load is needed.  The crystal is simply attached
-    // across XTAL32 and EXTAL32.
+    // across XTAL32 and EXTAL32.  Not sure about it so leave as is.
     //*_s_cr = RTC_CR_SC8P | RTC_CR_SC4P;
     *_s_cr = RTC_CR_SC16P | RTC_CR_SC4P;
     *_s_cr |= RTC_CR_OSCE;

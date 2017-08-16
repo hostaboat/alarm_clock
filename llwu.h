@@ -7,22 +7,10 @@
 #include "types.h"
 
 // WakeUp Pin Enable detection
-enum wupe_e
-{
-    WUPE_NONE,
-    WUPE_RISING,
-    WUPE_FALLING,
-    WUPE_CHANGE
-};
+enum wupe_e { WUPE_NONE, WUPE_RISING, WUPE_FALLING, WUPE_CHANGE };
 
 // WakeUp Source
-enum wus_e
-{
-    WUS_ERROR = -1,
-    WUS_NONE  =  0,
-    WUS_PIN,
-    WUS_MODULE
-};
+enum wus_e { WUS_ERROR = -1, WUS_NONE = 0, WUS_PIN, WUS_MODULE };
 
 // WakeUp Pin Source
 enum wups_e
@@ -85,8 +73,7 @@ class Llwu
         template < pin_t PIN, class... PINs >
         bool pinsEnable(PinInputX < PIN > const & pin, irqc_e irqc, PINs const &... pins)
         {
-            if (!pinEnable(pin, irqc))
-                return false;
+            if (!pinEnable(pin, irqc)) return false;
             return pinsEnable(pins...);
         }
 
@@ -144,7 +131,7 @@ class Llwu
         static int8_t volatile _s_wakeup_pin;
         static Lptmr * _s_lptmr;
 
-        static reg8 _s_base_reg;
+        static reg8 _s_base;
         static reg8 _s_pe1;
         static reg8 _s_pe2;
         static reg8 _s_pe3;
@@ -157,18 +144,18 @@ class Llwu
         //static reg8 _s_filt2;
         //static reg8 _s_rst;
 
-        static reg8 _s_smc_base_reg;
+        static reg8 _s_smc_base;
         //static reg8 _s_smc_pmprot;
         static reg8 _s_smc_pmctrl;
         //static reg8 _s_smc_vllsctrl;
         //static reg8 _s_smc_pmstat;
 
-        static reg8 _s_mcg_base_reg;
+        static reg8 _s_mcg_base;
         static reg8 _s_mcg_c1;
         static reg8 _s_mcg_c2;
         //static reg8 _s_mcg_c3;
         //static reg8 _s_mcg_c4;
-       // static reg8 _s_mcg_c5;
+        //static reg8 _s_mcg_c5;
         static reg8 _s_mcg_c6;
         static reg8 _s_mcg_s;
         //static reg8 _s_mcg_sc;
