@@ -64,10 +64,14 @@ class Tsi : public Module
         bool running(void) { return *_s_gencs & TSI_GENCS_TSIEN; }
 
         bool scanning(void) { return *_s_gencs & TSI_GENCS_SCNIP; }
+        bool eos(void) { return *_s_gencs & TSI_GENCS_EOSF; }  // End Of Scan
+
         uint16_t read(uint8_t channel)
         {
             *_s_gencs |= TSI_GENCS_SWTS;
             while (scanning());
+            while (!eos());
+            *_s_gencs |= TSI_GENCS_EOSF;
             return _s_cntr[channel];
         }
 

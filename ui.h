@@ -346,17 +346,20 @@ class UI
                 void waitYear(bool on);
                 void waitMonth(bool on);
                 void waitDay(bool on);
+                void waitDST(bool on);
                 void updateType(ev_e unused);
                 void updateHour(ev_e ev);
                 void updateMinute(ev_e ev);
                 void updateYear(ev_e ev);
                 void updateMonth(ev_e ev);
                 void updateDay(ev_e ev);
+                void updateDST(ev_e ev);
                 void display(df_t flags = DF_NONE);
                 void displayType(df_t flags = DF_NONE);
                 void displayTime(df_t flags = DF_NONE);
                 void displayYear(df_t flags = DF_NONE);
                 void displayDate(df_t flags = DF_NONE);
+                void displayDST(df_t flags = DF_NONE);
 
                 enum scs_e : uint8_t
                 {
@@ -366,6 +369,7 @@ class UI
                     SCS_YEAR,
                     SCS_MONTH,
                     SCS_DAY,
+                    SCS_DST,
                     SCS_DONE,
                     SCS_CNT
                 };
@@ -377,6 +381,7 @@ class UI
                     SCS_YEAR,
                     SCS_MONTH,
                     SCS_DAY,
+                    SCS_DST,
                     SCS_DONE,
                     SCS_TYPE
                 };
@@ -390,6 +395,7 @@ class UI
                     &SetClock::waitYear,
                     &SetClock::waitMonth,
                     &SetClock::waitDay,
+                    &SetClock::waitDST,
                     nullptr
                 };
 
@@ -402,6 +408,7 @@ class UI
                     &SetClock::updateYear,
                     &SetClock::updateMonth,
                     &SetClock::updateDay,
+                    &SetClock::updateDST,
                     nullptr
                 };
 
@@ -414,6 +421,7 @@ class UI
                     &SetClock::displayYear,
                     &SetClock::displayDate,
                     &SetClock::displayDate,
+                    &SetClock::displayDST,
                     &SetClock::displayTime
                 };
 

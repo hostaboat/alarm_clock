@@ -942,6 +942,11 @@ void UI::SetClock::waitDay(bool on)
     display(on ? DF_NONE : DF_BL_AC);
 }
 
+void UI::SetClock::waitDST(bool on)
+{
+    display(on ? DF_NONE : DF_BL3);
+}
+
 void UI::SetClock::updateType(ev_e unused)
 {
     _clock.type = Rtc::clockIs12H(_clock.type) ? Rtc::clock24H() : Rtc::clock12H();
@@ -972,6 +977,11 @@ void UI::SetClock::updateDay(ev_e ev)
     TUiEncSw::evUpdate < uint8_t > (_clock.day, ev, 1, Rtc::clockMaxDay(_clock.month, _clock.year));
 }
 
+void UI::SetClock::updateDST(ev_e unused)
+{
+    _clock.dst = !_clock.dst;
+}
+
 void UI::SetClock::display(df_t flags)
 {
     MFC(_display_actions[_state])(flags);
@@ -997,6 +1007,12 @@ void UI::SetClock::displayYear(df_t flags)
 {
     _ui._display.showInteger(_clock.year, flags);
 }
+
+void UI::SetClock::displayDST(df_t flags)
+{
+    _clock.dst ? _ui._display.showString("DS: Y", flags) : _ui._display.showString("DS: N", flags);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // SetClock END ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////

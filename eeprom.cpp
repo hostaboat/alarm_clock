@@ -178,24 +178,31 @@ bool Eeprom::getAlarm(eAlarm & alarm) const
 
 bool Eeprom::setClock(eClock const & clock)
 {
+    uint8_t dst = clock.dst ? EE_CLOCK_DST_ENABLED : EE_CLOCK_DST_DISABLED;
     return (write(EEI_CLOCK_SECOND, clock.second)
             && write(EEI_CLOCK_MINUTE, clock.minute)
             && write(EEI_CLOCK_HOUR, clock.hour)
             && write(EEI_CLOCK_DAY, clock.day)
             && write(EEI_CLOCK_MONTH, clock.month)
             && write(EEI_CLOCK_YEAR, clock.year)
-            && write(EEI_CLOCK_TYPE, clock.type));
+            && write(EEI_CLOCK_TYPE, clock.type)
+            && write(EEI_CLOCK_DST, dst));
 }
 
 bool Eeprom::getClock(eClock & clock) const
 {
-    return (read < uint8_t > (EEI_CLOCK_SECOND, clock.second)
-            && read < uint8_t > (EEI_CLOCK_MINUTE, clock.minute)
-            && read < uint8_t > (EEI_CLOCK_HOUR, clock.hour)
-            && read < uint8_t > (EEI_CLOCK_DAY, clock.day)
-            && read < uint8_t > (EEI_CLOCK_MONTH, clock.month)
-            && read < uint16_t > (EEI_CLOCK_YEAR, clock.year)
-            && read < uint8_t > (EEI_CLOCK_TYPE, clock.type));
+    uint8_t dst;
+    if (!read < uint8_t > (EEI_CLOCK_SECOND, clock.second)
+            || !read < uint8_t > (EEI_CLOCK_MINUTE, clock.minute)
+            || !read < uint8_t > (EEI_CLOCK_HOUR, clock.hour)
+            || !read < uint8_t > (EEI_CLOCK_DAY, clock.day)
+            || !read < uint8_t > (EEI_CLOCK_MONTH, clock.month)
+            || !read < uint16_t > (EEI_CLOCK_YEAR, clock.year)
+            || !read < uint8_t > (EEI_CLOCK_TYPE, clock.type)
+            || !read < uint8_t > (EEI_CLOCK_DST, dst))
+        return false;
+    clock.dst = (dst == EE_CLOCK_DST_ENABLED);
+    return true;
 }
 
 bool Eeprom::setClockMinYear(uint16_t year)

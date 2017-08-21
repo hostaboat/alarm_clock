@@ -17,6 +17,7 @@ enum eei_e : uint8_t
     EEI_CLOCK_MONTH,
     EEI_CLOCK_YEAR,
     EEI_CLOCK_TYPE,
+    EEI_CLOCK_DST,
     EEI_CLOCK_MIN_YEAR,
     EEI_TIMER_SECONDS,
     EEI_TIMER_MINUTES,
@@ -36,6 +37,10 @@ enum eei_e : uint8_t
 #define EE_CLOCK_TYPE_24_HOUR  0x01
 #define EE_CLOCK_TYPE_MAX      EE_CLOCK_TYPE_24_HOUR
 
+#define EE_CLOCK_DST_DISABLED  0x00
+#define EE_CLOCK_DST_ENABLED   0x01
+#define EE_CLOCK_DST_MAX       EE_CLOCK_DST_ENABLED
+
 struct eAlarm
 {
     uint8_t hour;
@@ -53,6 +58,7 @@ struct eClock
     uint8_t month;
     uint16_t year;
     uint8_t type;
+    bool dst;  // Daylight Saving Time
 };
 
 struct eTimer

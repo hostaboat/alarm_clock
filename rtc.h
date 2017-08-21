@@ -27,6 +27,17 @@ enum ru_e : uint8_t
     RU_YEAR,
 };
 
+enum dow_e  // Day Of Week
+{
+    DOW_SUN,
+    DOW_MON,
+    DOW_TUE,
+    DOW_WED,
+    DOW_THU,
+    DOW_FRI,
+    DOW_SAT,
+};
+
 class Rtc : public Module
 {
     friend void rtc_seconds_isr(void);
@@ -85,6 +96,7 @@ class Rtc : public Module
                 ? _s_days_in_month[month - 1] + 1
                 : _s_days_in_month[month - 1];
         }
+        static dow_e clockDOW(uint8_t day, uint8_t month, uint16_t year);  // Day Of Week
 
         ////////////////////////////////////////////////////////////////////////
         // Alarm ///////////////////////////////////////////////////////////////
@@ -130,6 +142,9 @@ class Rtc : public Module
         bool defaultAlarm(tAlarm & alarm);
         bool defaultTimer(tTimer & timer);
 
+        void dstInit(void);
+        int8_t dstUpdate(uint32_t seconds);
+
         static uint32_t volatile _s_rtc_seconds;
         static uint16_t _s_clock_min_year;
         static constexpr uint16_t _s_clock_max_years = 300;
@@ -142,6 +157,7 @@ class Rtc : public Module
         uint32_t _clock_year = 0;
 
         uint8_t _clock_type = EE_CLOCK_TYPE_12_HOUR;
+        bool _clock_dst = false;
 
         tAlarm _alarm{};
         tTimer _timer{};
@@ -166,6 +182,20 @@ class Rtc : public Module
             30,  // November
             31   // December
         };
+
+        // For calculating day of week
+#ifdef ZELLERS_RULE
+        // Using Zeller's Rule
+        static constexpr uint8_t const _s_zeller_month[12] = { 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+#else
+        // Using Key Value Method
+        static constexpr uint8_t const _s_month_key_value[12] = { 1, 4, 4, 0, 2, 5, 0, 3, 6, 1, 4, 6 };
+        static constexpr uint8_t const _s_year_key_value[4] = { 4 /*1700s*/, 2 /*1800s*/, 0 /*1900s*/, 6 /*2000s*/ };
+#endif
+
+        bool _in_dst = false;
+        uint16_t _dst_year = 0;
+        uint32_t _dst_secs = 0;
 
         static reg32 _s_base;
         static reg32 _s_tsr;

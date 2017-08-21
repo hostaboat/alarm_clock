@@ -69,7 +69,7 @@ int SCB::executionPriority(void)
 
     uint32_t ipsr, basepri, primask, faultmask;
 
-    __asm__ volatile ("mrs %0, ipsr\n" : "=r" (ipsr));
+    __asm__ volatile ("mrs %0, ipsr" : "=r" (ipsr));
     if (ipsr != 0)
     {
         int exceptpri;
