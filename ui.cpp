@@ -404,7 +404,7 @@ void UI::updateBrightness(ev_e bev)
 
     if (brightness > _brightness)
     {
-        if (((brightness % 16) == 0) || (brightness == 255))
+        if (((brightness % 16) == 0) || (_brightness == 0) || (brightness == 255))
             _display.up();
     }
     else
@@ -861,6 +861,7 @@ bool UI::SetClock::uisBegin(void)
 {
     (void)_ui._rtc.update();
     _ui._rtc.getClock(_clock);
+    _clock.second = 0;
 
     _state = SCS_TYPE;
 

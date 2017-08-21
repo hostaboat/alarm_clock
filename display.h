@@ -332,6 +332,12 @@ void DevHT16K33 < ADDR, I2C, SDA, SCL >::up(void)
     if (_brightness == HT16K33_MAX_BRIGHTNESS)
         return;
 
+    if (!isOn())
+    {
+        on();
+        return;
+    }
+
     _brightness++;
     send(HT16K33_BRIGHTNESS_REG | _brightness);
     on();
