@@ -1052,6 +1052,9 @@ void UI::SetTimer::uisChange(void)
 {
     _state = _next_states[_state];
 
+    if ((_state == STS_SECONDS) && (_timer.minutes == 0) && (_timer.seconds == 0))
+        _timer.seconds = 1;
+
     if (_state == STS_DONE)
         (void)_ui._rtc.setTimer(_timer);
 
@@ -1266,6 +1269,7 @@ void UI::Timer::timerLeds(void)
 bool UI::Timer::uisBegin(void)
 {
     _state = TS_WAIT;
+    _show_clock = false;
     _ui._rtc.getTimer(_timer);
     _ui._display.showTimer(_timer.minutes, _timer.seconds, DF_NO_LZ);
 
@@ -1283,11 +1287,35 @@ void UI::Timer::uisWait(void)
 {
     if (_wait_actions[_state] != nullptr)
         MFC(_wait_actions[_state])();
+
+    if (_show_clock)
+        clock();
 }
 
-void UI::Timer::uisUpdate(ev_e unused)
+void UI::Timer::uisUpdate(ev_e ev)
 {
-    // Encoder turn does nothing
+    static uint32_t turn_msecs = 0;
+    static int8_t turns = 0;
+
+    if (((msecs() - turn_msecs) < _s_turn_wait) || (_state == TS_ALERT))
+        return;
+
+    turns += (int8_t)ev;
+
+    if ((turns == _s_turns) || (turns == -_s_turns))
+    {
+        turns = 0;
+        turn_msecs = msecs();
+
+        _show_clock = !_show_clock;
+        if (_show_clock)
+            clock(true);
+        else if (_state != TS_WAIT)
+            timer(true);
+        else
+            _ui._display.showTimer(_timer.minutes, _timer.seconds, DF_NO_LZ);
+    }
+
     uisWait();
 }
 
@@ -1314,6 +1342,7 @@ void UI::Timer::uisEnd(void)
     stop();
     _ui._beeper.stop();
     _ui._leds.updateColor(CRGB::BLACK);
+    _ui._display.blank();
     _display_timer->release();
     _led_timer->release();
     _display_timer = _led_timer = nullptr;
@@ -1322,6 +1351,32 @@ void UI::Timer::uisEnd(void)
 bool UI::Timer::uisSleep(void)
 {
     return (_state != TS_RUNNING) && (_state != TS_ALERT);
+}
+
+void UI::Timer::timer(bool force)
+{
+    // Not critical that interrupts be disabled
+    _second = _s_timer_seconds;
+
+    if ((_second == _last_second) && !force)
+        return;
+
+    _last_second = _second;
+
+    _minute = 0;
+    if (_second >= 60)
+    {
+        _minute = (uint8_t)(_second / 60);
+        _second %= 60;
+    }
+
+    _ui._display.showTimer(_minute, (uint8_t)_second, DF_NO_LZ);
+}
+
+void UI::Timer::clock(bool force)
+{
+    if ((_ui._rtc.update() >= RU_MIN) || force)
+        _ui._display.showClock(_ui._rtc.clockHour(), _ui._rtc.clockMinute(), _ui._rtc.clockIs12H() ? DF_12H : DF_24H);
 }
 
 void UI::Timer::start(void)
@@ -1346,23 +1401,11 @@ void UI::Timer::reset(void)
 
 void UI::Timer::run(void)
 {
-    // Not critical that interrupts be disabled
-    uint32_t second = _s_timer_seconds;
+    // Again, not critical that interrupts be disabled
     uint8_t hue = _s_timer_hue;
 
-    if (second != _last_second)
-    {
-        _last_second = second;
-
-        uint8_t minute = 0;
-        if (second >= 60)
-        {
-            minute = (uint8_t)(second / 60);
-            second %= 60;
-        }
-
-        _ui._display.showTimer(minute, (uint8_t)second, DF_NO_LZ);
-    }
+    if (!_show_clock || (_s_timer_seconds == 0))
+        timer();
 
     if (hue != _last_hue)
     {
@@ -1373,6 +1416,7 @@ void UI::Timer::run(void)
     if (_last_second == 0)
     {
         stop();
+        _show_clock = false;
         _ui._beeper.start();
         _state = TS_ALERT;
     }

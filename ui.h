@@ -555,7 +555,7 @@ class UI
 
                 virtual bool uisBegin(void);
                 virtual void uisWait(void);
-                virtual void uisUpdate(ev_e unused);
+                virtual void uisUpdate(ev_e ev);
                 virtual void uisChange(void);
                 virtual void uisReset(void);
                 virtual void uisEnd(void);
@@ -571,6 +571,9 @@ class UI
                 void resume(void);
                 void alert(void);
                 void stop(void);
+
+                void timer(bool force = false);
+                void clock(bool force = false);
 
                 enum ts_e : uint8_t
                 {
@@ -609,10 +612,17 @@ class UI
 
                 ts_e _state = TS_WAIT;
                 tTimer _timer = {};
+                uint32_t _second = 0;
+                uint8_t _minute = 0;
                 uint8_t _last_hue = 0;
                 uint32_t _last_second = 0;
                 Pit * _display_timer = nullptr;
                 Pit * _led_timer = nullptr;
+
+                // For showing the clock while in timer state
+                bool _show_clock = false;
+                static constexpr uint32_t const _s_turn_wait = 300;
+                static constexpr int8_t const _s_turns = 3;
 
                 // Start with blue hue and decrease to red hue
                 static constexpr uint8_t const _s_timer_hue_max = 160; // blue
