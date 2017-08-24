@@ -130,7 +130,6 @@ class Rtc : public Module
     private:
         Rtc(void);
 
-        void setClock(void);
         void reset(void);
 
         void enableIrq(void);
@@ -142,10 +141,11 @@ class Rtc : public Module
         bool defaultAlarm(tAlarm & alarm);
         bool defaultTimer(tTimer & timer);
 
+        // Daylight Saving Time routines
         void dstInit(void);
-        int8_t dstUpdate(uint32_t seconds);
+        int8_t dstUpdate(uint32_t hours);
 
-        static uint32_t volatile _s_rtc_seconds;
+        static uint32_t volatile _s_isr_seconds;
         static uint16_t _s_clock_min_year;
         static constexpr uint16_t _s_clock_max_years = 300;
 
@@ -193,9 +193,10 @@ class Rtc : public Module
         static constexpr uint8_t const _s_year_key_value[4] = { 4 /*1700s*/, 2 /*1800s*/, 0 /*1900s*/, 6 /*2000s*/ };
 #endif
 
-        bool _in_dst = false;
-        uint16_t _dst_year = 0;
-        uint32_t _dst_secs = 0;
+        bool _in_dst;
+        uint8_t _dst_day;
+        uint16_t _dst_year;
+        uint32_t _dst_hrs;
 
         static reg32 _s_base;
         static reg32 _s_tsr;
@@ -208,6 +209,10 @@ class Rtc : public Module
         static reg32 _s_ier;
         static reg32 _s_war;
         static reg32 _s_rar;
+
+        // 32 byte register that is accessible during all power modes
+        // and is powered by VBAT.
+        static reg32 _s_vbat;
 };
 
 #endif

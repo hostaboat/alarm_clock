@@ -51,11 +51,13 @@ reg32 Rtc::_s_ier = _s_base + 7;
 reg32 Rtc::_s_war = _s_base + 8;
 reg32 Rtc::_s_rar = _s_base + 9;
 
-uint32_t volatile Rtc::_s_rtc_seconds = 0;
+reg32 Rtc::_s_vbat = (reg32)0x4003E000;
+
+uint32_t volatile Rtc::_s_isr_seconds = 0;
 
 void rtc_seconds_isr(void)
 {
-    Rtc::_s_rtc_seconds++;
+    Rtc::_s_isr_seconds++;
 }
 
 //void rtc_alarm_isr(void) {}
@@ -95,7 +97,7 @@ Rtc::Rtc(void)
     _clock_type = clock.type;
     _s_clock_min_year = clock_min_year;
 
-    _clock_second = clock.second;
+    _clock_second = _s_isr_seconds = clock.second;
     _clock_minute = clock.minute;
     _clock_hour = clock.hour;
     _clock_day = clock.day;
@@ -106,18 +108,18 @@ Rtc::Rtc(void)
     start();
 
 #ifdef RTC_VBAT
-    _s_rtc_seconds = *_s_tsr;
-#else
-    _s_rtc_seconds = clock.second;
+    if (!(*_s_sr & RTC_SR_TIF))
+        _s_isr_seconds = *_s_tsr;
+    else
 #endif
+    reset();
 
     if (_clock_dst)
         dstInit();
 
     enableIrq();
 
-    if (update() != RU_NO)
-        setClock();
+    (void)update();
 }
 
 void Rtc::enableIrq(void)
@@ -159,8 +161,6 @@ void Rtc::start(void)
     // Not sure what the startup time for the crystal is but I think
     // a millisecond may be good enough.
     delay_msecs(1);
-
-    reset();
 }
 
 bool Rtc::running(void)
@@ -171,12 +171,12 @@ bool Rtc::running(void)
 void Rtc::reset(void)
 {
     disableIrq();
-    _s_rtc_seconds = _clock_second;
+    _s_isr_seconds = _clock_second;
     enableIrq();
 
     *_s_sr = 0;  // TCE must be clear to write to TSR and TPR
     *_s_tpr = 0;
-    *_s_tsr = 0;
+    *_s_tsr = _clock_second;
     //*_s_tar = 0;  // Not using alarm function
     *_s_ier = RTC_IER_TSIE;  // | RTC_IER_TAIE; // No alarm interrupt
     *_s_sr = RTC_SR_TCE;
@@ -185,37 +185,32 @@ void Rtc::reset(void)
 ru_e Rtc::update(void)
 {
     // Don't want to disable the IRQ unless there is a seconds update.
-    // An interrupt happening here while checking _s_rtc_seconds against
+    // An interrupt happening here while checking _s_isr_seconds against
     // _clock_second will get caught up on the next call.
-    if (_s_rtc_seconds == _clock_second)
+    if (_s_isr_seconds == _clock_second)
         return RU_NO;
 
     ru_e ru = RU_SEC;
 
     disableIrq();
 
-    uint32_t rtc_seconds = _s_rtc_seconds;
-
-    if (_s_rtc_seconds < 60)
-    {
-        _clock_second = _s_rtc_seconds;
-    }
-    else
+    if (_s_isr_seconds >= 60)
     {
         ru = RU_MIN;
 
-        _clock_minute += _s_rtc_seconds / 60;
-        _s_rtc_seconds %= 60;
-        _clock_second = _s_rtc_seconds;
+        _clock_minute += _s_isr_seconds / 60;
+        _s_isr_seconds %= 60;
     }
+
+    _clock_second = _s_isr_seconds;
 
     enableIrq();
 
-    if (_clock_dst && (rtc_seconds > _clock_second))
-        _clock_hour += dstUpdate(rtc_seconds - _clock_second);
-
     if (_clock_minute < 60)
         return ru;
+
+    if (_clock_dst)
+        _clock_hour += dstUpdate(_clock_minute / 60);
 
     _clock_hour += _clock_minute / 60;
     _clock_minute %= 60;
@@ -323,8 +318,7 @@ dow_e Rtc::clockDOW(uint8_t day, uint8_t month, uint16_t year)
     while (year >= 2100)
         year -= 400;
 
-    dow += _s_year_key_value[(year - 1700) / 100];
-    dow %= 7;
+    dow = (dow + (_s_year_key_value[(year - 1700) / 100])) % 7;
 
     // Using Key Value Method, day of week starts on Saturday
     return (dow_e)((dow == 0) ? 6 : dow - 1);
@@ -333,39 +327,45 @@ dow_e Rtc::clockDOW(uint8_t day, uint8_t month, uint16_t year)
 
 void Rtc::dstInit(void)
 {
-    uint32_t dst_days_left = 0;
-    uint8_t day = _clock_day;
-    uint8_t month = _clock_month;
-    uint16_t year = _clock_year;
+    uint32_t cycle = 0;
+    uint8_t day = (uint8_t)_clock_day;
+    uint8_t month = (uint8_t)_clock_month;
+    uint16_t year = (uint16_t)_clock_year;
 
-    auto adv = [](uint8_t day, uint8_t month, uint16_t year) -> uint8_t
+    auto month_days = [](uint8_t month, uint16_t year) -> uint8_t
     {
-        uint8_t days = _s_days_in_month[month - 1] - day;
+        uint8_t days = _s_days_in_month[month - 1];
         return ((month == 2) && isLeapYear(year)) ? days+1 : days;
     };
 
-    // Will break out on first or second loop
+    // Will break out on first or second iteration of outer loop
     while (true)
     {
-        dow_e dow = clockDOW(day, month, year);
+        dow_e dow = clockDOW(day, month, year);  // Day Of Week
 
-        if ((month == 11) && (day < 7) && (dow != DOW_SUN))
+        if ((month == 11) && (day <= 7)
+                && ((day <= dow) || ((dow == DOW_SUN) && (_clock_hour < 2))))
         {
-            dst_days_left += 7 - dow;
+            _dst_day = (dow == DOW_SUN) ? day : day + (7 - dow);
             _in_dst = true;
             break;
         }
-
-        if ((month == 3) && ((day <= 7) || ((day < 14) && (dow != DOW_SUN))))
+        else if ((month == 3) && (day <= 14)
+                && ((day <= (dow + 7)) || ((dow == DOW_SUN) && (_clock_hour < 2))))
         {
-            dst_days_left += (day < 7) ? 14 - dow : 7 - dow;
+            if (dow == DOW_SUN)
+                _dst_day = (day > 7) ? day : day + 7;
+            else
+                _dst_day = (day > dow) ? day + (7 - dow) : day + (14 - dow);
+
             _in_dst = false;
             break;
         }
 
-        dst_days_left += adv(day, month, year);
+        cycle += month_days(month, year) - (day - 1);  // Include current day
 
-        do
+        // Tally up days in months that aren't March or November
+        while (true)
         {
             if (++month == 13)
             {
@@ -376,49 +376,71 @@ void Rtc::dstInit(void)
             if ((month == 3) || (month == 11))
                 break;
 
-            dst_days_left += adv(0, month, year);
+            cycle += month_days(month, year);
+        }
 
-        } while (true);
-
-        day = 1;
+        day = 1; // Will be at the first of March or November
     }
 
-    _dst_secs = ((dst_days_left * 24 * 60 * 60) + (2 * 60 * 60))
-        - ((_clock_hour * 60 * 60) + (_clock_minute * 60) + _clock_second);
+    cycle += _dst_day - day;
 
+    // Convert days - cycle - to hours and add two hours. And since the current
+    // day is included, subtract the current clock hour.
+    _dst_hrs = ((cycle * 24) + 2) - _clock_hour;
     _dst_year = year;
 }
 
-int8_t Rtc::dstUpdate(uint32_t seconds)
+int8_t Rtc::dstUpdate(uint32_t hours)
 {
-    if (seconds < _dst_secs)
-    {
-        _dst_secs -= seconds;
-        return 0;
-    }
-
-    auto next_dst = [&](void) -> void
-    {
-        _in_dst = !_in_dst;
-
-        if (_in_dst)
-            _dst_secs = (238 * 24 * 60 * 60) + (2 * 60 * 60);
-        else if (isLeapYear(++_dst_year))
-            _dst_secs = (128 * 24 * 60 * 60) + (2 * 60 * 60);
-        else
-            _dst_secs = (127 * 24 * 60 * 60) + (2 * 60 * 60);
-    };
-
     int8_t hour_adjust = 0;
 
-    while (seconds >= _dst_secs)
+    // The loop accounts for the case where update hasn't been called for
+    // a while, e.g. if the device was off for more than one cycle and the
+    // RTC was being powered by VBAT.
+    while (hours >= _dst_hrs)
     {
-        seconds -= _dst_secs;
-        hour_adjust += _in_dst ? -1 : 1;
-        next_dst();
+        hours -= _dst_hrs;
+
+        _in_dst = !_in_dst;
+
+        uint32_t cycle;
+
+        if (_in_dst)
+        {
+            // March - November
+            cycle = 238;  // Always 238 days
+
+            // Day of November when DST ends will be the number of DST days
+            // minus the number of days during DST not including November.
+            //                       March        Apr  May  Jun  Jul  Aug  Sep  Oct
+            _dst_day = cycle - ((31 - _dst_day) + (30 + 31 + 30 + 31 + 31 + 30 + 31));
+        }
+        else
+        {
+            // November - March
+            bool is_leap_year = isLeapYear(++_dst_year);
+
+            // The number of days until DST depends on what day in November DST
+            // ended and whether or not the year of the next DST is a leap year.
+            if ((_dst_day == 1) || ((_dst_day == 2) && is_leap_year))
+                cycle = 133;
+            else
+                cycle = 126;
+
+            //                      November      Dec  Jan  Feb ->
+            _dst_day = cycle - ((30 - _dst_day) + (31 + 31 + 28 + (is_leap_year ? 1 : 0)));
+        }
+
+        // Don't need to add 2 hours since it's already on the DST day at 2:00 AM
+        // But do need to add or subtract the hour adjustment.  DST starts or ends
+        // at 2:00 AM, but the clock is set forward or backward by an hour.  If
+        // set back have to add an hour and if forward subract an hour.
+        _dst_hrs = (cycle * 24) + (_in_dst ? -1 : 1);
+
+        hour_adjust += _in_dst ? 1 : -1;
     }
 
-    _dst_secs -= seconds;
+    _dst_hrs -= hours;
 
     return hour_adjust;
 }
@@ -428,10 +450,7 @@ int8_t Rtc::dstUpdate(uint32_t seconds)
 // off the current value so a diff can be done when resuming.
 void Rtc::sleep(void)
 {
-    disableIrq();
-    _tsr = *_s_tsr - _s_rtc_seconds;
-    _s_rtc_seconds = 0;
-    enableIrq();
+    _tsr = *_s_tsr;
 }
 
 void Rtc::wake(void)
@@ -440,27 +459,10 @@ void Rtc::wake(void)
         return;
 
     disableIrq();
-    _s_rtc_seconds = *_s_tsr - _tsr;
+    _s_isr_seconds += *_s_tsr - _tsr;
     enableIrq();
 
     _tsr = RTC_TSR_INVALID;
-}
-
-void Rtc::setClock(void)
-{
-    tClock clock;
-
-    clock.second = (uint8_t)_clock_second;
-    clock.minute = (uint8_t)_clock_minute;
-    clock.hour = (uint8_t)_clock_hour;
-    clock.day = (uint8_t)_clock_day;
-    clock.month = (uint8_t)_clock_month;
-    clock.year = (uint16_t)_clock_year;
-    clock.type = _clock_type;
-
-    (void)_eeprom.setClock(clock);
-
-    reset();
 }
 
 bool Rtc::isValidClock(tClock const & clock)

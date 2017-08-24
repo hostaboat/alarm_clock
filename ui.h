@@ -106,7 +106,12 @@ class UI
         Llwu & _llwu = Llwu::acquire();
 
         CRGB _night_light = CRGB::WHITE;
-        uint8_t _brightness = 128;
+
+        // Want to have display and night light brightness synced.
+        // The display levels are about 1/16 of the night light levels
+        // off by one - 17 display levels and 256 night light levels.
+        // The value 120 is midway between 112 and 128. See updateBrightness().
+        uint8_t _brightness = 120;
 
         enum play_err_e
         {

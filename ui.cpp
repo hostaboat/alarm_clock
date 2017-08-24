@@ -404,12 +404,12 @@ void UI::updateBrightness(ev_e bev)
 
     if (brightness > _brightness)
     {
-        if (((brightness % 16) == 0) || (_brightness == 0) || (brightness == 255))
+        if ((_brightness == 0) || ((brightness % 16) == 0) || (brightness == 255))
             _display.up();
     }
     else
     {
-        if ((brightness % 16) == 0)
+        if ((brightness == 0) || ((brightness & 0x0F) == 0x0F))
             _display.down();
     }
 
