@@ -67,10 +67,10 @@ class Display
 #define DF_24H       0x8000  // Display time in 24 hour format
 #define DF_MASK      0xFFFF
 
-//#define USE_STR_FUNC
-//#define USE_STR_STATE_FUNC
-
 using df_t = uint16_t;
+
+enum dp_e : uint8_t { DP_0, DP_1, DP_2, DP_3 };     // Digit Position
+enum nd_e : uint8_t { ND_1 = 1, ND_2, ND_3, ND_4 }; // Number of Digits
 
 class Seg7Display : public Display
 {
@@ -93,16 +93,16 @@ class Seg7Display : public Display
         void setBlank(void);
         void blank(void);
 
-        void setNum(uint8_t dX, uint8_t X, df_t flags = DF_NONE);
-        void showNum(uint8_t dX, uint8_t X, df_t flags = DF_NONE);
-        void setChar(uint8_t cX, uint8_t X, df_t flags = DF_NONE);
-        void showChar(uint8_t cX, uint8_t X, df_t flags = DF_NONE);
+        void setNum(uint8_t dX, dp_e X, df_t flags = DF_NONE);
+        void setChar(uint8_t cX, dp_e X, df_t flags = DF_NONE);
 
         void setDigits(uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3, df_t flags = DF_NONE);
         void showDigits(uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3, df_t flags = DF_NONE);
 
         void setInteger(int32_t integer, df_t flags = DF_NONE);
         void showInteger(int32_t integer, df_t flags = DF_NONE);
+        void setInteger(int32_t integer, dp_e dp, nd_e nd, df_t flags = DF_NONE);
+        void showInteger(int32_t integer, dp_e dp, nd_e nd, df_t flags = DF_NONE);
 
         void setTime(uint8_t hour_min, uint8_t min_sec, df_t flags = DF_NONE);
         void showTime(uint8_t hour_min, uint8_t min_sec, df_t flags = DF_NONE);
@@ -118,29 +118,35 @@ class Seg7Display : public Display
         void setDate(uint8_t month, uint8_t day, df_t flags = DF_NONE);
         void showDate(uint8_t month, uint8_t day, df_t flags = DF_NONE);
 
+        void setOption(char const * opt, uint8_t val, df_t flags = DF_NONE);
+        void showOption(char const * opt, uint8_t val, df_t flags = DF_NONE);
+        void setOption(char const * opt, char val, df_t flags = DF_NONE);
+        void showOption(char const * opt, char val, df_t flags = DF_NONE);
+
         void setString(char const * str, df_t flags = DF_NONE);
         void showString(char const * str, df_t flags = DF_NONE);
+        void setString(char const * str, dp_e dp, nd_e nd, df_t flags = DF_NONE);
+        void showString(char const * str, dp_e dp, nd_e nd, df_t flags = DF_NONE);
 
         // Convenience functions
         void showDashes(df_t flags = DF_NONE);
+        void showUnderscores(df_t flags = DF_NONE);
         void showError(df_t flags = DF_NONE);
         void showDone(df_t flags = DF_NONE);
-        void showLowBattery(df_t flags = DF_NONE);
         void showOff(df_t flags = DF_NONE);
         void showBeep(df_t flags = DF_NONE);
         void showPlay(df_t flags = DF_NONE);
         void show12Hour(df_t flags = DF_NONE);
         void show24Hour(df_t flags = DF_NONE);
-        void showTouch(df_t flags = DF_NONE);
 
     protected:
         uint16_t validateValue(uint16_t n, uint16_t min, uint16_t max);
-        df_t digitFlags(uint8_t X, df_t flags);
-        void setDPFlag(uint8_t X, df_t & flags);
-        uint8_t mPos(uint8_t X);
-        void setDigit(uint8_t mX, uint8_t X, df_t flags = DF_NONE);
+        df_t digitFlags(dp_e X, df_t flags);
+        void setDPFlag(dp_e X, df_t & flags);
+        uint8_t mPos(dp_e X);
+        void setDigit(uint8_t mX, dp_e X, df_t flags = DF_NONE);
         void setColon(df_t flags);
-        void numberTypeValues(uint16_t & max, uint16_t & num, uint16_t & den, df_t flags);
+        void numberTypeValues(uint16_t & max, uint16_t & num, uint16_t & den, nd_e nd, df_t flags);
 
         // Digit, Digit, Colon, Digit, Digit
         uint8_t _positions[5] = {};
@@ -188,7 +194,7 @@ class Seg7Display : public Display
           //   8        9        :        ;        <        =        >        ?
             0x7F,    0x6F,       0,       0,       0,       0,       0,       0,
           //   @        A        B        C        D        E        F        G
-               0,    0x77,    0x7C,    0x39,    0x5E,    0x79,    0x71,       0,
+               0,    0x77,    0x7C,    0x39,    0x5E,    0x79,    0x71,    0x6F,
           //   H        I        J        K        L        M        N        O
             0x76,    0x06,    0x1E,       0,    0x38,       0,    0x54,    0x3F,
           //   P        Q        R        S        T        U        V        W
@@ -196,7 +202,7 @@ class Seg7Display : public Display
           //   X        Y        Z        [        \        ]        ^        _
                0,    0x6E,       0,    0x39,       0,    0x0F,       0,    0x08,
           //   `        a        b        c        d        e        f        g
-               0,    0x77,    0x7C,    0x58,    0x5E,    0x79,    0x71,       0,
+               0,    0x77,    0x7C,    0x58,    0x5E,    0x79,    0x71,    0x6F,
           //   h        i        j        k        l        m        n        o
             0x74,    0x04,    0x1E,       0,    0x06,       0,    0x54,    0x5C,
           //   p        q        r        s        t        u        v        w

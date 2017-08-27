@@ -177,7 +177,7 @@ void Rtc::reset(void)
     *_s_sr = 0;  // TCE must be clear to write to TSR and TPR
     *_s_tpr = 0;
     *_s_tsr = _clock_second;
-    //*_s_tar = 0;  // Not using alarm function
+    //*_s_tar = RTC_TSR_INVALID;  // Not using alarm function
     *_s_ier = RTC_IER_TSIE;  // | RTC_IER_TAIE; // No alarm interrupt
     *_s_sr = RTC_SR_TCE;
 }
@@ -543,7 +543,8 @@ bool Rtc::defaultClockMinYear(uint16_t & clock_min_year)
 
 bool Rtc::isValidAlarm(tAlarm const & alarm)
 {
-    return (alarm.hour < 24) && (alarm.minute < 60) && (alarm.type <= EE_ALARM_TYPE_MAX);
+    return (alarm.hour < 24) && (alarm.minute < 60) && (alarm.type <= EE_ALARM_TYPE_MAX)
+        && (alarm.snooze > 0) && (alarm.snooze < 60) && (alarm.wake < 60) && (alarm.time < 24);
 }
 
 bool Rtc::setAlarm(tAlarm const & alarm)
@@ -562,6 +563,9 @@ bool Rtc::defaultAlarm(tAlarm & alarm)
     alarm.hour = 0;
     alarm.minute = 0;
     alarm.type = EE_ALARM_TYPE_BEEP;
+    alarm.snooze = 10;
+    alarm.wake = 10;
+    alarm.time = 2;
     alarm.enabled = false;
 
     return _eeprom.setAlarm(alarm);

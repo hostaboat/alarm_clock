@@ -9,6 +9,9 @@ enum eei_e : uint8_t
     EEI_ALARM_HOUR,
     EEI_ALARM_MINUTE,
     EEI_ALARM_TYPE,
+    EEI_ALARM_SNOOZE,
+    EEI_ALARM_WAKE,
+    EEI_ALARM_TIME,
     EEI_ALARM_STATE,
     EEI_CLOCK_SECOND,
     EEI_CLOCK_MINUTE,
@@ -23,6 +26,7 @@ enum eei_e : uint8_t
     EEI_TIMER_MINUTES,
     EEI_FILE_INDEX,
     EEI_TOUCH_THRESHOLD,
+    EEI_LEDS_COLOR,
 };
 
 #define EE_ALARM_TYPE_BEEP   0x00
@@ -46,6 +50,9 @@ struct eAlarm
     uint8_t hour;
     uint8_t minute;
     uint8_t type;
+    uint8_t snooze;
+    uint8_t wake;
+    uint8_t time;
     bool enabled;
 };
 
@@ -101,6 +108,9 @@ class Eeprom : public Module
 
         bool setTouchThreshold(uint16_t touch_threshold);
         bool getTouchThreshold(uint16_t & touch_threshold) const;
+
+        bool setLedsColor(uint32_t color_code);
+        bool getLedsColor(uint32_t & color_code) const;
 
         Eeprom(Eeprom const &) = delete;
         Eeprom & operator=(Eeprom const &) = delete;

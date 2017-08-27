@@ -58,6 +58,7 @@ class UI
             UIS_CLOCK,
             UIS_TIMER,
             UIS_TOUCH,
+            UIS_SET_LEDS,
             UIS_CNT
         };
 
@@ -69,7 +70,8 @@ class UI
             { UIS_SET_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // UIS_SET_TIMER
             {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // UIS_CLOCK
             {     UIS_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // UIS_TIMER
-            {     UIS_TOUCH,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK }  // UIS_TOUCH
+            {     UIS_TOUCH,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK }, // UIS_TOUCH
+            {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS }  // UIS_SET_LEDS
         };
 
         uis_e _state;
@@ -83,11 +85,11 @@ class UI
         static constexpr uint32_t const _s_set_blink_time = 500; // milliseconds
         static constexpr uint32_t const _s_reset_blink_time = 300;
 
-        //  2 seconds of continuous pushing of encoder switch
+        // 2 seconds of continuous pushing of encoder switch
         static constexpr uint32_t const _s_medium_reset_time = 2000;
 
-        // 10 seconds of continuous pushing of encoder switch
-        static constexpr uint32_t const _s_long_reset_time = 10000;
+        // 6 seconds of continuous pushing of encoder switch
+        static constexpr uint32_t const _s_long_reset_time = 6000;
 
         // 30 seconds before resting, i.e. turning display and leds off
         // and skipping UI state processing.
@@ -106,6 +108,7 @@ class UI
         Llwu & _llwu = Llwu::acquire();
 
         CRGB _night_light = CRGB::WHITE;
+        bool _nl_on = false;
 
         // Want to have display and night light brightness synced.
         // The display levels are about 1/16 of the night light levels
@@ -196,12 +199,11 @@ class UI
                 UI & _ui;
                 as_e _state = AS_OFF;
                 tAlarm _alarm = {};
-                uint32_t _alarm_start = 0;
-                uint32_t _snooze_start = 0;
+                uint32_t _alarm_start = 0, _alarm_time = 0;
+                uint32_t _wake_start = 0, _wake_time = 0;
+                uint32_t _snooze_start = 0, _snooze_time = 600000;
                 bool _alarm_music = false;
                 uint16_t _touch_threshold = 0;
-                static constexpr uint32_t const _s_snooze_time = 600000;  // 10 minutes
-                static constexpr uint32_t const _s_alarm_time = 7200000;  // 2 hours max
         };
 
         class UIState
@@ -236,6 +238,8 @@ class UI
 
             protected:
                 Toggle _blink{500};
+                bool _updated = false;
+                bool _done = false;
         };
 
         class UIRunState : public UIState
@@ -269,13 +273,27 @@ class UI
                 void waitHour(bool on);
                 void waitMinute(bool on);
                 void waitType(bool on);
+                void waitSnooze(bool on);
+                void waitWake(bool on);
+                void waitTime(bool on);
+                void waitDone(bool on);
+
                 void updateHour(ev_e ev);
                 void updateMinute(ev_e ev);
-                void updateType(ev_e unused);
+                void updateType(ev_e ev);
+                void updateSnooze(ev_e ev);
+                void updateWake(ev_e ev);
+                void updateTime(ev_e ev);
+
                 void display(df_t flags = DF_NONE);
                 void displayClock(df_t flags = DF_NONE);
                 void displayType(df_t flags = DF_NONE);
+                void displaySnooze(df_t flags = DF_NONE);
+                void displayWake(df_t flags = DF_NONE);
+                void displayTime(df_t flags = DF_NONE);
                 void displayDisabled(df_t flags = DF_NONE);
+                void displayDone(df_t flags = DF_NONE);
+
                 void toggleEnabled(void);
 
                 enum sas_e : uint8_t
@@ -283,6 +301,9 @@ class UI
                     SAS_HOUR,
                     SAS_MINUTE,
                     SAS_TYPE,
+                    SAS_SNOOZE,
+                    SAS_WAKE,
+                    SAS_TIME,
                     SAS_DISABLED,
                     SAS_DONE,
                     SAS_CNT
@@ -292,6 +313,9 @@ class UI
                 {
                     SAS_MINUTE,
                     SAS_TYPE,
+                    SAS_SNOOZE,
+                    SAS_WAKE,
+                    SAS_TIME,
                     SAS_DONE,
                     SAS_HOUR,
                     SAS_HOUR
@@ -303,8 +327,11 @@ class UI
                     &SetAlarm::waitHour,
                     &SetAlarm::waitMinute,
                     &SetAlarm::waitType,
+                    &SetAlarm::waitSnooze,
+                    &SetAlarm::waitWake,
+                    &SetAlarm::waitTime,
                     nullptr,
-                    nullptr
+                    &SetAlarm::waitDone
                 };
 
                 using sas_update_action_t = void (SetAlarm::*)(ev_e ev);
@@ -313,8 +340,11 @@ class UI
                     &SetAlarm::updateHour,
                     &SetAlarm::updateMinute,
                     &SetAlarm::updateType,
+                    &SetAlarm::updateSnooze,
+                    &SetAlarm::updateWake,
+                    &SetAlarm::updateTime,
                     nullptr,
-                    nullptr,
+                    nullptr
                 };
 
                 using sas_display_action_t = void (SetAlarm::*)(df_t flags);
@@ -323,8 +353,11 @@ class UI
                     &SetAlarm::displayClock,
                     &SetAlarm::displayClock,
                     &SetAlarm::displayType,
+                    &SetAlarm::displaySnooze,
+                    &SetAlarm::displayWake,
+                    &SetAlarm::displayTime,
                     &SetAlarm::displayDisabled,
-                    &SetAlarm::displayClock
+                    &SetAlarm::displayDone
                 };
 
                 sas_e _state = SAS_HOUR;
@@ -352,6 +385,8 @@ class UI
                 void waitMonth(bool on);
                 void waitDay(bool on);
                 void waitDST(bool on);
+                void waitDone(bool on);
+
                 void updateType(ev_e unused);
                 void updateHour(ev_e ev);
                 void updateMinute(ev_e ev);
@@ -359,12 +394,14 @@ class UI
                 void updateMonth(ev_e ev);
                 void updateDay(ev_e ev);
                 void updateDST(ev_e ev);
+
                 void display(df_t flags = DF_NONE);
                 void displayType(df_t flags = DF_NONE);
                 void displayTime(df_t flags = DF_NONE);
                 void displayYear(df_t flags = DF_NONE);
                 void displayDate(df_t flags = DF_NONE);
                 void displayDST(df_t flags = DF_NONE);
+                void displayDone(df_t flags = DF_NONE);
 
                 enum scs_e : uint8_t
                 {
@@ -401,7 +438,7 @@ class UI
                     &SetClock::waitMonth,
                     &SetClock::waitDay,
                     &SetClock::waitDST,
-                    nullptr
+                    &SetClock::waitDone
                 };
 
                 using scs_update_action_t = void (SetClock::*)(ev_e ev);
@@ -427,7 +464,7 @@ class UI
                     &SetClock::displayDate,
                     &SetClock::displayDate,
                     &SetClock::displayDST,
-                    &SetClock::displayTime
+                    &SetClock::displayDone
                 };
 
                 scs_e _state = SCS_TYPE;
@@ -722,6 +759,165 @@ class UI
                 static constexpr uint32_t const _s_touch_read_interval = 500;
         };
 
+        class SetLeds : public UISetState
+        {
+            public:
+                SetLeds(UI & ui) : UISetState(ui) {}
+
+                virtual bool uisBegin(void);
+                virtual void uisWait(void);
+                virtual void uisUpdate(ev_e ev);
+                virtual void uisChange(void);
+                virtual void uisReset(void);
+                virtual void uisEnd(void);
+                virtual bool uisSleep(void);
+
+            private:
+                void waitType(bool on);
+                void waitColor(bool on);
+                void waitRGB(bool on);
+                void waitHSV(bool on);
+                void waitDone(bool on);
+
+                void updateType(ev_e ev);
+                void updateColor(ev_e ev);
+                void updateRGB(ev_e ev);
+                void updateHSV(ev_e ev);
+
+                void display(df_t flags = DF_NONE);
+                void displayType(df_t flags = DF_NONE);
+                void displayColor(df_t flags = DF_NONE);
+                void displayRGB(df_t flags = DF_NONE);
+                void displayHSV(df_t flags = DF_NONE);
+                void displayDone(df_t flags = DF_NONE);
+
+                void displayLeds(void);
+
+                enum sls_e : uint8_t
+                {
+                    SLS_TYPE,
+                    SLS_COLOR,
+                    SLS_RGB,
+                    SLS_HSV,
+                    SLS_DONE,
+                    SLS_CNT
+                };
+
+                enum slt_e : uint8_t
+                {
+                    SLT_COLOR,
+                    SLT_RGB,
+                    SLT_HSV,
+                };
+
+                sls_e _next_type_states[SLT_HSV+1] =
+                {
+                    SLS_COLOR,
+                    SLS_RGB,
+                    SLS_HSV,
+                };
+
+                using sls_wait_action_t = void (SetLeds::*)(bool on);
+                sls_wait_action_t const _wait_actions[SLS_CNT] =
+                {
+                    &SetLeds::waitType,
+                    &SetLeds::waitColor,
+                    &SetLeds::waitRGB,
+                    &SetLeds::waitHSV,
+                    &SetLeds::waitDone,
+                };
+
+                using sls_update_action_t = void (SetLeds::*)(ev_e ev);
+                sls_update_action_t const _update_actions[SLS_CNT] =
+                {
+                    &SetLeds::updateType,
+                    &SetLeds::updateColor,
+                    &SetLeds::updateRGB,
+                    &SetLeds::updateHSV,
+                    nullptr,
+                };
+
+                using sls_display_action_t = void (SetLeds::*)(df_t flags);
+                sls_display_action_t const _display_actions[SLS_CNT] =
+                {
+                    &SetLeds::displayType,
+                    &SetLeds::displayColor,
+                    &SetLeds::displayRGB,
+                    &SetLeds::displayHSV,
+                    &SetLeds::displayDone
+                };
+
+                sls_e _state = SLS_TYPE;
+                slt_e _type = SLT_COLOR;
+                uint8_t _sub_state = 0;
+
+                CRGB _color = {};
+
+                uint8_t _cindex = 0;
+
+                CRGB const _default_rgb{ 255, 255, 255 };
+                CRGB _rgb{_default_rgb};
+                char const * const _rgb_opts[3] = { "R", "G", "B" };
+
+                CHSV const _default_hsv{ 0, 255, 255 };
+                CHSV _hsv{_default_hsv};
+                char const * const _hsv_opts[3] = { "H", "S", "B" };
+
+                uint8_t * _val = nullptr;
+                char const * _opt = nullptr;
+
+                static constexpr CRGB::Color const _s_colors[] =
+                {
+                    CRGB::NAVAJO_WHITE,           CRGB::KHAKI,                  CRGB::FAIRY_LIGHT,
+                    CRGB::PEACH_PUFF,             CRGB::GOLDENROD,              CRGB::WHEAT,
+                    CRGB::PERU,                   CRGB::DARK_SALMON,            CRGB::FLORAL_WHITE,
+                    CRGB::LEMON_CHIFFON,          CRGB::SIENNA,                 CRGB::CORNSILK,
+                    CRGB::SEASHELL,               CRGB::BURLY_WOOD,             CRGB::OLD_LACE,
+                    CRGB::DARK_GOLDENROD,         CRGB::SADDLE_BROWN,           CRGB::PAPAYA_WHIP,
+                    CRGB::DARK_ORANGE,            CRGB::TOMATO,                 CRGB::LINEN,
+                    CRGB::SALMON,                 CRGB::GOLD,                   CRGB::BLANCHED_ALMOND,
+                    CRGB::LIGHT_SALMON,           CRGB::CORAL,                  CRGB::ORANGE_RED,
+                    CRGB::ANTIQUE_WHITE,          CRGB::TAN,                    CRGB::PLAID,
+                    CRGB::MISTY_ROSE,             CRGB::SANDY_BROWN,            CRGB::ORANGE,
+                    CRGB::BISQUE,                 CRGB::MOCCASIN,               CRGB::DARK_KHAKI,
+                    CRGB::CHOCOLATE,              CRGB::PALE_GOLDENROD,         CRGB::MAROON,
+                    CRGB::DARK_RED,               CRGB::RED,                    CRGB::BROWN,
+                    CRGB::FIRE_BRICK,             CRGB::INDIAN_RED,             CRGB::LIGHT_CORAL,
+                    CRGB::ROSY_BROWN,             CRGB::SNOW,                   CRGB::MEDIUM_VIOLET_RED,
+                    CRGB::CRIMSON,                CRGB::DEEP_PINK,              CRGB::PALE_VIOLET_RED,
+                    CRGB::ORCHID,                 CRGB::HOT_PINK,               CRGB::LIGHT_PINK,
+                    CRGB::PINK,                   CRGB::LAVENDER_BLUSH,         CRGB::IVORY,
+                    CRGB::LIGHT_YELLOW,           CRGB::LIGHT_GOLDENROD_YELLOW, CRGB::BEIGE,
+                    CRGB::OLIVE,                  CRGB::YELLOW,                 CRGB::GREEN_YELLOW,
+                    CRGB::CHARTREUSE,             CRGB::YELLOW_GREEN,           CRGB::DARK_OLIVE_GREEN,
+                    CRGB::LAWN_GREEN,             CRGB::OLIVE_DRAB,             CRGB::DARK_GREEN,
+                    CRGB::GREEN,                  CRGB::FOREST_GREEN,           CRGB::LIME_GREEN,
+                    CRGB::DARK_SEA_GREEN,         CRGB::LIME,                   CRGB::LIGHT_GREEN,
+                    CRGB::PALE_GREEN,             CRGB::HONEYDEW,               CRGB::SEA_GREEN,
+                    CRGB::LIGHT_SEA_GREEN,        CRGB::MEDIUM_SEA_GREEN,       CRGB::MEDIUM_AQUAMARINE,
+                    CRGB::MEDIUM_TURQUOISE,       CRGB::TURQUOISE,              CRGB::MEDIUM_SPRING_GREEN,
+                    CRGB::SPRING_GREEN,           CRGB::AQUAMARINE,             CRGB::MINT_CREAM,
+                    CRGB::DARK_SLATE_GREY,        CRGB::TEAL,                   CRGB::DARK_CYAN,
+                    CRGB::AQUA,                   CRGB::PALE_TURQUOISE,         CRGB::LIGHT_CYAN,
+                    CRGB::AZURE,                  CRGB::GHOST_WHITE,            CRGB::MEDIUM_BLUE,
+                    CRGB::DARK_BLUE,              CRGB::MIDNIGHT_BLUE,          CRGB::NAVY,
+                    CRGB::BLUE,                   CRGB::LAVENDER,               CRGB::ROYAL_BLUE,
+                    CRGB::STEEL_BLUE,             CRGB::LIGHT_SLATE_GREY,       CRGB::SLATE_GREY,
+                    CRGB::CADET_BLUE,             CRGB::CORNFLOWER_BLUE,        CRGB::DODGER_BLUE,
+                    CRGB::DARK_TURQUOISE,         CRGB::DEEP_SKY_BLUE,          CRGB::SKY_BLUE,
+                    CRGB::LIGHT_SKY_BLUE,         CRGB::LIGHT_STEEL_BLUE,       CRGB::POWDER_BLUE,
+                    CRGB::LIGHT_BLUE,             CRGB::ALICE_BLUE,             CRGB::INDIGO,
+                    CRGB::DARK_VIOLET,            CRGB::DARK_SLATE_BLUE,        CRGB::BLUE_VIOLET,
+                    CRGB::DARK_ORCHID,            CRGB::SLATE_BLUE,             CRGB::MEDIUM_ORCHID,
+                    CRGB::MEDIUM_SLATE_BLUE,      CRGB::AMETHYST,               CRGB::MEDIUM_PURPLE,
+                    CRGB::DARK_MAGENTA,           CRGB::PURPLE,                 CRGB::FUCHSIA,
+                    CRGB::VIOLET,                 CRGB::PLUM,                   CRGB::THISTLE,
+                    CRGB::DIM_GREY,               CRGB::GREY,                   CRGB::DARK_GREY,
+                    CRGB::SILVER,                 CRGB::LIGHT_GREY,             CRGB::GAINSBORO,
+                    CRGB::WHITE_SMOKE,            CRGB::WHITE,
+                };
+        };
+
         Player _player;
         SetAlarm _set_alarm{*this};
         SetClock _set_clock{*this};
@@ -729,6 +925,7 @@ class UI
         Clock _clock{*this};
         Timer _timer{*this};
         Touch _touch{*this};
+        SetLeds _set_leds{*this};
 
         UIState * const _states[UIS_CNT] =
         {
@@ -737,7 +934,8 @@ class UI
             &_set_timer,
             &_clock,
             &_timer,
-            &_touch
+            &_touch,
+            &_set_leds,
         };
 };
 

@@ -32,6 +32,8 @@
 #include "utility.h"
 #include "types.h"
 
+//#define LED_COLOR_CORRECTION
+
 struct CHSV;
 struct CRGB;
 
@@ -49,7 +51,7 @@ inline uint8_t scale8_video(uint16_t i, uint8_t scale)
     return ((i * scale) >> 8) + 1;
 }
 
-// This does an unsigned saturating add (actually 4 in a 32-bit register,
+// This does an unsigned saturating add (actually 4 in a 32-bit register),
 // meaning if the value would overflow it is set to the max of the data
 // type, in this case, for uint8_t, 255.
 inline uint8_t qadd8(uint8_t i, uint8_t j)
@@ -84,11 +86,151 @@ struct CRGB
 
     enum Color : uint32_t
     {
-        RED   = 0xFF0000,
-        GREEN = 0x00FF00,
-        BLUE  = 0x0000FF,
-        WHITE = 0xFFFFFF,
-        BLACK = 0x000000,
+        ALICE_BLUE             = 0xF0F8FF,
+        AMETHYST               = 0x9966CC,
+        ANTIQUE_WHITE          = 0xFAEBD7,
+        AQUA                   = 0x00FFFF,
+        AQUAMARINE             = 0x7FFFD4,
+        AZURE                  = 0xF0FFFF,
+        BEIGE                  = 0xF5F5DC,
+        BISQUE                 = 0xFFE4C4,
+        BLACK                  = 0x000000,
+        BLANCHED_ALMOND        = 0xFFEBCD,
+        BLUE                   = 0x0000FF,
+        BLUE_VIOLET            = 0x8A2BE2,
+        BROWN                  = 0xA52A2A,
+        BURLY_WOOD             = 0xDEB887,
+        CADET_BLUE             = 0x5F9EA0,
+        CHARTREUSE             = 0x7FFF00,
+        CHOCOLATE              = 0xD2691E,
+        CORAL                  = 0xFF7F50,
+        CORNFLOWER_BLUE        = 0x6495ED,
+        CORNSILK               = 0xFFF8DC,
+        CRIMSON                = 0xDC143C,
+        DARK_BLUE              = 0x00008B,
+        DARK_CYAN              = 0x008B8B,
+        DARK_GOLDENROD         = 0xB8860B,
+        DARK_GREEN             = 0x006400,
+        DARK_GREY              = 0xA9A9A9,
+        DARK_KHAKI             = 0xBDB76B,
+        DARK_MAGENTA           = 0x8B008B,
+        DARK_OLIVE_GREEN       = 0x556B2F,
+        DARK_ORANGE            = 0xFF8C00,
+        DARK_ORCHID            = 0x9932CC,
+        DARK_RED               = 0x8B0000,
+        DARK_SALMON            = 0xE9967A,
+        DARK_SEA_GREEN         = 0x8FBC8F,
+        DARK_SLATE_BLUE        = 0x483D8B,
+        DARK_SLATE_GREY        = 0x2F4F4F,
+        DARK_TURQUOISE         = 0x00CED1,
+        DARK_VIOLET            = 0x9400D3,
+        DEEP_PINK              = 0xFF1493,
+        DEEP_SKY_BLUE          = 0x00BFFF,
+        DIM_GREY               = 0x696969,
+        DODGER_BLUE            = 0x1E90FF,
+#ifdef LED_COLOR_CORRECTION
+        FAIRY_LIGHT            = 0xFFE42D,
+#else
+        FAIRY_LIGHT            = 0xFF9D2A,
+#endif
+        FIRE_BRICK             = 0xB22222,
+        FLORAL_WHITE           = 0xFFFAF0,
+        FOREST_GREEN           = 0x228B22,
+        FUCHSIA                = 0xFF00FF,
+        GAINSBORO              = 0xDCDCDC,
+        GHOST_WHITE            = 0xF8F8FF,
+        GOLD                   = 0xFFD700,
+        GOLDENROD              = 0xDAA520,
+        GREEN                  = 0x008000,
+        GREEN_YELLOW           = 0xADFF2F,
+        GREY                   = 0x808080,
+        HONEYDEW               = 0xF0FFF0,
+        HOT_PINK               = 0xFF69B4,
+        INDIAN_RED             = 0xCD5C5C,
+        INDIGO                 = 0x4B0082,
+        IVORY                  = 0xFFFFF0,
+        KHAKI                  = 0xF0E68C,
+        LAVENDER               = 0xE6E6FA,
+        LAVENDER_BLUSH         = 0xFFF0F5,
+        LAWN_GREEN             = 0x7CFC00,
+        LEMON_CHIFFON          = 0xFFFACD,
+        LIGHT_BLUE             = 0xADD8E6,
+        LIGHT_CORAL            = 0xF08080,
+        LIGHT_CYAN             = 0xE0FFFF,
+        LIGHT_GOLDENROD_YELLOW = 0xFAFAD2,
+        LIGHT_GREEN            = 0x90EE90,
+        LIGHT_GREY             = 0xD3D3D3,
+        LIGHT_PINK             = 0xFFB6C1,
+        LIGHT_SALMON           = 0xFFA07A,
+        LIGHT_SEA_GREEN        = 0x20B2AA,
+        LIGHT_SKY_BLUE         = 0x87CEFA,
+        LIGHT_SLATE_GREY       = 0x778899,
+        LIGHT_STEEL_BLUE       = 0xB0C4DE,
+        LIGHT_YELLOW           = 0xFFFFE0,
+        LIME                   = 0x00FF00,
+        LIME_GREEN             = 0x32CD32,
+        LINEN                  = 0xFAF0E6,
+        MAROON                 = 0x800000,
+        MEDIUM_AQUAMARINE      = 0x66CDAA,
+        MEDIUM_BLUE            = 0x0000CD,
+        MEDIUM_ORCHID          = 0xBA55D3,
+        MEDIUM_PURPLE          = 0x9370DB,
+        MEDIUM_SEA_GREEN       = 0x3CB371,
+        MEDIUM_SLATE_BLUE      = 0x7B68EE,
+        MEDIUM_SPRING_GREEN    = 0x00FA9A,
+        MEDIUM_TURQUOISE       = 0x48D1CC,
+        MEDIUM_VIOLET_RED      = 0xC71585,
+        MIDNIGHT_BLUE          = 0x191970,
+        MINT_CREAM             = 0xF5FFFA,
+        MISTY_ROSE             = 0xFFE4E1,
+        MOCCASIN               = 0xFFE4B5,
+        NAVAJO_WHITE           = 0xFFDEAD,
+        NAVY                   = 0x000080,
+        OLD_LACE               = 0xFDF5E6,
+        OLIVE                  = 0x808000,
+        OLIVE_DRAB             = 0x6B8E23,
+        ORANGE                 = 0xFFA500,
+        ORANGE_RED             = 0xFF4500,
+        ORCHID                 = 0xDA70D6,
+        PALE_GOLDENROD         = 0xEEE8AA,
+        PALE_GREEN             = 0x98FB98,
+        PALE_TURQUOISE         = 0xAFEEEE,
+        PALE_VIOLET_RED        = 0xDB7093,
+        PAPAYA_WHIP            = 0xFFEFD5,
+        PEACH_PUFF             = 0xFFDAB9,
+        PERU                   = 0xCD853F,
+        PINK                   = 0xFFC0CB,
+        PLAID                  = 0xCC5533,
+        PLUM                   = 0xDDA0DD,
+        POWDER_BLUE            = 0xB0E0E6,
+        PURPLE                 = 0x800080,
+        RED                    = 0xFF0000,
+        ROSY_BROWN             = 0xBC8F8F,
+        ROYAL_BLUE             = 0x4169E1,
+        SADDLE_BROWN           = 0x8B4513,
+        SALMON                 = 0xFA8072,
+        SANDY_BROWN            = 0xF4A460,
+        SEASHELL               = 0xFFF5EE,
+        SEA_GREEN              = 0x2E8B57,
+        SIENNA                 = 0xA0522D,
+        SILVER                 = 0xC0C0C0,
+        SKY_BLUE               = 0x87CEEB,
+        SLATE_BLUE             = 0x6A5ACD,
+        SLATE_GREY             = 0x708090,
+        SNOW                   = 0xFFFAFA,
+        SPRING_GREEN           = 0x00FF7F,
+        STEEL_BLUE             = 0x4682B4,
+        TAN                    = 0xD2B48C,
+        TEAL                   = 0x008080,
+        THISTLE                = 0xD8BFD8,
+        TOMATO                 = 0xFF6347,
+        TURQUOISE              = 0x40E0D0,
+        VIOLET                 = 0xEE82EE,
+        WHEAT                  = 0xF5DEB3,
+        WHITE                  = 0xFFFFFF,
+        WHITE_SMOKE            = 0xF5F5F5,
+        YELLOW                 = 0xFFFF00,
+        YELLOW_GREEN           = 0x9ACD32,
     };
 
     CRGB(void) {}
@@ -109,6 +251,7 @@ struct CRGB
     uint8_t & operator[](uint8_t i) { return raw[i]; }
     const uint8_t & operator[](uint8_t i) const { return raw[i]; }
     bool isBlack(void) { return (r == 0) && (g == 0) && (b == 0); }
+    uint32_t colorCode(void) const { return ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b; }
 };
 
 template < pin_t PIN, uint8_t N >
@@ -176,6 +319,7 @@ class Leds : public DevPin < PinOut, PIN >
         void countFPS(uint8_t num_frames = 25);
         void ditherInit(void);
         void binaryDitherInit(void);
+        void adjustScale(uint8_t brightness);
 
         //enum order_e { RGB = 0012, RBG = 0021, GRB = 0102, GBR = 0120, BRG = 0201, BGR = 0210 };
 
@@ -185,7 +329,7 @@ class Leds : public DevPin < PinOut, PIN >
 
         template < uint8_t SLOT > uint8_t loadByte(void) { return _data[RB<SLOT>()]; }
         template < uint8_t SLOT > uint8_t dither(uint8_t b) { return b ? qadd8(b, _d[RB<SLOT>()]) : 0; }
-        template < uint8_t SLOT > uint8_t scale(uint8_t b) { return scale8(b, _scale.raw[RB<SLOT>()]); }
+        template < uint8_t SLOT > uint8_t scale(uint8_t b) { return scale8_video(b, _scale.raw[RB<SLOT>()]); }
 
         void _show(CRGB const * rgb, uint8_t brightness) { _advance = 3; showLeds(rgb, brightness); }
         void _showColor(CRGB const & rgb, uint8_t brightness) { _advance = 0; showLeds(&rgb, brightness); }
@@ -290,11 +434,33 @@ void Leds < PIN, N >::binaryDitherInit(void)
 }
 
 template < pin_t PIN, uint8_t N >
+void Leds < PIN, N >::adjustScale(uint8_t brightness)
+{
+    static constexpr uint32_t const cc = 0xFFB0F0; // Color correction
+    static constexpr uint32_t const ct = 0xFFFFFF; // Color temperature
+
+    if (brightness == 0)
+    {
+        _scale[0] = _scale[1] = _scale[2] = 0;
+        return;
+    }
+
+    _scale[0] = (((((cc >>  0) & 0xFF) + 1) * (((ct >>  0) & 0xFF) + 1) * brightness) / 0x10000) & 0xFF;
+    _scale[1] = (((((cc >>  8) & 0xFF) + 1) * (((ct >>  8) & 0xFF) + 1) * brightness) / 0x10000) & 0xFF;
+    _scale[2] = (((((cc >> 16) & 0xFF) + 1) * (((ct >> 16) & 0xFF) + 1) * brightness) / 0x10000) & 0xFF;
+}
+
+template < pin_t PIN, uint8_t N >
 void Leds < PIN, N >::showLeds(CRGB const * rgb, uint8_t brightness)
 {
     static uint32_t last_show = 0;
 
+#ifndef LED_COLOR_CORRECTION
     _scale[0] = _scale[1] = _scale[2] = brightness;
+#else
+    adjustScale(brightness);
+#endif
+
     _data = (uint8_t const *)rgb;
 
     // Guard against showing too rapidly

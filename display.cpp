@@ -10,40 +10,40 @@ uint16_t Seg7Display::validateValue(uint16_t n, uint16_t min, uint16_t max)
 }
 
 #define DIGIT_FLAGS(X, flags)  ((flags) & (DF_BL ## X | DF_DP ## X))
-df_t Seg7Display::digitFlags(uint8_t X, df_t flags)
+df_t Seg7Display::digitFlags(dp_e X, df_t flags)
 {
-    if (X == 0)
+    if (X == DP_0)
         return DIGIT_FLAGS(0, flags);
-    else if (X == 1)
+    else if (X == DP_1)
         return DIGIT_FLAGS(1, flags);
-    else if (X == 2)
+    else if (X == DP_2)
         return DIGIT_FLAGS(2, flags);
-    else if (X == 3)
+    else if (X == DP_3)
         return DIGIT_FLAGS(3, flags);
 
     return DF_NONE;
 }
 
-void Seg7Display::setDPFlag(uint8_t X, df_t & flags)
+void Seg7Display::setDPFlag(dp_e X, df_t & flags)
 {
-    if (X == 0)
+    if (X == DP_0)
         flags |= DF_DP0;
-    else if (X == 1)
+    else if (X == DP_1)
         flags |= DF_DP1;
-    else if (X == 2)
+    else if (X == DP_2)
         flags |= DF_DP2;
-    else if (X == 3)
+    else if (X == DP_3)
         flags |= DF_DP3;
 }
 
 // Mapped position in display array
-uint8_t Seg7Display::mPos(uint8_t X)
+uint8_t Seg7Display::mPos(dp_e X)
 {
-    return (X < 2) ? X : (uint8_t)(validateValue(X, 0, 3) + 1);
+    return (X < DP_2) ? X : X + 1;
 }
 
 // Maps digit to display value
-void Seg7Display::setDigit(uint8_t mX, uint8_t X, df_t flags)
+void Seg7Display::setDigit(uint8_t mX, dp_e X, df_t flags)
 {
     if (flags != DF_NONE)
     {
@@ -60,38 +60,16 @@ void Seg7Display::setDigit(uint8_t mX, uint8_t X, df_t flags)
 }
 
 // Maps number to display value and sets to position in display array
-void Seg7Display::setNum(uint8_t dX, uint8_t X, df_t flags)
+void Seg7Display::setNum(uint8_t dX, dp_e X, df_t flags)
 {
     dX = _s_number_map[(uint8_t)validateValue(dX, 0, sizeof(_s_number_map) - 1)];
     setDigit(dX, X, flags);
 }
 
-void Seg7Display::showNum(uint8_t dX, uint8_t X, df_t flags)
-{
-    for (uint8_t i = 0; i < 4; i++)
-    {
-        if (i == X) setNum(dX, X, flags);
-        else setNum(0, i, DF_BL);
-    }
-
-    show();
-}
-
-void Seg7Display::setChar(uint8_t cX, uint8_t X, df_t flags)
+void Seg7Display::setChar(uint8_t cX, dp_e X, df_t flags)
 {
     cX = _s_char_map[(uint8_t)validateValue(cX, 0, sizeof(_s_char_map) - 1)];
     setDigit(cX, X, flags);
-}
-
-void Seg7Display::showChar(uint8_t cX, uint8_t X, df_t flags)
-{
-    for (uint8_t i = 0; i < 4; i++)
-    {
-        if (i == X) setChar(cX, X, flags);
-        else setChar(0, i, DF_BL);
-    }
-
-    show();
 }
 
 void Seg7Display::setColon(df_t flags)
@@ -99,19 +77,35 @@ void Seg7Display::setColon(df_t flags)
     _positions[2] = (flags & DF_COLON) ? _colon : 0x00;
 }
 
-void Seg7Display::numberTypeValues(uint16_t & max, uint16_t & num, uint16_t & den, df_t flags)
+void Seg7Display::numberTypeValues(uint16_t & max, uint16_t & num, uint16_t & den, nd_e nd, df_t flags)
 {
     if (flags & DF_OCT)
     {
-        max = 4093; num = 512; den = 8;
+        den = 8;
+        max = 1 << (nd * 3);
+        num = max >> 3;
+        max -= 1;
     }
     else if (flags & DF_HEX)
     {
-        max = 65535; num = 4096; den = 16;
+        den = 16;
+        max = 1 << (nd * 4);
+        num = max >> 4;
+        max -= 1;
     }
     else
     {
-        max = 9999; num = 1000; den = 10;
+        switch (nd)
+        {
+            case ND_1: max =    10; break;
+            case ND_2: max =   100; break;
+            case ND_3: max =  1000; break;
+            case ND_4: max = 10000; break;
+        }
+
+        den = 10;
+        num = max / den;
+        max -= 1;
     }
 }
 
@@ -123,7 +117,6 @@ void Seg7Display::setBlank(void)
 
 void Seg7Display::blank(void)
 {
-    // Doesn't turn it off or put it in standby but just blanks it
     setBlank();
     show();
 }
@@ -137,10 +130,10 @@ void Seg7Display::setDigits(uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3, df_t
         return;
     }
 
-    setChar(d0, 0, flags);
-    setChar(d1, 1, flags);
-    setChar(d2, 2, flags);
-    setChar(d3, 3, flags);
+    setChar(d0, DP_0, flags);
+    setChar(d1, DP_1, flags);
+    setChar(d2, DP_2, flags);
+    setChar(d3, DP_3, flags);
     setColon(flags);
 }
 
@@ -150,7 +143,7 @@ void Seg7Display::showDigits(uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3, df_
     show();
 }
 
-void Seg7Display::setInteger(int32_t integer, df_t flags)
+void Seg7Display::setInteger(int32_t integer, dp_e dp, nd_e nd, df_t flags)
 {
     if ((flags & DF_BL) == DF_BL)
     {
@@ -169,27 +162,41 @@ void Seg7Display::setInteger(int32_t integer, df_t flags)
         n = (uint16_t)integer;
     }
 
+
+    nd_e ntv_nd = (dp + nd) > ND_4 ? (nd_e)(nd - dp) : nd;
     uint16_t max, num, den;
-    numberTypeValues(max, num, den, flags);
+    numberTypeValues(max, num, den, ntv_nd, flags);
 
     n = validateValue(n, 0, max);
 
     bool zeros = flags & DF_LZ;
+    uint8_t end = (dp + nd) > 4 ? 4 : dp + nd;
 
-    for (uint8_t i = 0; i < 4; i++)
+    for (uint8_t i = dp; i < end; i++)
     {
         // If last digit is 0 or current digit is not zero, start
         // displaying zeros
         if (((i == 3) && (n == 0)) || (n >= num))
             zeros = true;
 
-        setNum((uint8_t)(n / num), i, (zeros ? flags : (flags | DF_BL_MASK)));
+        setNum((uint8_t)(n / num), (dp_e)i, (zeros ? flags : (flags | DF_BL_MASK)));
 
         n %= num;
         num /= den;
     }
 
     setColon(DF_NONE);
+}
+
+void Seg7Display::showInteger(int32_t integer, dp_e dp, nd_e nd, df_t flags)
+{
+    setInteger(integer, dp, nd, flags);
+    show();
+}
+
+void Seg7Display::setInteger(int32_t integer, df_t flags)
+{
+    setInteger(integer, DP_0, ND_4, flags);
 }
 
 void Seg7Display::showInteger(int32_t integer, df_t flags)
@@ -200,10 +207,10 @@ void Seg7Display::showInteger(int32_t integer, df_t flags)
 
 void Seg7Display::setTime(uint8_t hour_min, uint8_t min_sec, df_t flags)
 {
-    setNum(hour_min / 10, 0, flags);
-    setNum(hour_min % 10, 1, flags);
-    setNum(min_sec / 10, 2, flags);
-    setNum(min_sec % 10, 3, flags);
+    setNum(hour_min / 10, DP_0, flags);
+    setNum(hour_min % 10, DP_1, flags);
+    setNum(min_sec / 10, DP_2, flags);
+    setNum(min_sec % 10, DP_3, flags);
     setColon(flags | DF_COLON);
 }
 
@@ -282,12 +289,12 @@ void Seg7Display::setDate(uint8_t month, uint8_t day, df_t flags)
     flags |= DF_DP1;  // Add decimal to delineate
 
     if (month < 10)
-        setDigit(0, 0, flags);
+        setDigit(0, DP_0, flags);
     else
-        setNum(month / 10, 0, flags);
-    setNum(month % 10, 1, flags);
-    setNum(day / 10, 2, flags);
-    setNum(day % 10, 3, flags);
+        setNum(month / 10, DP_0, flags);
+    setNum(month % 10, DP_1, flags);
+    setNum(day / 10, DP_2, flags);
+    setNum(day % 10, DP_3, flags);
     setColon(DF_NONE);
 }
 
@@ -297,10 +304,36 @@ void Seg7Display::showDate(uint8_t month, uint8_t day, df_t flags)
     show();
 }
 
-#ifndef USE_STR_STATE_FUNC
-void Seg7Display::setString(char const * str, df_t flags)
+void Seg7Display::setOption(char const * opt, uint8_t val, df_t flags)
 {
-    if (((flags & DF_BL) == DF_BL) || (str[0] == 0))
+    setString(opt, DP_0, ND_2, flags);
+    setInteger(val, DP_2, ND_2, flags);
+    setColon(DF_COLON);
+}
+
+void Seg7Display::showOption(char const * opt, uint8_t val, df_t flags)
+{
+    setOption(opt, val, flags);
+    show();
+}
+
+void Seg7Display::setOption(char const * opt, char val, df_t flags)
+{
+    setString(opt, DP_0, ND_2, flags);
+    setDigit(0, DP_2, flags);
+    setChar(val, DP_3, flags);
+    setColon(DF_COLON);
+}
+
+void Seg7Display::showOption(char const * opt, char val, df_t flags)
+{
+    setOption(opt, val, flags);
+    show();
+}
+
+void Seg7Display::setString(char const * str, dp_e dp, nd_e nd, df_t flags)
+{
+    if (((flags & DF_BL) == DF_BL) || (str == nullptr) || (str[0] == 0))
     {
         setBlank();
         return;
@@ -317,27 +350,24 @@ void Seg7Display::setString(char const * str, df_t flags)
         else return tCHAR;
     };
 
-    static uint8_t buf[4] = { 0, 0, 0, 0 };
+    uint8_t buf[4] = { 0, 0, 0, 0 };
     df_t colon = DF_NONE;
-    uint8_t j = 0, end = 4, bc = 2;
+    uint8_t j = dp;
+    uint8_t bc = 2;
+    uint8_t end = (dp + nd) > 4 ? 4 : dp + nd;
 
     for (uint8_t i = 0; (input_type(str[i]) != tNULL) && (j < end); i++)
     {
         ct_e ct = input_type(str[i]), nct = input_type(str[i+1]);
-        uint8_t c = str[i];
-        
-        if ((ct == tCHAR) && (nct == tDOT))
+
+        if (ct == tCHAR)
         {
-            buf[j++] = c | 0x80;
-            i++;  // Move past decimal
-        }
-        else if (ct == tCHAR)
-        {
-            buf[j++] = c;
+            buf[j] = str[i];
+            if (nct != tDOT) j++;
         }
         else if (ct == tDOT)
         {
-            buf[j++] = 0x80;
+            buf[j++] |= 0x80;
         }
         else if (ct == tCOLON)
         {
@@ -345,130 +375,46 @@ void Seg7Display::setString(char const * str, df_t flags)
                 break;
 
             bc = j;
-            end = j + 2;
+
+            if ((j + 2) < end)
+                end = j + 2;
+
             colon = DF_COLON;
         }
     }
 
-    // If there's a colon keep characters next to it on both sides
-    uint8_t pos = 0;
+    uint8_t pos = dp;
 
     // Possible blanks before colon
     for (; pos < (2 - bc); pos++)
-        setChar(0x00, pos, flags);
+        setChar(0x00, (dp_e)pos, flags);
 
     // Characters plus decimal
     for (uint8_t i = 0; i < j; i++, pos++)
     {
         if (buf[i] & 0x80)
-            setDPFlag(pos, flags);
+            setDPFlag((dp_e)pos, flags);
 
-        setChar(buf[i] & 0x7F, pos, flags);
+        setChar(buf[i] & 0x7F, (dp_e)pos, flags);
     }
 
     // Possible blanks after colon
-    for (; pos < 4; pos++)
-        setChar(0x00, pos, flags);
+    for (; pos < end; pos++)
+        setChar(0x00, (dp_e)pos, flags);
 
     setColon(colon);
 }
-#else
+
+void Seg7Display::showString(char const * str, dp_e dp, nd_e nd, df_t flags)
+{
+    setString(str, dp, nd, flags);
+    show();
+}
+
 void Seg7Display::setString(char const * str, df_t flags)
 {
-    if (((flags & DF_BL) == DF_BL) || (str[0] == 0))
-    {
-        setBlank();
-        return;
-    }
-
-    enum { tCHAR, tDOT, tCOLON, tNULL };
-    enum { INPUT, NEXT, FAIL };
-    enum { E = 15 };  // End state
-
-    static uint8_t const states[E][FAIL+1] = {
-    //     INPUT  NEXT  FAIL
-        {  tCHAR,    1,    8 },  //  0  CHAR 0 or  DOT 0
-        {  tCHAR,    3,    8 },  //  1   DOT 0 or CHAR 1
-        {  tCHAR,    3,    9 },  //  2  CHAR 1 or  DOT 1
-        {  tCHAR,    6,    9 },  //  3   DOT 1 or CHAR 2
-        {  tCHAR,    6,   10 },  //  4   COLON or CHAR 2 or DOT 2
-        {  tCHAR,    6,   11 },  //  5  CHAR 2 or  DOT 2
-        {  tCHAR,   12,   11 },  //  6   DOT 2 or CHAR 3
-        {  tCHAR,   12,   12 },  //  7  CHAR 3 or  DOT 3
-        {   tDOT,    2,   13 },  //  8   DOT 0 or COLON
-        {   tDOT,    4,   13 },  //  9   DOT 1 or COLON
-        {   tDOT,    7,   13 },  // 10   COLON or  DOT 2
-        {   tDOT,    7,   14 },  // 11   DOT 2 or NULL
-        {   tDOT,   14,   14 },  // 12   DOT 3 or NULL
-        { tCOLON,    5,   14 },  // 13   COLON or NULL
-        {  tNULL,    E,    E },  // 14        NULL
-    };
-
-    // Should maybe use character map to validate character can be displayed.
-    auto input_type = [](char c)
-    {
-        if (c == 0) return tNULL;
-        else if (c == '.') return tDOT;
-        else if (c == ':') return tCOLON;
-        else return tCHAR;
-    };
-
-    auto input_cmp = [&](char c, uint8_t cs)
-    {
-        return input_type(c) == states[cs][INPUT];
-    };
-
-    auto advance_state = [&](char c, uint8_t & cs)
-    {
-        while ((cs != E) && !input_cmp(c, cs))
-            cs = states[cs][FAIL];
-        return (cs != E);
-    };
-
-    auto next_state = [&](uint8_t & cs)
-    {
-        return ((cs = states[cs][NEXT]) != E);
-    };
-
-    auto validate_string = [&](char const * s)
-    {
-        uint8_t cs = 0, i = 0;
-        while (advance_state(s[i], cs) && next_state(cs))
-            i++;
-        return i;
-    };
-
-    uint8_t end = validate_string(str);
-
-    uint8_t buf[4] = { 0, 0, 0, 0 };
-    uint8_t lc = 0;
-    df_t colon = DF_NONE;
-
-    for (int8_t i = end - 1, j = 3; i >= 0; i--)
-    {
-        char c = str[i];
-
-        if (input_type(c) == tDOT)
-            buf[(input_type(lc) == tDOT) ? --j : j] = 0x80;
-        else if (input_type(c) == tCOLON)
-            colon = DF_COLON;
-        else
-            buf[j--] |= (uint8_t)c;
-
-        lc = c;
-    }
-
-    for (uint8_t i = 0; i < 4; i++)
-    {
-        if (buf[i] & 0x80)
-            setDPFlag(i, flags);
-
-        setChar(buf[i] & 0x7F, i, flags);
-    }
-
-    setColon(colon);
+    setString(str, DP_0, ND_4, flags);
 }
-#endif
 
 void Seg7Display::showString(char const * str, df_t flags)
 {
@@ -478,211 +424,55 @@ void Seg7Display::showString(char const * str, df_t flags)
 
 void Seg7Display::showDashes(df_t flags)
 {
-    if (flags & DF_BL)
-    {
-        blank();
-        return;
-    }
+    if (flags & DF_BL) blank();
+    else showString("----");
+}
 
-#ifdef USE_STR_FUNC
-    setString("----");
-#else
-    setChar('-', 0);
-    setChar('-', 1);
-    setChar('-', 2);
-    setChar('-', 3);
-    setColon(DF_NONE);
-#endif
-
-    show();
+void Seg7Display::showUnderscores(df_t flags)
+{
+    if (flags & DF_BL) blank();
+    else showString("____");
 }
 
 void Seg7Display::showError(df_t flags)
 {
-    if (flags & DF_BL)
-    {
-        blank();
-        return;
-    }
-
-#ifdef USE_STR_FUNC
-    setString("Err");
-#else
-    setChar( 0 , 0);
-    setChar('E', 1);
-    setChar('r', 2);
-    setChar('r', 3);
-    setColon(DF_NONE);
-#endif
-
-    show();
+    if (flags & DF_BL) blank();
+    else showString("ERR");
 }
 
 void Seg7Display::showDone(df_t flags)
 {
-    if (flags & DF_BL)
-    {
-        blank();
-        return;
-    }
-
-#ifdef USE_STR_FUNC
-    setString("donE");
-#else
-    setChar('d', 0);
-    setChar('o', 1);
-    setChar('n', 2);
-    setChar('E', 3);
-    setColon(DF_NONE);
-#endif
-
-    show();
-}
-
-void Seg7Display::showLowBattery(df_t flags)
-{
-    if (flags & DF_BL)
-    {
-        blank();
-        return;
-    }
-
-#ifdef USE_STR_FUNC
-    setString("Lo.bA.");
-#else
-    setChar('L', 0);
-    setChar('o', 1, DF_DP1);
-    setChar('b', 2);
-    setChar('A', 3, DF_DP3);
-    setColon(DF_NONE);
-#endif
-
-    show();
+    if (flags & DF_BL) blank();
+    else showString("donE");
 }
 
 void Seg7Display::showOff(df_t flags)
 {
-    if (flags & DF_BL)
-    {
-        blank();
-        return;
-    }
-
-#ifdef USE_STR_FUNC
-    setString("OFF");
-#else
-    setChar( 0 , 0);
-    setChar('O', 1);
-    setChar('F', 2);
-    setChar('F', 3);
-    setColon(DF_NONE);
-#endif
-
-    show();
+    if (flags & DF_BL) blank();
+    else showString("OFF");
 }
 
 void Seg7Display::showBeep(df_t flags)
 {
-    if (flags & DF_BL)
-    {
-        blank();
-        return;
-    }
-
-#ifdef USE_STR_FUNC
-    setString("bEEP");
-#else
-    setChar('b', 0);
-    setChar('E', 1);
-    setChar('E', 2);
-    setChar('P', 3);
-    setColon(DF_NONE);
-#endif
-
-    show();
+    if (flags & DF_BL) blank();
+    else showString("bEEP");
 }
 
 void Seg7Display::showPlay(df_t flags)
 {
-    if (flags & DF_BL)
-    {
-        blank();
-        return;
-    }
-
-#ifdef USE_STR_FUNC
-    setString("PLAY");
-#else
-    setChar('P', 0);
-    setChar('L', 1);
-    setChar('A', 2);
-    setChar('Y', 3);
-    setColon(DF_NONE);
-#endif
-
-    show();
+    if (flags & DF_BL) blank();
+    else showString("PLAY");
 }
 
 void Seg7Display::show12Hour(df_t flags)
 {
-    if (flags & DF_BL)
-    {
-        blank();
-        return;
-    }
-
-#ifdef USE_STR_FUNC
-    setString("12 H");
-#else
-    setChar('1', 0);
-    setChar('2', 1);
-    setChar(' ', 2);
-    setChar('H', 3);
-    setColon(DF_NONE);
-#endif
-
-    show();
+    if (flags & DF_BL) blank();
+    else showString("12 H");
 }
 
 void Seg7Display::show24Hour(df_t flags)
 {
-    if (flags & DF_BL)
-    {
-        blank();
-        return;
-    }
-
-#ifdef USE_STR_FUNC
-    setString("24 H");
-#else
-    setChar('2', 0);
-    setChar('4', 1);
-    setChar(' ', 2);
-    setChar('H', 3);
-    setColon(DF_NONE);
-#endif
-
-    show();
-}
-
-void Seg7Display::showTouch(df_t flags)
-{
-    if (flags & DF_BL)
-    {
-        blank();
-        return;
-    }
-
-#ifdef USE_STR_FUNC
-    setString("tucH");
-#else
-    setChar('t', 0);
-    setChar('u', 1);
-    setChar('c', 2);
-    setChar('H', 3);
-    setColon(DF_NONE);
-#endif
-
-    show();
+    if (flags & DF_BL) blank();
+    else showString("24 H");
 }
 

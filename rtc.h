@@ -106,6 +106,9 @@ class Rtc : public Module
         uint8_t alarmHour(void) const { return _alarm.hour; }
         uint8_t alarmMinute(void) const { return _alarm.minute; }
         uint8_t alarmType(void) const { return _alarm.type; }
+        uint8_t alarmSnooze(void) const { return _alarm.snooze; }
+        uint8_t alarmWake(void) const { return _alarm.wake; }
+        uint8_t alarmTime(void) const { return _alarm.time; }
         bool alarmIsMusic(void) const { return _alarm.type == alarmMusic(); }
         bool alarmIsBeep(void) const { return _alarm.type == alarmBeep(); }
         bool alarmEnabled(void) const { return _alarm.enabled; }

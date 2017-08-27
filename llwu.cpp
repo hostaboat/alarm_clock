@@ -166,17 +166,15 @@ void wakeup_isr(void)
 
     if (wufm != 0)
     {
-        if (wufm & (1 << WUMS_LPTMR))
-        {
-            // If there is a pending interrupt with the LPTMR then clear the flag
-            // and pending interrupt in that order.  If the order is reversed then
-            // after clearing the pending interrupt, another interrupt is immediately
-            // generated since the LPTMR_CSR_TCF flag hasn't been cleared yet.
-            Llwu::_s_lptmr->clear();
-            Llwu::_s_wakeup_module = WUMS_LPTMR;
-        }
-
         Llwu::_s_wakeup_source = WUS_MODULE;
+        Llwu::_s_wakeup_module = (wums_e)__builtin_ctz(wufm);
+
+        // If there is a pending interrupt with the LPTMR then clear the flag
+        // and pending interrupt in that order.  If the order is reversed then
+        // after clearing the pending interrupt, another interrupt is immediately
+        // generated since the LPTMR_CSR_TCF flag hasn't been cleared yet.
+        if (Llwu::_s_lptmr != nullptr)
+            Llwu::_s_lptmr->clear();
     }
     else if (wufp != 0)
     {

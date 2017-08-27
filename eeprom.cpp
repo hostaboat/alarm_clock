@@ -161,6 +161,9 @@ bool Eeprom::setAlarm(eAlarm const & alarm)
     return (write(EEI_ALARM_HOUR, alarm.hour)
             && write(EEI_ALARM_MINUTE, alarm.minute)
             && write(EEI_ALARM_TYPE, alarm.type)
+            && write(EEI_ALARM_SNOOZE, alarm.snooze)
+            && write(EEI_ALARM_WAKE, alarm.wake)
+            && write(EEI_ALARM_TIME, alarm.time)
             && write(EEI_ALARM_STATE, s));
 }
 
@@ -170,6 +173,9 @@ bool Eeprom::getAlarm(eAlarm & alarm) const
     if (!read < uint8_t > (EEI_ALARM_HOUR, alarm.hour)
             || !read < uint8_t > (EEI_ALARM_MINUTE, alarm.minute)
             || !read < uint8_t > (EEI_ALARM_TYPE, alarm.type)
+            || !read < uint8_t > (EEI_ALARM_SNOOZE, alarm.snooze)
+            || !read < uint8_t > (EEI_ALARM_WAKE, alarm.wake)
+            || !read < uint8_t > (EEI_ALARM_TIME, alarm.time)
             || !read < uint8_t > (EEI_ALARM_STATE, s))
         return false;
     alarm.enabled = (s == EE_ALARM_STATE_ENABLED);
@@ -247,3 +253,12 @@ bool Eeprom::getTouchThreshold (uint16_t & touch_threshold) const
     return read < uint16_t > (EEI_TOUCH_THRESHOLD, touch_threshold);
 }
 
+bool Eeprom::setLedsColor(uint32_t color_code)
+{
+    return write(EEI_LEDS_COLOR, color_code);
+}
+
+bool Eeprom::getLedsColor(uint32_t & color_code) const
+{
+    return read < uint32_t > (EEI_LEDS_COLOR, color_code);
+}
