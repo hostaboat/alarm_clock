@@ -446,13 +446,17 @@ void Seg7Display::setDashes(nd_e nd, bool reverse, df_t flags)
 {
     uint8_t inc = reverse ? -1 : 1;
     dp_e dp = reverse ? DP_3 : DP_0;
-    uint8_t n = nd;
+    uint8_t n = 0;
 
-    while (n != 0)
+    while (n != ND_4)
     {
-        setDigit(0x40, dp, flags);
+        if (n < nd)
+            setDigit(0x40, dp, flags);
+        else
+            setDigit(0x00, dp, flags);
+
         dp = (dp_e)(dp + inc);
-        n--;
+        n++;
     }
 
     setColon(DF_NONE);
@@ -468,13 +472,17 @@ void Seg7Display::setUnderscores(nd_e nd, bool reverse, df_t flags)
 {
     uint8_t inc = reverse ? -1 : 1;
     dp_e dp = reverse ? DP_3 : DP_0;
-    uint8_t n = nd;
+    uint8_t n = 0;
 
-    while (n != 0)
+    while (n != ND_4)
     {
-        setDigit(0x08, dp, flags);
+        if (n < nd)
+            setDigit(0x08, dp, flags);
+        else
+            setDigit(0x00, dp, flags);
+
         dp = (dp_e)(dp + inc);
-        n--;
+        n++;
     }
 
     setColon(DF_NONE);
