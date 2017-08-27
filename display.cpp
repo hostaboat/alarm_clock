@@ -422,16 +422,91 @@ void Seg7Display::showString(char const * str, df_t flags)
     show();
 }
 
+void Seg7Display::setBars(uint8_t n, bool reverse, df_t flags)
+{
+    static constexpr uint8_t const fbars[3] = { 0x08, 0x48, 0x49 };
+    static constexpr uint8_t const rbars[3] = { 0x01, 0x41, 0x49 };
+    uint8_t const * const bars = reverse ? rbars : fbars;
+
+    n = validateValue(n, 1, 3);
+
+    for (uint8_t i = DP_0; i <= DP_3; i++)
+        setDigit(bars[n - 1], (dp_e)i, flags);
+
+    setColon(DF_NONE);
+}
+
+void Seg7Display::showBars(uint8_t n, bool reverse, df_t flags)
+{
+    setBars(n, reverse, flags);
+    show();
+}
+
+void Seg7Display::setDashes(nd_e nd, bool reverse, df_t flags)
+{
+    uint8_t inc = reverse ? -1 : 1;
+    dp_e dp = reverse ? DP_3 : DP_0;
+    uint8_t n = nd;
+
+    while (n != 0)
+    {
+        setDigit(0x40, dp, flags);
+        dp = (dp_e)(dp + inc);
+        n--;
+    }
+
+    setColon(DF_NONE);
+}
+
+void Seg7Display::showDashes(nd_e nd, bool reverse, df_t flags)
+{
+    setDashes(nd, reverse, flags);
+    show();
+}
+
+void Seg7Display::setUnderscores(nd_e nd, bool reverse, df_t flags)
+{
+    uint8_t inc = reverse ? -1 : 1;
+    dp_e dp = reverse ? DP_3 : DP_0;
+    uint8_t n = nd;
+
+    while (n != 0)
+    {
+        setDigit(0x08, dp, flags);
+        dp = (dp_e)(dp + inc);
+        n--;
+    }
+
+    setColon(DF_NONE);
+}
+
+void Seg7Display::showUnderscores(nd_e nd, bool reverse, df_t flags)
+{
+    setUnderscores(nd, reverse, flags);
+    show();
+}
+
+void Seg7Display::setColon(void)
+{
+    setColon(DF_COLON);
+}
+
+void Seg7Display::showColon(void)
+{
+    setColon();
+    show();
+}
+
 void Seg7Display::showDashes(df_t flags)
 {
     if (flags & DF_BL) blank();
-    else showString("----");
+    else showDashes(ND_4, false, flags);
 }
 
 void Seg7Display::showUnderscores(df_t flags)
 {
     if (flags & DF_BL) blank();
-    else showString("____");
+    else showUnderscores(ND_4, false, flags);
 }
 
 void Seg7Display::showError(df_t flags)

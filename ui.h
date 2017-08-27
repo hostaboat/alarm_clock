@@ -44,9 +44,17 @@ class UI
             ES_NONE,
             ES_TURNED,
             ES_DEPRESSED,
-            ES_SPRESS,
-            ES_MPRESS,
-            ES_LPRESS
+            ES_PRESSED,
+        };
+
+        // Switch press states
+        enum ps_e : uint8_t
+        {
+            PS_NONE,
+            PS_SHORT,
+            PS_MEDIUM,
+            PS_LONG,
+            PS_CNT
         };
 
         // UI states
@@ -62,20 +70,64 @@ class UI
             UIS_CNT
         };
 
-        uis_e const _next_states[UIS_CNT][SS_CNT] =
+        uis_e const _next_states[UIS_CNT][PS_CNT][SS_CNT] =
         {
-            //      SS_NONE        SS_LEFT  SS_MIDDLE       SS_RIGHT
-            { UIS_SET_ALARM, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // UIS_SET_ALARM
-            { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // UIS_SET_CLOCK
-            { UIS_SET_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // UIS_SET_TIMER
-            {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // UIS_CLOCK
-            {     UIS_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // UIS_TIMER
-            {     UIS_TOUCH,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK }, // UIS_TOUCH
-            {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS }  // UIS_SET_LEDS
+            //       SS_NONE        SS_LEFT     SS_MIDDLE     SS_RIGHT
+            //
+            //                          UIS_SET_ALARM
+            {
+                { UIS_SET_ALARM, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_NONE
+                { UIS_SET_ALARM, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_SHORT
+                { UIS_SET_ALARM, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_MEDIUM
+                { UIS_SET_ALARM,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK },  // PS_LONG
+            },
+            //                          UIS_SET_CLOCK
+            {
+                { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_NONE
+                { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_SHORT
+                { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_TIMER },  // PS_MEDIUM
+                { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS },  // PS_LONG
+            },
+            //                          UIS_SET_TIMER
+            {
+                { UIS_SET_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // PS_NONE
+                { UIS_SET_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // PS_SHORT
+                { UIS_SET_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_CLOCK }, // PS_MEDIUM
+                { UIS_SET_TIMER, UIS_SET_ALARM, UIS_TIMER,  UIS_SET_LEDS }, // PS_LONG
+            },
+            //                            UIS_CLOCK
+            {
+                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_NONE
+                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_SHORT
+                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_MEDIUM
+                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_LONG
+            },
+            //                            UIS_TIMER
+            {
+                {     UIS_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // PS_NONE
+                {     UIS_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // PS_SHORT
+                {     UIS_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // PS_MEDIUM
+                {     UIS_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // PS_LONG
+            },
+            //                            UIS_TOUCH
+            {
+                {     UIS_TOUCH,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK }, // PS_NONE
+                {     UIS_TOUCH,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK }, // PS_SHORT
+                {     UIS_TOUCH, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_MEDIUM
+                {     UIS_TOUCH, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_LONG
+            },
+            //                           UIS_SET_LEDS
+            {
+                {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS }, // PS_NONE
+                {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS }, // PS_SHORT
+                {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_MEDIUM
+                {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_LONG
+            },
         };
 
         uis_e _state;
 
+        ps_e pressState(uint32_t msecs);
         bool resetting(es_e encoder_state, uint32_t depressed_time);
         bool resting(es_e encoder_state, bool ui_state_changed, bool brightness_changed);
         void nightLight(void);
@@ -85,11 +137,8 @@ class UI
         static constexpr uint32_t const _s_set_blink_time = 500; // milliseconds
         static constexpr uint32_t const _s_reset_blink_time = 300;
 
-        // 2 seconds of continuous pushing of encoder switch
-        static constexpr uint32_t const _s_medium_reset_time = 2000;
-
-        // 6 seconds of continuous pushing of encoder switch
-        static constexpr uint32_t const _s_long_reset_time = 6000;
+        static constexpr uint32_t const _s_short_press = 2000;
+        static constexpr uint32_t const _s_medium_press = 6000;
 
         // 30 seconds before resting, i.e. turning display and leds off
         // and skipping UI state processing.

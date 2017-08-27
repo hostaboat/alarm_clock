@@ -128,6 +128,18 @@ class Seg7Display : public Display
         void setString(char const * str, dp_e dp, nd_e nd, df_t flags = DF_NONE);
         void showString(char const * str, dp_e dp, nd_e nd, df_t flags = DF_NONE);
 
+        void setBars(uint8_t n, bool reverse, df_t flags = DF_NONE);
+        void showBars(uint8_t n, bool reverse, df_t flags = DF_NONE);
+        void setDashes(nd_e nd, bool reverse, df_t flags = DF_NONE);
+        void showDashes(nd_e nd, bool reverse, df_t flags = DF_NONE);
+        void setUnderscores(nd_e nd, bool reverse, df_t flags = DF_NONE);
+        void showUnderscores(nd_e nd, bool reverse, df_t flags = DF_NONE);
+
+        void setColon(void);
+        void showColon(void);
+
+        static void numberTypeValues(uint16_t & max, uint16_t & num, uint16_t & den, nd_e nd, df_t flags);
+
         // Convenience functions
         void showDashes(df_t flags = DF_NONE);
         void showUnderscores(df_t flags = DF_NONE);
@@ -146,7 +158,6 @@ class Seg7Display : public Display
         uint8_t mPos(dp_e X);
         void setDigit(uint8_t mX, dp_e X, df_t flags = DF_NONE);
         void setColon(df_t flags);
-        void numberTypeValues(uint16_t & max, uint16_t & num, uint16_t & den, nd_e nd, df_t flags);
 
         // Digit, Digit, Colon, Digit, Digit
         uint8_t _positions[5] = {};
@@ -210,6 +221,21 @@ class Seg7Display : public Display
           //   x        y        z        {        |        }        ~       del
                0,    0x6E,       0,       0,       0,       0,       0,       0
         };
+
+        ///////////////////////////////////////////////
+        //                Segments                   //
+        //                                           //
+        //         A                  0x01           //
+        //       ______              ______          //
+        //      |      |            |      |         //
+        //    F |      | B     0x20 |      | 0x02    //
+        //      |______|            |______|         //
+        //      |  G   |            | 0x40 |         //
+        //    E |      | C     0x10 |      | 0x04    //
+        //      |______|            |______|         //
+        //         D                  0x08           //
+        //                                           //
+        ///////////////////////////////////////////////
 };
 
 ////////////////////////////////////////////////////////////////////////////////
