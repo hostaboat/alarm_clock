@@ -440,7 +440,7 @@ UI::Lighting::Lighting(uint8_t brightness)
         _nl_color = color_code;
 
     _leds.updateColor(CRGB::BLACK);
-    _leds.setBrightness(brightness);
+    setBrightness(brightness);
 }
 
 void UI::Lighting::onNL(void)
