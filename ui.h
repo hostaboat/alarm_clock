@@ -51,11 +51,13 @@ class UI
         enum ps_e : uint8_t
         {
             PS_NONE,
-            PS_SHORT,
-            PS_MEDIUM,
-            PS_LONG,
+            PS_CHANGE,
+            PS_RESET,
+            PS_STATE,
+            PS_ALT_STATE,
             PS_CNT
         };
+
 
         // UI states
         enum uis_e : uint8_t
@@ -77,51 +79,58 @@ class UI
             //                          UIS_SET_ALARM
             {
                 { UIS_SET_ALARM, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_NONE
-                { UIS_SET_ALARM, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_SHORT
-                { UIS_SET_ALARM, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_MEDIUM
-                { UIS_SET_ALARM,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK },  // PS_LONG
+                { UIS_SET_ALARM, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_CHANGE
+                { UIS_SET_ALARM, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_RESET
+                { UIS_SET_ALARM, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_STATE
+                { UIS_SET_ALARM,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK },  // PS_ALT_STATE
             },
             //                          UIS_SET_CLOCK
             {
                 { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_NONE
-                { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_SHORT
-                { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_TIMER },  // PS_MEDIUM
-                { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS },  // PS_LONG
+                { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_CHANGE
+                { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_RESET
+                { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_TIMER },  // PS_STATE
+                { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS },  // PS_ALT_STATE
             },
             //                          UIS_SET_TIMER
             {
                 { UIS_SET_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // PS_NONE
-                { UIS_SET_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // PS_SHORT
-                { UIS_SET_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_CLOCK }, // PS_MEDIUM
-                { UIS_SET_TIMER, UIS_SET_ALARM, UIS_TIMER,  UIS_SET_LEDS }, // PS_LONG
+                { UIS_SET_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // PS_CHANGE
+                { UIS_SET_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // PS_RESET
+                { UIS_SET_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_CLOCK }, // PS_STATE
+                { UIS_SET_TIMER, UIS_SET_ALARM, UIS_TIMER,  UIS_SET_LEDS }, // PS_ALT_STATE
             },
             //                            UIS_CLOCK
             {
                 {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_NONE
-                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_SHORT
-                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_MEDIUM
-                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_LONG
+                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_CHANGE
+                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_RESET
+                {     UIS_CLOCK, UIS_SET_ALARM, UIS_TIMER, UIS_SET_CLOCK }, // PS_STATE
+                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_ALT_STATE
             },
             //                            UIS_TIMER
             {
                 {     UIS_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // PS_NONE
-                {     UIS_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // PS_SHORT
-                {     UIS_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // PS_MEDIUM
-                {     UIS_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // PS_LONG
+                {     UIS_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // PS_CHANGE
+                {     UIS_TIMER, UIS_SET_ALARM, UIS_TIMER, UIS_SET_TIMER }, // PS_RESET
+                {     UIS_TIMER, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_TIMER }, // PS_STATE
+                {     UIS_TIMER, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_TIMER }, // PS_ALT_STATE
             },
             //                            UIS_TOUCH
             {
                 {     UIS_TOUCH,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK }, // PS_NONE
-                {     UIS_TOUCH,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK }, // PS_SHORT
-                {     UIS_TOUCH, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_MEDIUM
-                {     UIS_TOUCH, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_LONG
+                {     UIS_TOUCH,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK }, // PS_CHANGE
+                {     UIS_TOUCH,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK }, // PS_RESET
+                {     UIS_TOUCH, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_STATE
+                {     UIS_TOUCH, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_ALT_STATE
             },
             //                           UIS_SET_LEDS
             {
                 {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS }, // PS_NONE
-                {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS }, // PS_SHORT
-                {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_MEDIUM
-                {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_LONG
+                {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS }, // PS_CHANGE
+                {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS }, // PS_RESET
+                {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_STATE
+                {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_ALT_STATE
             },
         };
 
@@ -138,6 +147,11 @@ class UI
 
         static constexpr uint32_t const _s_short_press = 2000;
         static constexpr uint32_t const _s_medium_press = 6000;
+
+        static constexpr uint32_t const _s_press_change = 1500;
+        static constexpr uint32_t const _s_press_reset  = 4000;
+        static constexpr uint32_t const _s_press_state = 6500;
+        static constexpr uint32_t const _s_press_alt_state = 8000;
 
         // 30 seconds before resting, i.e. turning display and leds off
         // and skipping UI state processing.
@@ -159,6 +173,7 @@ class UI
         // off by one - 17 display levels and 256 night light levels.
         // The value 120 is midway between 112 and 128. See updateBrightness().
         uint8_t _brightness = 120;
+        static constexpr CRGB::Color const _s_default_color = CRGB::WHITE;
 
         class Player
         {
@@ -259,7 +274,7 @@ class UI
                 virtual void uisWait(void) = 0;
                 virtual void uisUpdate(ev_e ev) = 0;
                 virtual void uisChange(void) = 0;
-                virtual void uisReset(void) = 0;
+                virtual void uisReset(ps_e ps) = 0;
                 virtual void uisEnd(void) = 0;
                 virtual bool uisSleep(void) = 0;
 
@@ -276,7 +291,7 @@ class UI
                 virtual void uisWait(void) = 0;
                 virtual void uisUpdate(ev_e ev) = 0;
                 virtual void uisChange(void) = 0;
-                virtual void uisReset(void) = 0;
+                virtual void uisReset(ps_e ps) = 0;
                 virtual void uisEnd(void) = 0;
                 virtual bool uisSleep(void) = 0;
 
@@ -295,7 +310,7 @@ class UI
                 virtual void uisWait(void) = 0;
                 virtual void uisUpdate(ev_e ev) = 0;
                 virtual void uisChange(void) = 0;
-                virtual void uisReset(void) = 0;
+                virtual void uisReset(ps_e ps) = 0;
                 virtual void uisEnd(void) = 0;
                 virtual bool uisSleep(void) = 0;
         };
@@ -309,7 +324,7 @@ class UI
                 virtual void uisWait(void);
                 virtual void uisUpdate(ev_e ev);
                 virtual void uisChange(void);
-                virtual void uisReset(void);
+                virtual void uisReset(ps_e ps);
                 virtual void uisEnd(void);
                 virtual bool uisSleep(void);
 
@@ -417,7 +432,7 @@ class UI
                 virtual void uisWait(void);
                 virtual void uisUpdate(ev_e ev);
                 virtual void uisChange(void);
-                virtual void uisReset(void);
+                virtual void uisReset(ps_e ps);
                 virtual void uisEnd(void);
                 virtual bool uisSleep(void);
 
@@ -431,7 +446,7 @@ class UI
                 void waitDST(bool on);
                 void waitDone(bool on);
 
-                void updateType(ev_e unused);
+                void updateType(ev_e ev);
                 void updateHour(ev_e ev);
                 void updateMinute(ev_e ev);
                 void updateYear(ev_e ev);
@@ -524,7 +539,7 @@ class UI
                 virtual void uisWait(void);
                 virtual void uisUpdate(ev_e ev);
                 virtual void uisChange(void);
-                virtual void uisReset(void);
+                virtual void uisReset(ps_e ps);
                 virtual void uisEnd(void);
                 virtual bool uisSleep(void);
 
@@ -588,7 +603,7 @@ class UI
                 virtual void uisWait(void);
                 virtual void uisUpdate(ev_e ev);
                 virtual void uisChange(void);
-                virtual void uisReset(void);
+                virtual void uisReset(ps_e ps);
                 virtual void uisEnd(void);
                 virtual bool uisSleep(void);
 
@@ -638,13 +653,19 @@ class UI
                 virtual void uisWait(void);
                 virtual void uisUpdate(ev_e ev);
                 virtual void uisChange(void);
-                virtual void uisReset(void);
+                virtual void uisReset(ps_e ps);
                 virtual void uisEnd(void);
                 virtual bool uisSleep(void);
 
                 bool running(void) { return (_state == TS_RUNNING) || (_state == TS_ALERT); }
 
             private:
+                void waitMinutes(void);
+                void waitSeconds(void);
+                void updateMinutes(ev_e ev);
+                void updateSeconds(ev_e ev);
+                void displayTimer(df_t flags = DF_NONE);
+
                 void start(void);
                 void reset(void);
                 void run(void);
@@ -658,6 +679,8 @@ class UI
 
                 enum ts_e : uint8_t
                 {
+                    TS_MINUTES,
+                    TS_SECONDS,
                     TS_WAIT,
                     TS_RUNNING,
                     TS_PAUSED,
@@ -667,6 +690,8 @@ class UI
 
                 ts_e const _next_states[TS_CNT] =
                 {
+                    TS_SECONDS,
+                    TS_WAIT,
                     TS_RUNNING,
                     TS_PAUSED,
                     TS_RUNNING,
@@ -676,15 +701,31 @@ class UI
                 using ts_wait_action_t = void (Timer::*)(void);
                 ts_wait_action_t const _wait_actions[TS_CNT] =
                 {
+                    &Timer::waitMinutes,
+                    &Timer::waitSeconds,
                     nullptr,
                     &Timer::run,
                     nullptr,
                     &Timer::alert
                 };
 
+                using ts_update_action_t = void (Timer::*)(ev_e ev);
+                ts_update_action_t const _update_actions[TS_CNT] =
+                {
+                    &Timer::updateMinutes,
+                    &Timer::updateSeconds,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                };
+
+
                 using ts_change_action_t = void (Timer::*)(void);
                 ts_change_action_t const _change_actions[TS_CNT] =
                 {
+                    nullptr,
+                    nullptr,
                     &Timer::start,
                     &Timer::pause,
                     &Timer::resume,
@@ -711,6 +752,9 @@ class UI
                 static constexpr uint32_t _s_seconds_interval = 1000000;
                 static constexpr uint32_t _s_hue_interval = _s_seconds_interval / _s_timer_hue_max;
 
+                // For setting timer
+                Toggle _blink{500};
+
                 // ISR
                 static void timerDisplay(void);
                 static void timerLeds(void);
@@ -728,22 +772,27 @@ class UI
                 virtual void uisWait(void);
                 virtual void uisUpdate(ev_e ev);
                 virtual void uisChange(void);
-                virtual void uisReset(void);
+                virtual void uisReset(ps_e ps);
                 virtual void uisEnd(void);
                 virtual bool uisSleep(void);
 
             private:
-                void waitRead(bool unused);
+                void waitRead(bool on);
                 void waitThreshold(bool on);
-                void waitTest(bool unused);
+                void waitTest(bool on);
+                void waitDone(bool on);
+
                 void updateThreshold(ev_e val);
+
                 void changeRead(void);
                 void changeThreshold(void);
                 void changeTest(void);
                 void changeDone(void);
+
                 void display(df_t flags = DF_NONE);
                 void displayRead(df_t flags = DF_NONE);
                 void displayThreshold(df_t flags = DF_NONE);
+                void displayDone(df_t flags = DF_NONE);
 
                 enum ts_e : uint8_t
                 {
@@ -768,7 +817,7 @@ class UI
                     &Touch::waitRead,
                     &Touch::waitThreshold,
                     &Touch::waitTest,
-                    nullptr
+                    &Touch::waitDone
                 };
 
                 using ts_update_action_t = void (Touch::*)(ev_e ev);
@@ -795,7 +844,7 @@ class UI
                     &Touch::displayRead,
                     &Touch::displayThreshold,
                     &Touch::displayThreshold,
-                    &Touch::displayThreshold,
+                    &Touch::displayDone,
                 };
 
                 ts_e _state = TS_READ;
@@ -812,7 +861,7 @@ class UI
                 virtual void uisWait(void);
                 virtual void uisUpdate(ev_e ev);
                 virtual void uisChange(void);
-                virtual void uisReset(void);
+                virtual void uisReset(ps_e ps);
                 virtual void uisEnd(void);
                 virtual bool uisSleep(void);
 

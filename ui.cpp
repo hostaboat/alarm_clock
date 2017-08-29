@@ -185,10 +185,10 @@ void UI::process(void)
             break;
 
         case ES_PRESSED:
-            if (ps == PS_SHORT)
+            if (ps == PS_CHANGE)
                 _states[_state]->uisChange();
             else
-                _states[_state]->uisReset();
+                _states[_state]->uisReset(ps);
             break;
     }
 }
@@ -197,12 +197,14 @@ UI::ps_e UI::pressState(uint32_t msecs)
 {
     if (msecs == 0)
         return PS_NONE;
-    else if (msecs <= _s_short_press)
-        return PS_SHORT;
-    else if (msecs <= _s_medium_press)
-        return PS_MEDIUM;
+    else if (msecs <= _s_press_change)
+        return PS_CHANGE;
+    else if (msecs <= _s_press_reset)
+        return PS_RESET;
+    else if (msecs <= _s_press_state)
+        return PS_STATE;
     else
-        return PS_LONG;
+        return PS_ALT_STATE;
 }
 
 bool UI::pressing(es_e encoder_state, uint32_t depressed_time)
@@ -210,10 +212,12 @@ bool UI::pressing(es_e encoder_state, uint32_t depressed_time)
     // Depressed states
     enum ds_e : uint8_t
     {
-        DS_WAIT_MEDIUM,
-        DS_MEDIUM,
-        DS_WAIT_LONG,
-        DS_LONG,
+        DS_WAIT_RESET,
+        DS_RESET,
+        DS_WAIT_STATE,
+        DS_STATE,
+        DS_WAIT_ALT_STATE,
+        DS_ALT_STATE,
         DS_WAIT_RELEASED,
         DS_RELEASED
     };
@@ -221,7 +225,7 @@ bool UI::pressing(es_e encoder_state, uint32_t depressed_time)
     // Display types
     enum dt_e : uint8_t { DT_NONE, DT_1, DT_2, DT_3 };
 
-    static ds_e ds = DS_WAIT_MEDIUM;
+    static ds_e ds = DS_WAIT_RESET;
     static dt_e display_type = DT_NONE;
     static Toggle t(_s_reset_blink_time);
 
@@ -231,55 +235,69 @@ bool UI::pressing(es_e encoder_state, uint32_t depressed_time)
         _display.showBars(dt, false, t.on() ? DF_NONE : DF_BL);
     };
 
-    if ((encoder_state != ES_DEPRESSED) && (ds != DS_WAIT_MEDIUM))
+    if ((encoder_state != ES_DEPRESSED) && (ds != DS_WAIT_RESET))
         ds = DS_RELEASED;
 
     ps_e ps = pressState(depressed_time);
 
     switch (ds)
     {
-        case DS_WAIT_MEDIUM:
-            if (ps <= PS_SHORT)
+        case DS_WAIT_RESET:
+            if (ps <= PS_CHANGE)
                 break;
 
-            ds = DS_MEDIUM;
+            ds = DS_RESET;
             // Fall through
-        case DS_MEDIUM:
+        case DS_RESET:
             if (_state == UIS_CLOCK)
             {
                 _lighting.toggleNL();
                 t.disable();
-
-                ds = DS_WAIT_RELEASED;
             }
             else
             {
                 display_type = DT_1;
                 t.reset();
-
-                switch (_state)
-                {
-                    case UIS_SET_ALARM:
-                    case UIS_SET_CLOCK:
-                    case UIS_SET_TIMER:
-                        ds = DS_WAIT_LONG;
-                        break;
-                    default:
-                        ds = DS_WAIT_RELEASED;
-                        break;
-                }
             }
+
+            ds = DS_WAIT_STATE;
             break;
 
-        case DS_WAIT_LONG:
-            if (ps == PS_MEDIUM)
+        case DS_WAIT_STATE:
+            if (ps <= PS_RESET)
                 blink(display_type);
             else
-                ds = DS_LONG;
+                ds = DS_STATE;
             break;
 
-        case DS_LONG:
+        case DS_STATE:
+            if (_state == UIS_CLOCK)
+                _lighting.offNL();
+            t.reset();
             display_type = DT_2;
+            ds = DS_WAIT_ALT_STATE;
+            break;
+
+        case DS_WAIT_ALT_STATE:
+            if (ps <= PS_STATE)
+                blink(display_type);
+            else
+                ds = DS_ALT_STATE;
+            break;
+
+        case DS_ALT_STATE:
+            if (_state == UIS_CLOCK)
+            {
+                _lighting.setNL(_s_default_color);
+                _lighting.setColor(_s_default_color);
+                _lighting.onNL();
+            }
+            else
+            {
+                display_type = DT_3;
+            }
+
+            t.reset();
             ds = DS_WAIT_RELEASED;
             break;
 
@@ -288,7 +306,7 @@ bool UI::pressing(es_e encoder_state, uint32_t depressed_time)
             break;
 
         case DS_RELEASED:
-            ds = DS_WAIT_MEDIUM;
+            ds = DS_WAIT_RESET;
             display_type = DT_NONE;
             t.reset();
             if (_state != UIS_CLOCK)
@@ -296,7 +314,7 @@ bool UI::pressing(es_e encoder_state, uint32_t depressed_time)
             break;
     }
 
-    return (ds != DS_WAIT_MEDIUM);
+    return (ds != DS_WAIT_RESET);
 }
 
 bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_changed)
@@ -491,7 +509,7 @@ void UI::Lighting::setNL(CRGB const & c)
 void UI::Lighting::setColor(CRGB const & c)
 {
     if ((_state == LS_NIGHT_LIGHT) && !_nl_on)
-        return;
+        _leds.setColor(c);
 
     _leds.updateColor(c);
 }
@@ -906,10 +924,17 @@ void UI::SetAlarm::uisChange(void)
     display();
 }
 
-void UI::SetAlarm::uisReset(void)
+void UI::SetAlarm::uisReset(ps_e ps)
 {
-    toggleEnabled();
-    display();
+    if ((ps == PS_RESET) && ((_state == SAS_HOUR) || (_state == SAS_DISABLED)))
+    {
+        toggleEnabled();
+        display();
+    }
+    else
+    {
+        uisBegin();
+    }
 }
 
 void UI::SetAlarm::uisEnd(void)
@@ -970,7 +995,7 @@ void UI::SetAlarm::updateMinute(ev_e ev)
     evUpdate < uint8_t > (_alarm.minute, ev, 0, 59);
 }
 
-void UI::SetAlarm::updateType(ev_e unused)
+void UI::SetAlarm::updateType(ev_e ev)
 {
     _alarm.type = Rtc::alarmIsMusic(_alarm.type) ? Rtc::alarmBeep() : Rtc::alarmMusic();
 }
@@ -1110,10 +1135,9 @@ void UI::SetClock::uisChange(void)
     display();
 }
 
-void UI::SetClock::uisReset(void)
+void UI::SetClock::uisReset(ps_e ps)
 {
-    // This won't be called since the state will be changed to timer mode
-    _ui._display.blank();
+    uisBegin();
 }
 
 void UI::SetClock::uisEnd(void)
@@ -1169,7 +1193,7 @@ void UI::SetClock::waitDone(bool on)
     display(on ? DF_NONE : DF_BL);
 }
 
-void UI::SetClock::updateType(ev_e unused)
+void UI::SetClock::updateType(ev_e ev)
 {
     _clock.type = Rtc::clockIs12H(_clock.type) ? Rtc::clock24H() : Rtc::clock12H();
 }
@@ -1199,7 +1223,7 @@ void UI::SetClock::updateDay(ev_e ev)
     evUpdate < uint8_t > (_clock.day, ev, 1, Rtc::clockMaxDay(_clock.month, _clock.year));
 }
 
-void UI::SetClock::updateDST(ev_e unused)
+void UI::SetClock::updateDST(ev_e ev)
 {
     _clock.dst = !_clock.dst;
 }
@@ -1305,10 +1329,9 @@ void UI::SetTimer::uisChange(void)
     display();
 }
 
-void UI::SetTimer::uisReset(void)
+void UI::SetTimer::uisReset(ps_e ps)
 {
-    // This won't be called since the state will be changed back to clock mode
-    _ui._display.blank();
+    uisBegin();
 }
 
 void UI::SetTimer::uisEnd(void)
@@ -1430,10 +1453,12 @@ void UI::Clock::uisChange(void)
     display();
 }
 
-void UI::Clock::uisReset(void)
+void UI::Clock::uisReset(ps_e ps)
 {
-    // Night light gets turned on
-    return;
+    if (ps >= PS_STATE)
+        uisBegin();
+
+    // For PS_RESET, night light gets turned on
 }
 
 void UI::Clock::uisEnd(void)
@@ -1555,6 +1580,18 @@ void UI::Timer::uisUpdate(ev_e ev)
     static uint32_t turn_msecs = 0;
     static int8_t turns = 0;
 
+    if (_state <= TS_WAIT)
+    {
+        // Allow user to update timer without going back to SetTimer.
+        if (_state == TS_WAIT)
+            _state = TS_MINUTES;
+
+        MFC(_update_actions[_state])(ev);
+        displayTimer();
+
+        return;
+    }
+
     if (((msecs() - turn_msecs) < _s_turn_wait) || (_state == TS_ALERT))
         return;
 
@@ -1579,6 +1616,28 @@ void UI::Timer::uisUpdate(ev_e ev)
 
 void UI::Timer::uisChange(void)
 {
+    if (_state < TS_WAIT)
+    {
+        _state = _next_states[_state];
+
+        if ((_state == TS_SECONDS) && (_timer.minutes == 0) && (_timer.seconds == 0))
+            _timer.seconds = 1;
+
+        if (_state != TS_WAIT)
+        {
+            _blink.reset();
+            displayTimer();
+        }
+        else
+        {
+            _ui._display.showTimer(_timer.minutes, _timer.seconds, DF_NO_LZ);
+            _led_timer->updateInterval(
+                    (((uint32_t)_timer.minutes * 60) + (uint32_t)_timer.seconds) * _s_hue_interval, false);
+        }
+
+        return;
+    }
+
     if ((_timer.minutes == 0) && (_timer.seconds == 0))
         return;
 
@@ -1588,7 +1647,7 @@ void UI::Timer::uisChange(void)
     _state = _next_states[_state];
 }
 
-void UI::Timer::uisReset(void)
+void UI::Timer::uisReset(ps_e ps)
 {
     stop();
     reset();
@@ -1609,6 +1668,38 @@ void UI::Timer::uisEnd(void)
 bool UI::Timer::uisSleep(void)
 {
     return (_state != TS_RUNNING) && (_state != TS_ALERT);
+}
+
+void UI::Timer::waitMinutes(void)
+{
+    if (!_blink.toggled())
+        return;
+
+    displayTimer(_blink.on() ? DF_NONE : DF_BL_BC);
+}
+
+void UI::Timer::waitSeconds(void)
+{
+    if (!_blink.toggled())
+        return;
+
+    displayTimer(_blink.on() ? DF_NONE : DF_BL_AC);
+}
+
+void UI::Timer::updateMinutes(ev_e ev)
+{
+    evUpdate < uint8_t > (_timer.minutes, ev, 0, 99);
+}
+
+void UI::Timer::updateSeconds(ev_e ev)
+{
+    evUpdate < uint8_t > (_timer.seconds, ev, (_timer.minutes == 0) ? 1 : 0, 59);
+}
+
+void UI::Timer::displayTimer(df_t flags)
+{
+    _ui._display.showTimer(_timer.minutes, _timer.seconds,
+            (_timer.minutes == 0) ? (flags | DF_BL0) : (flags | DF_NO_LZ));
 }
 
 void UI::Timer::timer(bool force)
@@ -1727,6 +1818,7 @@ bool UI::Touch::uisBegin(void)
 {
     _state = TS_READ;
     _touch_read = 0;
+    _done = false;
 
     // Using this as a display update to show touch value when reading
     // as well as a display blink for setting.
@@ -1747,6 +1839,10 @@ void UI::Touch::uisUpdate(ev_e ev)
         return;
 
     MFC(_update_actions[_state])(ev);
+
+    if (_state == TS_DONE)
+        _done = true;
+
     display();
 }
 
@@ -1757,11 +1853,9 @@ void UI::Touch::uisChange(void)
     display();
 }
 
-void UI::Touch::uisReset(void)
+void UI::Touch::uisReset(ps_e ps)
 {
-    _state = TS_READ;
-    _ui._display.blank();
-    _blink.reset(_s_touch_read_interval);
+    uisBegin();
 }
 
 void UI::Touch::uisEnd(void)
@@ -1774,7 +1868,7 @@ bool UI::Touch::uisSleep(void)
     return false;
 }
 
-void UI::Touch::waitRead(bool unused)
+void UI::Touch::waitRead(bool on)
 {
     _touch_read = _ui._tsi_channel.read();
     display();
@@ -1785,12 +1879,17 @@ void UI::Touch::waitThreshold(bool on)
     display(on ? DF_NONE : DF_BL);
 }
 
-void UI::Touch::waitTest(bool unused)
+void UI::Touch::waitTest(bool on)
 {
     if (_ui._tsi_channel.read() >= _touch_read)
         _ui._beeper.start();
     else
         _ui._beeper.stop();
+}
+
+void UI::Touch::waitDone(bool on)
+{
+    display(on ? DF_NONE : DF_BL);
 }
 
 void UI::Touch::updateThreshold(ev_e ev)
@@ -1816,6 +1915,7 @@ void UI::Touch::changeTest(void)
 void UI::Touch::changeDone(void)
 {
     (void)_ui._eeprom.setTouchThreshold(_touch_read);
+    _blink.reset(_s_set_blink_time);
 }
 
 void UI::Touch::display(df_t flags)
@@ -1832,6 +1932,21 @@ void UI::Touch::displayThreshold(df_t flags)
 {
     _ui._display.showInteger(_touch_read, flags);
 }
+
+void UI::Touch::displayDone(df_t flags)
+{
+    static uint32_t i = 0;
+
+    if (_done) { i = 0; _done = false; }
+    else if (flags == DF_NONE) i++;
+    else return;
+
+    if ((i % 2) == 0)
+        _ui._display.showString("thr.");
+    else
+        displayThreshold();
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Touch END ///////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -1943,7 +2058,7 @@ void UI::SetLeds::uisChange(void)
     display();
 }
 
-void UI::SetLeds::uisReset(void)
+void UI::SetLeds::uisReset(ps_e ps)
 {
     _state = SLS_TYPE;
     _type = SLT_COLOR;
