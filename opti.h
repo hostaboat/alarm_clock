@@ -60,6 +60,25 @@ inline uint8_t qadd8(uint8_t i, uint8_t j)
     return i;
 }
 
+inline uint8_t rand8(uint8_t lo, uint8_t hi, uint16_t entropy = 0)
+{
+    static uint16_t seed = 0;
+
+    if (lo == hi)
+        return lo;
+
+    if (lo > hi)
+    {
+        uint8_t tmp = lo;
+        lo = hi;
+        hi = tmp;
+    }
+
+    seed = (seed * 2053) + 13849 + entropy;
+    uint8_t r = (uint8_t)(seed & 0xFF) + (uint8_t)(seed >> 8);
+    return (r % ((hi - lo) + 1)) + lo;
+}
+
 struct CHSV
 {
     union
@@ -254,6 +273,34 @@ struct CRGB
     uint32_t colorCode(void) const { return ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b; }
 };
 
+struct Palette
+{
+    enum pal_e
+    {
+        PAL_PARTY_COLORS,
+        PAL_PURPLE_SWIRL,
+        PAL_LAVA_COLORS,
+        PAL_OCEAN_COLORS,
+        PAL_RAINBOW_COLORS,
+        PAL_FOREST_COLORS,
+        PAL_RWB_SWIRL,
+        PAL_CNT
+    };
+
+    static CRGB colorFromPalette(pal_e pal, uint8_t index, uint8_t brightness);
+
+    private:
+        static CRGB const _s_party_colors[16];
+        static CRGB const _s_purple_swirl[16];
+        static CRGB const _s_lava_colors[16];
+        static CRGB const _s_ocean_colors[16];
+        static CRGB const _s_rainbow_colors[16];
+        static CRGB const _s_forest_colors[16];
+        static CRGB const _s_rwb_swirl[16];
+
+        static CRGB const * const _s_palettes[PAL_CNT];
+};
+
 template < pin_t PIN, uint8_t N >
 class Leds : public DevPin < PinOut, PIN >
 {
@@ -274,6 +321,9 @@ class Leds : public DevPin < PinOut, PIN >
 
         void showColor(CRGB::Color const & c) { _showColor((CRGB const &)c, _brightness); }
         void showColor(CRGB::Color const & c, uint8_t brightness) { _showColor((CRGB const &)c, brightness); }
+
+        void startPalette(Palette::pal_e pal);
+        void updatePalette(void);
 
         void set(CRGB const * rgb) { for (uint8_t i = 0; i < N; i++) _leds[i] = rgb[i]; }
         void update(CRGB const * rgb) { set(rgb); show(); }
@@ -316,6 +366,10 @@ class Leds : public DevPin < PinOut, PIN >
         uint8_t _e[3] = {};
         UsMinWait < _s_trst > _us_wait;
 
+        Palette::pal_e _palette = Palette::PAL_PARTY_COLORS;
+        uint8_t _pindex = 0;
+        uint8_t _pinc = 0;
+
         void countFPS(uint8_t num_frames = 25);
         void ditherInit(void);
         void binaryDitherInit(void);
@@ -333,6 +387,7 @@ class Leds : public DevPin < PinOut, PIN >
 
         void _show(CRGB const * rgb, uint8_t brightness) { _advance = 3; showLeds(rgb, brightness); }
         void _showColor(CRGB const & rgb, uint8_t brightness) { _advance = 0; showLeds(&rgb, brightness); }
+        void updatePalette(uint8_t index);
         void showLeds(CRGB const * rgb, uint8_t brightness);
         void showPixels(void);
 };
@@ -448,6 +503,41 @@ void Leds < PIN, N >::adjustScale(uint8_t brightness)
     _scale[0] = (((((cc >>  0) & 0xFF) + 1) * (((ct >>  0) & 0xFF) + 1) * brightness) / 0x10000) & 0xFF;
     _scale[1] = (((((cc >>  8) & 0xFF) + 1) * (((ct >>  8) & 0xFF) + 1) * brightness) / 0x10000) & 0xFF;
     _scale[2] = (((((cc >> 16) & 0xFF) + 1) * (((ct >> 16) & 0xFF) + 1) * brightness) / 0x10000) & 0xFF;
+}
+
+template < pin_t PIN, uint8_t N >
+void Leds < PIN, N >::startPalette(Palette::pal_e palette)
+{
+    _palette = palette;
+    _pinc = rand8(3, 5);
+    updatePalette(0);
+}
+
+template < pin_t PIN, uint8_t N >
+void Leds < PIN, N >::updatePalette(void)
+{
+    updatePalette(_pindex);
+}
+
+template < pin_t PIN, uint8_t N >
+void Leds < PIN, N >::updatePalette(uint8_t index)
+{
+    static uint32_t update = 0;
+
+    if ((msecs() - update) < 22)
+        return;
+
+    update = msecs();
+
+    _pindex = index;
+    for (uint8_t i = 0; i < N; i++)
+    {
+        _leds[i] = Palette::colorFromPalette(_palette, index, _brightness);
+        index += _pinc;
+    }
+    _pindex++;
+
+    showLeds(_leds, _brightness);
 }
 
 template < pin_t PIN, uint8_t N >

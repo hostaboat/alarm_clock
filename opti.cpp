@@ -238,3 +238,200 @@ void hsv2rgb_rainbow(CHSV const & hsv, CRGB & rgb)
     rgb.b = b;
 }
 
+CRGB const Palette::_s_party_colors[16] =
+{
+    0x5500AB, 0x84007C, 0xB5004B, 0xE5001B,
+    0xE81700, 0xB84700, 0xAB7700, 0xABAB00,
+    0xAB5500, 0xDD2200, 0xF2000E, 0xC2003E,
+    0x8F0071, 0x5F00A1, 0x2F00D0, 0x0007F9
+};
+
+CRGB const Palette::_s_purple_swirl[16] =
+{
+    CRGB::FUCHSIA,
+    CRGB::MEDIUM_PURPLE,
+    CRGB::MEDIUM_PURPLE,
+    CRGB::LAVENDER,
+
+    CRGB::LAVENDER,
+    CRGB::PURPLE,
+    CRGB::DARK_MAGENTA,
+    CRGB::DARK_MAGENTA,
+
+    CRGB::DARK_MAGENTA,
+    CRGB::DARK_ORCHID,
+    CRGB::WHITE,
+    CRGB::DARK_VIOLET,
+
+    CRGB::DARK_VIOLET,
+    CRGB::WHITE,
+    CRGB::FUCHSIA,
+    CRGB::LAVENDER_BLUSH,
+};
+
+CRGB const Palette::_s_lava_colors[16] =
+{
+    CRGB::BLACK,
+    CRGB::MAROON,
+    CRGB::BLACK,
+    CRGB::MAROON,
+
+    CRGB::DARK_RED,
+    CRGB::MAROON,
+    CRGB::DARK_RED,
+    CRGB::MAROON,  // Added to prevent possible one byte read past end of buffer
+
+    CRGB::DARK_RED,
+    CRGB::DARK_RED,
+    CRGB::RED,
+    CRGB::ORANGE,
+
+    CRGB::WHITE,
+    CRGB::ORANGE,
+    CRGB::RED,
+    CRGB::DARK_RED
+};
+
+CRGB const Palette::_s_ocean_colors[16] =
+{
+    CRGB::MIDNIGHT_BLUE,
+    CRGB::DARK_BLUE,
+    CRGB::MIDNIGHT_BLUE,
+    CRGB::NAVY,
+
+    CRGB::DARK_BLUE,
+    CRGB::MEDIUM_BLUE,
+    CRGB::SEA_GREEN,
+    CRGB::TEAL,
+
+    CRGB::CADET_BLUE,
+    CRGB::BLUE,
+    CRGB::DARK_CYAN,
+    CRGB::CORNFLOWER_BLUE,
+
+    CRGB::AQUAMARINE,
+    CRGB::SEA_GREEN,
+    CRGB::AQUA,
+    CRGB::LIGHT_SKY_BLUE
+};
+
+CRGB const Palette::_s_rainbow_colors[16] =
+{
+    0xFF0000, 0xD52A00, 0xAB5500, 0xAB7F00,
+    0xABAB00, 0x56D500, 0x00FF00, 0x00D52A,
+    0x00AB55, 0x0056AA, 0x0000FF, 0x2A00D5,
+    0x5500AB, 0x7F0081, 0xAB0055, 0xD5002B
+};
+
+CRGB const Palette::_s_forest_colors[16] =
+{
+    CRGB::DARK_GREEN,
+    CRGB::DARK_GREEN,
+    CRGB::DARK_OLIVE_GREEN,
+    CRGB::DARK_GREEN,
+
+    CRGB::GREEN,
+    CRGB::FOREST_GREEN,
+    CRGB::OLIVE_DRAB,
+    CRGB::GREEN,
+
+    CRGB::SEA_GREEN,
+    CRGB::MEDIUM_AQUAMARINE,
+    CRGB::LIME_GREEN,
+    CRGB::YELLOW_GREEN,
+
+    CRGB::LIGHT_GREEN,
+    CRGB::LAWN_GREEN,
+    CRGB::MEDIUM_AQUAMARINE,
+    CRGB::FOREST_GREEN
+};
+
+CRGB const Palette::_s_rwb_swirl[16] =
+{
+    CRGB::RED,
+    CRGB::WHITE,
+    CRGB::BLUE,
+    CRGB::BLUE,
+
+    CRGB::RED,
+    CRGB::WHITE,
+    CRGB::WHITE,
+    CRGB::BLUE,
+
+    CRGB::BLUE,
+    CRGB::RED,
+    CRGB::RED,
+    CRGB::BLUE,
+
+    CRGB::WHITE,
+    CRGB::BLUE,
+    CRGB::BLUE,
+    CRGB::RED,
+};
+
+CRGB const * const Palette::_s_palettes[PAL_CNT] =
+{
+    _s_party_colors,
+    _s_purple_swirl,
+    _s_lava_colors,
+    _s_ocean_colors,
+    _s_rainbow_colors,
+    _s_forest_colors,
+    _s_rwb_swirl,
+};
+
+CRGB Palette::colorFromPalette(pal_e pal, uint8_t index, uint8_t brightness)
+{
+    if ((brightness == 0) || (pal == PAL_CNT))
+        return CRGB(0,0,0);
+
+    CRGB const * const palette = _s_palettes[pal];
+    uint8_t hi4 = index >> 4;
+    uint8_t lo4 = index & 0x0F;
+    bool blend = lo4 != 0;
+    uint8_t r1 = palette[hi4].r;
+    uint8_t g1 = palette[hi4].g;
+    uint8_t b1 = palette[hi4].b;
+
+    if (blend)
+    {
+        CRGB const & entry = palette[(hi4 + 1) % 16];
+
+        uint8_t f2 = lo4 << 4;
+        uint8_t f1 = 255 - f2;
+
+        //    rgb1.nscale8(f1);
+        uint8_t r2 = entry.r;
+        r1 = scale8_video(r1, f1);
+        r2 = scale8_video(r2, f2);
+        r1 += r2;
+
+        uint8_t g2 = entry.g;
+        g1 = scale8_video(g1, f1);
+        g2 = scale8_video(g2, f2);
+        g1 += g2;
+
+        uint8_t b2 = entry.b;
+        b1 = scale8_video(b1, f1);
+        b2 = scale8_video(b2, f2);
+        b1 += b2;
+    }
+
+    if (brightness != 255)
+    {
+        brightness++; // adjust for rounding
+
+        // Now, since brightness is nonzero, we don't need the full scale8_video logic;
+        // we can just to scale8 and then add one (unless scale8 fixed) to all nonzero inputs.
+        if (r1 != 0)
+            r1 = scale8(r1, brightness);
+
+        if (g1 != 0)
+            g1 = scale8(g1, brightness);
+
+        if (b1 != 0)
+            b1 = scale8(b1, brightness);
+    }
+
+    return CRGB(r1, g1, b1);
+}

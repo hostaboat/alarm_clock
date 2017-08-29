@@ -5,9 +5,9 @@
 #include "module.h"
 #include "utility.h"
 
-#define PIN_RS_1         0 // Rotary Switch 1
-#define PIN_RS_2         1 // Rotary Switch 2
-#define PIN_RS_3         2 // Rotary Switch 3
+#define PIN_RS_R         0 // Rotary Switch - Right
+#define PIN_RS_M         1 // Rotary Switch - Middle
+#define PIN_RS_L         2 // Rotary Switch - Left
 #define PIN_PREV         3 // Play previous audio file buttion
 #define PIN_PLAY         4 // Play / Pause button
 #define PIN_NEXT         5 // Play next audio file button

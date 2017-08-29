@@ -128,9 +128,8 @@ class UI
         uis_e _state;
 
         ps_e pressState(uint32_t msecs);
-        bool resetting(es_e encoder_state, uint32_t depressed_time);
+        bool pressing(es_e encoder_state, uint32_t depressed_time);
         bool resting(es_e encoder_state, bool ui_state_changed, bool brightness_changed);
-        void nightLight(void);
         void updateBrightness(ev_e ev);
         void error(uis_e state = UIS_CNT);
 
@@ -150,14 +149,10 @@ class UI
 
         TDisplay & _display = TDisplay::acquire();
         TBeep & _beeper = TBeep::acquire();
-        TLeds & _leds = TLeds::acquire();
         Rtc & _rtc = Rtc::acquire();
         Eeprom & _eeprom = Eeprom::acquire();
         Tsi::Channel & _tsi_channel = Tsi::acquire < PIN_TOUCH > ();
         Llwu & _llwu = Llwu::acquire();
-
-        CRGB _night_light = CRGB::WHITE;
-        bool _nl_on = false;
 
         // Want to have display and night light brightness synced.
         // The display levels are about 1/16 of the night light levels
@@ -165,20 +160,20 @@ class UI
         // The value 120 is midway between 112 and 128. See updateBrightness().
         uint8_t _brightness = 120;
 
-        enum play_err_e
-        {
-            PLAY_ERR_NONE,
-            PLAY_ERR_INVALID,
-            PLAY_ERR_GET_FILES,
-            PLAY_ERR_OPEN_FILE,
-            PLAY_ERR_AUDIO,
-        };
-
         class Player
         {
             friend class UI;
 
             public:
+                enum err_e
+                {
+                    ERR_NONE,
+                    ERR_INVALID,
+                    ERR_GET_FILES,
+                    ERR_OPEN_FILE,
+                    ERR_AUDIO,
+                };
+
                 Player(void);
 
                 void process(void);
@@ -189,8 +184,8 @@ class UI
                 void stop(void) { if (running()) _audio.stop(); _paused = true; }
                 bool playing(void) const { return running() && !paused(); }
                 bool occupied(void) const;
-                bool disabled(void) const { return _error != PLAY_ERR_NONE; }
-                play_err_e error(void) const { return _error; }
+                bool disabled(void) const { return _error != ERR_NONE; }
+                err_e error(void) const { return _error; }
 
             private:
                 bool newTrack(int16_t inc);
@@ -217,7 +212,7 @@ class UI
                 FileInfo _files[_s_max_files] = {};
                 uint16_t _num_files = 0;
                 uint16_t _file_index = 0;
-                play_err_e _error = PLAY_ERR_NONE;
+                err_e _error = ERR_NONE;
         };
 
         class Alarm
@@ -967,7 +962,52 @@ class UI
                 };
         };
 
+        class Lighting
+        {
+            enum ls_e { LS_NIGHT_LIGHT, LS_TIMER, LS_SET };
+
+            friend class Timer;
+            friend class SetLeds;
+
+            public:
+                Lighting(uint8_t brightness = _default_brightness);
+
+                bool valid(void) { return _leds.valid(); }
+
+                void onNL(void);
+                void offNL(void);
+                void toggleNL(void);
+                bool isOnNL(void) const;
+                void cycleNL(ev_e ev);
+                void setNL(CRGB const & c);
+                void paletteNL(void);
+
+                void off(void) { _leds.blank(); _nl_on = false; }
+                void on(void) { _leds.show(); _nl_on = true; }
+
+                void up(void);
+                void down(void);
+                void setBrightness(uint8_t b);
+                uint8_t brightness(void) const { return _brightness; }
+
+                void setColor(CRGB const & c);
+
+            private:
+                TLeds & _leds = TLeds::acquire();
+                Eeprom & _eeprom = Eeprom::acquire();
+                ls_e _state = LS_NIGHT_LIGHT;
+                bool _nl_on = false;
+                uint8_t _nl_index = 0;
+                CRGB _nl_color{CRGB::WHITE};
+                static constexpr uint8_t const _default_brightness = 128;
+                uint8_t _brightness = _default_brightness;
+
+                void state(ls_e state);
+        };
+
+
         Player _player;
+        Lighting _lighting{_brightness};
         SetAlarm _set_alarm{*this};
         SetClock _set_clock{*this};
         SetTimer _set_timer{*this};

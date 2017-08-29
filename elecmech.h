@@ -101,6 +101,15 @@ enum ev_e : int8_t
     EV_POS  =  1 
 };  
 
+template < typename T >
+inline void evUpdate(T & val, ev_e ev, T const & min, T const & max, bool wrap = true)
+{
+    if (ev == EV_NEG)
+        val = (val == min) ? (wrap ? max : min) : val - 1;
+    else if (ev == EV_POS)
+        val = (val == max) ? (wrap ? min : max) : val + 1;
+}
+
 enum epos_e  // Encoder Position
 {
     EP_N,  // Nominal position
@@ -124,15 +133,6 @@ class DevEncoder : public DevPin < PINA, CHA >, public DevPin < PINB, CHB >
 
         // Behaves like a w1c, calling this function will reset turn value to zero
         virtual ev_e turn(void) { ev_e ev = _ev; _ev = EV_ZERO; return ev; }
-
-        template < typename T >
-        static void evUpdate(T & val, ev_e ev, T const & min, T const & max, bool wrap = true)
-        {
-            if (ev == EV_NEG)
-                val = (val == min) ? (wrap ? max : min) : val - 1;
-            else if (ev == EV_POS)
-                val = (val == max) ? (wrap ? min : max) : val + 1;
-        }
 
         DevEncoder(DevEncoder const &) = delete;
         DevEncoder & operator=(DevEncoder const &) = delete;
@@ -302,10 +302,10 @@ using TSwPrev = DevSwitch < PinIn, PIN_PREV, false >;
 using TSwPlay = DevSwitch < PinIn, PIN_PLAY, false >;
 using TSwNext = DevSwitch < PinIn, PIN_NEXT, false >;
 
-using TSwRs1 = DevSwitch < PinInPU, PIN_RS_1 >;
-using TSwRs2 = DevSwitch < PinInPU, PIN_RS_2 >;
-using TSwRs3 = DevSwitch < PinInPU, PIN_RS_3 >;
-using TRsw = DevRotarySwitch < TSwRs1, TSwRs2, TSwRs3 >;
+using TSwRs0 = DevSwitch < PinInPU, PIN_RS_R >;
+using TSwRs1 = DevSwitch < PinInPU, PIN_RS_M >;
+using TSwRs2 = DevSwitch < PinInPU, PIN_RS_L >;
+using TRsw = DevRotarySwitch < TSwRs0, TSwRs1, TSwRs2 >;
 
 using TBrEnc = DevEncoder < PinInPU, PIN_EN_BR_A, PinInPU, PIN_EN_BR_B >;
 

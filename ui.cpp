@@ -13,12 +13,6 @@ UI::UI(void)
     if (!valid())
         return;
 
-    uint32_t color;
-    if (_eeprom.getLedsColor(color))
-        _night_light = color;
-
-    _leds.setBrightness(_brightness);
-    _leds.updateColor(CRGB::BLACK);
     _display.brightness(BR_MID);
 
     // Set initial state
@@ -41,7 +35,7 @@ bool UI::valid(void)
     return !_player.disabled() && _player._prev.valid() && _player._next.valid() && _player._play.valid()
         && _player._fs.valid() && _player._audio.valid()
         && _select.valid() && _br_adjust.valid() && _enc_swi.valid()
-        && _display.valid() && _leds.valid() && _beeper.valid();
+        && _display.valid() && _lighting.valid() && _beeper.valid();
 }
 
 void UI::error(uis_e state)
@@ -57,13 +51,13 @@ void UI::error(uis_e state)
             {
                 if (err.on())
                     _display.showString("Err");
-                else if (_player.error() == PLAY_ERR_INVALID)
+                else if (_player.error() == Player::ERR_INVALID)
                     _display.showString("P.PLA");
-                else if (_player.error() == PLAY_ERR_GET_FILES)
+                else if (_player.error() == Player::ERR_GET_FILES)
                     _display.showString("P.FIL");
-                else if (_player.error() == PLAY_ERR_OPEN_FILE)
+                else if (_player.error() == Player::ERR_OPEN_FILE)
                     _display.showString("P.OPE");
-                else if (_player.error() == PLAY_ERR_AUDIO)
+                else if (_player.error() == Player::ERR_AUDIO)
                     _display.showString("P.AUd");
                 else if (!_player._play.valid())
                     _display.showString("PlA");
@@ -83,7 +77,7 @@ void UI::error(uis_e state)
                     _display.showString("EncS.");
                 else if (!_beeper.valid())
                     _display.showString("BEEP");
-                else if (!_leds.valid())
+                else if (!_lighting.valid())
                     _display.showString("LEdS");
                 else if (state == UIS_SET_ALARM)
                     _display.showString("SE.AL.");
@@ -151,8 +145,9 @@ void UI::process(void)
     }
 
     updateBrightness(bev);
+    _lighting.paletteNL();
 
-    if (resetting(es, sct))
+    if (pressing(es, sct))
         return;
 
     int8_t rs_pos = _select.position();
@@ -210,23 +205,23 @@ UI::ps_e UI::pressState(uint32_t msecs)
         return PS_LONG;
 }
 
-bool UI::resetting(es_e encoder_state, uint32_t depressed_time)
+bool UI::pressing(es_e encoder_state, uint32_t depressed_time)
 {
-    // Reset states
-    enum rs_e : uint8_t
+    // Depressed states
+    enum ds_e : uint8_t
     {
-        RS_WAIT_MEDIUM,
-        RS_MEDIUM,
-        RS_WAIT_LONG,
-        RS_LONG,
-        RS_WAIT_RELEASED,
-        RS_RELEASED
+        DS_WAIT_MEDIUM,
+        DS_MEDIUM,
+        DS_WAIT_LONG,
+        DS_LONG,
+        DS_WAIT_RELEASED,
+        DS_RELEASED
     };
 
     // Display types
     enum dt_e : uint8_t { DT_NONE, DT_1, DT_2, DT_3 };
 
-    static rs_e rs_state = RS_WAIT_MEDIUM;
+    static ds_e ds = DS_WAIT_MEDIUM;
     static dt_e display_type = DT_NONE;
     static Toggle t(_s_reset_blink_time);
 
@@ -236,26 +231,26 @@ bool UI::resetting(es_e encoder_state, uint32_t depressed_time)
         _display.showBars(dt, false, t.on() ? DF_NONE : DF_BL);
     };
 
-    if ((encoder_state != ES_DEPRESSED) && (rs_state != RS_WAIT_MEDIUM))
-        rs_state = RS_RELEASED;
+    if ((encoder_state != ES_DEPRESSED) && (ds != DS_WAIT_MEDIUM))
+        ds = DS_RELEASED;
 
     ps_e ps = pressState(depressed_time);
 
-    switch (rs_state)
+    switch (ds)
     {
-        case RS_WAIT_MEDIUM:
+        case DS_WAIT_MEDIUM:
             if (ps <= PS_SHORT)
                 break;
 
-            rs_state = RS_MEDIUM;
+            ds = DS_MEDIUM;
             // Fall through
-        case RS_MEDIUM:
+        case DS_MEDIUM:
             if (_state == UIS_CLOCK)
             {
-                nightLight();
+                _lighting.toggleNL();
                 t.disable();
 
-                rs_state = RS_WAIT_RELEASED;
+                ds = DS_WAIT_RELEASED;
             }
             else
             {
@@ -267,33 +262,33 @@ bool UI::resetting(es_e encoder_state, uint32_t depressed_time)
                     case UIS_SET_ALARM:
                     case UIS_SET_CLOCK:
                     case UIS_SET_TIMER:
-                        rs_state = RS_WAIT_LONG;
+                        ds = DS_WAIT_LONG;
                         break;
                     default:
-                        rs_state = RS_WAIT_RELEASED;
+                        ds = DS_WAIT_RELEASED;
                         break;
                 }
             }
             break;
 
-        case RS_WAIT_LONG:
+        case DS_WAIT_LONG:
             if (ps == PS_MEDIUM)
                 blink(display_type);
             else
-                rs_state = RS_LONG;
+                ds = DS_LONG;
             break;
 
-        case RS_LONG:
+        case DS_LONG:
             display_type = DT_2;
-            rs_state = RS_WAIT_RELEASED;
+            ds = DS_WAIT_RELEASED;
             break;
 
-        case RS_WAIT_RELEASED:
+        case DS_WAIT_RELEASED:
             blink(display_type);
             break;
 
-        case RS_RELEASED:
-            rs_state = RS_WAIT_MEDIUM;
+        case DS_RELEASED:
+            ds = DS_WAIT_MEDIUM;
             display_type = DT_NONE;
             t.reset();
             if (_state != UIS_CLOCK)
@@ -301,7 +296,7 @@ bool UI::resetting(es_e encoder_state, uint32_t depressed_time)
             break;
     }
 
-    return (rs_state != RS_WAIT_MEDIUM);
+    return (ds != DS_WAIT_MEDIUM);
 }
 
 bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_changed)
@@ -316,7 +311,7 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
         if (resting)
         {
             _display.wake();
-            _leds.show();
+            _lighting.on();
             resting = false;
         }
 
@@ -325,7 +320,7 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
     else if (!resting && ((msecs() - rstart) >= _s_rest_time))
     {
         _display.sleep();
-        _leds.blank();
+        _lighting.off();
         resting = true;
     }
 
@@ -344,6 +339,7 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
     // Don't like this.  Should have a way to just pass in the device.
     static PinIn < PIN_EN_SW > & ui_swi = PinIn < PIN_EN_SW >::acquire();
     static PinInPU < PIN_EN_A > & ui_enc = PinInPU < PIN_EN_A >::acquire();
+    static PinInPU < PIN_RS_L > & ui_rs = PinInPU < PIN_RS_L >::acquire();
     static PinInPU < PIN_EN_BR_A > & br_enc = PinInPU < PIN_EN_BR_A >::acquire();
     static PinIn < PIN_PLAY > & play = PinIn < PIN_PLAY >::acquire();
 
@@ -352,6 +348,7 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
     if (!_llwu.pinsEnable(
                 ui_swi, IRQC_INTR_FALLING,
                 ui_enc, IRQC_INTR_CHANGE,
+                ui_rs, IRQC_INTR_CHANGE,
                 br_enc, IRQC_INTR_CHANGE,
                 play, IRQC_INTR_FALLING))
     {
@@ -376,7 +373,7 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
     else
     {
         _display.wake();
-        _leds.show();
+        _lighting.on();
 
         resting = false;
         rstart = msecs();
@@ -388,7 +385,7 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
 void UI::updateBrightness(ev_e bev)
 {
     uint8_t brightness = _brightness;
-    TBrEnc::evUpdate < uint8_t > (brightness, bev, 0, 255, false);
+    evUpdate < uint8_t > (brightness, bev, 0, 255, false);
 
     if (brightness == _brightness)
         return;
@@ -397,29 +394,147 @@ void UI::updateBrightness(ev_e bev)
     {
         if ((_brightness == 0) || ((brightness % 16) == 0) || (brightness == 255))
             _display.up();
+
+        _lighting.up();
     }
     else
     {
         if ((brightness == 0) || ((brightness & 0x0F) == 0x0F))
             _display.down();
+
+        _lighting.down();
     }
 
     _brightness = brightness;
-
-    if (_leds.isClear())
-        _leds.setBrightness(_brightness);
-    else
-        _leds.updateBrightness(_brightness);
-}
-
-void UI::nightLight(void)
-{
-    _nl_on = !_nl_on;
-    _nl_on ? _leds.updateColor(_night_light) : _leds.updateColor(CRGB::BLACK);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // UI END //////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+// Lighting START //////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+UI::Lighting::Lighting(uint8_t brightness)
+{
+    uint32_t color_code;
+    if (_eeprom.getLedsColor(color_code))
+        _nl_color = color_code;
+
+    _leds.updateColor(CRGB::BLACK);
+    _leds.setBrightness(brightness);
+}
+
+void UI::Lighting::onNL(void)
+{
+    if (_state != LS_NIGHT_LIGHT)
+        return;
+
+    _nl_on = true;
+
+    if (_nl_index == 0)
+        _leds.updateColor(_nl_color);
+    else
+        _leds.startPalette(static_cast < Palette::pal_e > (_nl_index - 1));
+}
+
+void UI::Lighting::offNL(void)
+{
+    if (_state != LS_NIGHT_LIGHT)
+        return;
+
+    _nl_on = false;
+    _leds.updateColor(CRGB::BLACK);
+}
+
+void UI::Lighting::toggleNL(void)
+{
+    if (_state != LS_NIGHT_LIGHT)
+        return;
+
+    if (isOnNL()) offNL();
+    else onNL();
+}
+
+bool UI::Lighting::isOnNL(void) const
+{
+    return (_state == LS_NIGHT_LIGHT) && _nl_on;
+}
+
+void UI::Lighting::paletteNL(void)
+{
+    if ((_state != LS_NIGHT_LIGHT) || !_nl_on || (_nl_index == 0))
+        return;
+
+    _leds.updatePalette();
+}
+
+void UI::Lighting::cycleNL(ev_e ev)
+{
+    if ((_state != LS_NIGHT_LIGHT) || !_nl_on || (ev == EV_ZERO))
+        return;
+
+    evUpdate < uint8_t > (_nl_index, ev, 0, Palette::PAL_CNT);
+
+    if (_nl_index == 0)
+        _leds.updateColor(_nl_color);
+    else
+        _leds.startPalette(static_cast < Palette::pal_e > (_nl_index - 1));
+}
+
+void UI::Lighting::setNL(CRGB const & c)
+{
+    _nl_color = c; _nl_index = 0;
+    (void)_eeprom.setLedsColor(c.colorCode());
+}
+
+void UI::Lighting::setColor(CRGB const & c)
+{
+    if ((_state == LS_NIGHT_LIGHT) && !_nl_on)
+        return;
+
+    _leds.updateColor(c);
+}
+
+void UI::Lighting::up(void)
+{
+    if (_brightness == 255) return;
+    setBrightness(_brightness + 1);
+}
+
+void UI::Lighting::down(void)
+{
+    if (_brightness == 0) return;
+    setBrightness(_brightness - 1);
+}
+
+void UI::Lighting::setBrightness(uint8_t b)
+{
+    if (_leds.isClear())
+        _leds.setBrightness(b);
+    else
+        _leds.updateBrightness(b);
+
+    _brightness = b;
+}
+
+void UI::Lighting::state(ls_e state)
+{
+    if (_state == state)
+        return;
+
+    ls_e lstate = _state;
+    _state = state;
+
+    if ((lstate == LS_TIMER) && (state == LS_NIGHT_LIGHT))
+    {
+        if (_nl_on) onNL();
+        else offNL();
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Lighting END ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -430,14 +545,14 @@ UI::Player::Player(void)
     if (!_prev.valid() || !_play.valid() || !_next.valid()
             || !_audio.valid() || !_fs.valid() || !_eeprom.valid())
     {
-        _error = PLAY_ERR_INVALID;
+        _error = ERR_INVALID;
         return;
     }
 
     int file_cnt = _fs.getFiles(_files, _s_max_files, _exts);
     if (file_cnt <= 0)
     {
-        _error = PLAY_ERR_GET_FILES;
+        _error = ERR_GET_FILES;
         return;
     }
 
@@ -452,7 +567,7 @@ UI::Player::Player(void)
     _file = _fs.open(_files[_file_index]);
     if (_file == nullptr)
     {
-        _error = PLAY_ERR_OPEN_FILE;
+        _error = ERR_OPEN_FILE;
         return;
     }
 }
@@ -464,7 +579,7 @@ void UI::Player::play(void)
 
     if (!running() && !_file->rewind())
     {
-        _error = PLAY_ERR_OPEN_FILE;
+        _error = ERR_OPEN_FILE;
         return;
     }
 
@@ -557,13 +672,13 @@ void UI::Player::process(void)
 
         if (!newTrack(inc))
         {
-            _error = PLAY_ERR_OPEN_FILE;
+            _error = ERR_OPEN_FILE;
             return;
         }
     }
 
     if (_audio.ready() && !_audio.send(_file, 32) && !_file->valid())
-        _error = PLAY_ERR_AUDIO;
+        _error = ERR_AUDIO;
 }
 
 bool UI::Player::newTrack(int16_t inc)
@@ -847,12 +962,12 @@ void UI::SetAlarm::waitDone(bool on)
 
 void UI::SetAlarm::updateHour(ev_e ev)
 {
-    TUiEncSw::evUpdate < uint8_t > (_alarm.hour, ev, 0, 23);
+    evUpdate < uint8_t > (_alarm.hour, ev, 0, 23);
 }
 
 void UI::SetAlarm::updateMinute(ev_e ev)
 {
-    TUiEncSw::evUpdate < uint8_t > (_alarm.minute, ev, 0, 59);
+    evUpdate < uint8_t > (_alarm.minute, ev, 0, 59);
 }
 
 void UI::SetAlarm::updateType(ev_e unused)
@@ -862,17 +977,17 @@ void UI::SetAlarm::updateType(ev_e unused)
 
 void UI::SetAlarm::updateSnooze(ev_e ev)
 {
-    TUiEncSw::evUpdate < uint8_t > (_alarm.snooze, ev, 1, 59);
+    evUpdate < uint8_t > (_alarm.snooze, ev, 1, 59);
 }
 
 void UI::SetAlarm::updateWake(ev_e ev)
 {
-    TUiEncSw::evUpdate < uint8_t > (_alarm.wake, ev, 0, 59);
+    evUpdate < uint8_t > (_alarm.wake, ev, 0, 59);
 }
 
 void UI::SetAlarm::updateTime(ev_e ev)
 {
-    TUiEncSw::evUpdate < uint8_t > (_alarm.time, ev, 0, 23);
+    evUpdate < uint8_t > (_alarm.time, ev, 0, 23);
 }
 
 void UI::SetAlarm::display(df_t flags)
@@ -1061,27 +1176,27 @@ void UI::SetClock::updateType(ev_e unused)
 
 void UI::SetClock::updateHour(ev_e ev)
 {
-    TUiEncSw::evUpdate < uint8_t > (_clock.hour, ev, 0, 23);
+    evUpdate < uint8_t > (_clock.hour, ev, 0, 23);
 }
 
 void UI::SetClock::updateMinute(ev_e ev)
 {
-    TUiEncSw::evUpdate < uint8_t > (_clock.minute, ev, 0, 59);
+    evUpdate < uint8_t > (_clock.minute, ev, 0, 59);
 }
 
 void UI::SetClock::updateYear(ev_e ev)
 {
-    TUiEncSw::evUpdate < uint16_t > (_clock.year, ev, _ui._rtc.clockMinYear(), _ui._rtc.clockMaxYear());
+    evUpdate < uint16_t > (_clock.year, ev, _ui._rtc.clockMinYear(), _ui._rtc.clockMaxYear());
 }
 
 void UI::SetClock::updateMonth(ev_e ev)
 {
-    TUiEncSw::evUpdate < uint8_t > (_clock.month, ev, 1, 12);
+    evUpdate < uint8_t > (_clock.month, ev, 1, 12);
 }
 
 void UI::SetClock::updateDay(ev_e ev)
 {
-    TUiEncSw::evUpdate < uint8_t > (_clock.day, ev, 1, Rtc::clockMaxDay(_clock.month, _clock.year));
+    evUpdate < uint8_t > (_clock.day, ev, 1, Rtc::clockMaxDay(_clock.month, _clock.year));
 }
 
 void UI::SetClock::updateDST(ev_e unused)
@@ -1221,12 +1336,12 @@ void UI::SetTimer::waitSeconds(bool on)
 
 void UI::SetTimer::updateMinutes(ev_e ev)
 {
-    TUiEncSw::evUpdate < uint8_t > (_timer.minutes, ev, 0, 99);
+    evUpdate < uint8_t > (_timer.minutes, ev, 0, 99);
 }
 
 void UI::SetTimer::updateSeconds(ev_e ev)
 {
-    TUiEncSw::evUpdate < uint8_t > (_timer.seconds, ev, (_timer.minutes == 0) ? 1 : 0, 59);
+    evUpdate < uint8_t > (_timer.seconds, ev, (_timer.minutes == 0) ? 1 : 0, 59);
 }
 
 void UI::SetTimer::display(df_t flags)
@@ -1278,14 +1393,25 @@ void UI::Clock::uisWait(void)
         _alarm.update(_clock.hour, _clock.minute);
 }
 
-void UI::Clock::uisUpdate(ev_e unused)
+void UI::Clock::uisUpdate(ev_e ev)
 {
-    // Snooze on encoder turn???
-    // Just in case touch isn't working with battery power
+    static uint32_t turn_wait = 0;
+
+    // Just in case touch isn't working when battery powered,
+    // snooze on encoder turn.
     if (_alarm.inProgress())
+    {
         (void)_alarm.snooze(true);
+        turn_wait = msecs();
+    }
     else
+    {
+        // Don't process turns for a second after turn to snooze
+        if ((msecs() - turn_wait) > 1000)
+            _ui._lighting.cycleNL(ev);
+
         uisWait();
+    }
 }
 
 void UI::Clock::uisChange(void)
@@ -1472,8 +1598,8 @@ void UI::Timer::uisReset(void)
 void UI::Timer::uisEnd(void)
 {
     stop();
+    _ui._lighting.state(Lighting::LS_NIGHT_LIGHT);
     _ui._beeper.stop();
-    _ui._leds.updateColor(_ui._nl_on ? _ui._night_light : CRGB::BLACK);
     _ui._display.blank();
     _display_timer->release();
     _led_timer->release();
@@ -1518,7 +1644,8 @@ void UI::Timer::start(void)
 
     _s_timer_hue = _s_timer_hue_max;
     _last_hue = _s_timer_hue;
-    _ui._leds.updateColor(CHSV(_last_hue, 255, 255));
+    _ui._lighting.state(Lighting::LS_TIMER);
+    _ui._lighting.setColor(CHSV(_last_hue, 255, 255));
 
     _display_timer->start();
     _led_timer->start();
@@ -1527,7 +1654,7 @@ void UI::Timer::start(void)
 void UI::Timer::reset(void)
 {
     _ui._beeper.stop();
-    _ui._leds.updateColor(_ui._nl_on ? _ui._night_light : CRGB::BLACK);
+    _ui._lighting.state(Lighting::LS_NIGHT_LIGHT);
     _ui._display.showTimer(_timer.minutes, _timer.seconds, DF_NO_LZ);
 }
 
@@ -1542,7 +1669,7 @@ void UI::Timer::run(void)
     if (hue != _last_hue)
     {
         _last_hue = hue;
-        _ui._leds.updateColor(CHSV(hue, 255, 255));
+        _ui._lighting.setColor(CHSV(hue, 255, 255));
     }
 
     if (_last_second == 0)
@@ -1580,12 +1707,12 @@ void UI::Timer::alert(void)
     if (_ui._beeper.on())
     {
         _ui._display.showDone();
-        _ui._leds.show();
+        _ui._lighting.on();
     }
     else
     {
         _ui._display.blank();
-        _ui._leds.blank();
+        _ui._lighting.off();
     }
 }
 
@@ -1668,7 +1795,7 @@ void UI::Touch::waitTest(bool unused)
 
 void UI::Touch::updateThreshold(ev_e ev)
 {
-    TUiEncSw::evUpdate < uint16_t > (_touch_read, ev, 0, 9999);
+    evUpdate < uint16_t > (_touch_read, ev, 0, 9999);
 }
 
 void UI::Touch::changeRead(void)
@@ -1719,6 +1846,7 @@ bool UI::SetLeds::uisBegin(void)
     _state = SLS_TYPE;
     _blink.reset();
     _updated = _done = false;
+    _ui._lighting.state(Lighting::LS_SET);
     display();
 
     return true;
@@ -1740,7 +1868,7 @@ void UI::SetLeds::uisUpdate(ev_e ev)
     if (_state != SLS_TYPE)
     {
         _updated = true;
-        _ui._leds.updateColor(_color);
+        _ui._lighting.setColor(_color);
     }
 
     display();
@@ -1779,7 +1907,7 @@ void UI::SetLeds::uisChange(void)
             }
         }
 
-        _ui._leds.updateColor(_color);
+        _ui._lighting.setColor(_color);
     }
     else if ((_state == SLS_COLOR) || double_click)
     {
@@ -1807,8 +1935,7 @@ void UI::SetLeds::uisChange(void)
 
     if (_state == SLS_DONE)
     {
-        _ui._night_light = _color;
-        (void)_ui._eeprom.setLedsColor(_color.colorCode());
+        _ui._lighting.setNL(_color);
         _done = true;
     }
 
@@ -1824,19 +1951,16 @@ void UI::SetLeds::uisReset(void)
     _rgb = _default_rgb;
     _hsv = _default_hsv;
     _cindex = 0;
-    _ui._leds.blank();
+    _ui._lighting.setColor(CRGB::BLACK);
     display();
 }
 
 void UI::SetLeds::uisEnd(void)
 {
     if (_updated)
-    {
-        _ui._night_light = _color;
-        (void)_ui._eeprom.setLedsColor(_color.colorCode());
-    }
+        _ui._lighting.setNL(_color);
 
-    _ui._nl_on = !_ui._leds.isClear();
+    _ui._lighting.state(Lighting::LS_NIGHT_LIGHT);
     _ui._display.blank();
 }
 
@@ -1873,25 +1997,25 @@ void UI::SetLeds::waitDone(bool on)
 void UI::SetLeds::updateType(ev_e ev)
 {
     uint8_t type = _type;
-    TUiEncSw::evUpdate < uint8_t > (type, ev, 0, SLT_HSV);
+    evUpdate < uint8_t > (type, ev, 0, SLT_HSV);
     _type = (slt_e)type;
 }
 
 void UI::SetLeds::updateColor(ev_e ev)
 {
-    TUiEncSw::evUpdate < uint8_t > (_cindex, ev, 0, (sizeof(_s_colors) / sizeof(CRGB::Color)) - 1);
+    evUpdate < uint8_t > (_cindex, ev, 0, (sizeof(_s_colors) / sizeof(CRGB::Color)) - 1);
     _color = _s_colors[_cindex];
 }
 
 void UI::SetLeds::updateRGB(ev_e ev)
 {
-    TUiEncSw::evUpdate < uint8_t > (*_val, ev, 0, 255);
+    evUpdate < uint8_t > (*_val, ev, 0, 255);
     _color = _rgb;
 }
 
 void UI::SetLeds::updateHSV(ev_e ev)
 {
-    TUiEncSw::evUpdate < uint8_t > (*_val, ev, 0, 255);
+    evUpdate < uint8_t > (*_val, ev, 0, 255);
     _color = _hsv;
 }
 
