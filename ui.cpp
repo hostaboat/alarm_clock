@@ -153,8 +153,8 @@ void UI::process(void)
     int8_t rs_pos = _select.position();
     ss_e ss = SS_NONE;
     if      (rs_pos == 0) ss = SS_RIGHT;
-    else if (rs_pos == 1) ss = SS_MIDDLE;
-    else if (rs_pos == 2) ss = SS_LEFT;
+    else if (rs_pos == 1) ss = SS_LEFT;
+    else if (rs_pos == 2) ss = SS_MIDDLE;
 
     uis_e slast = _state;
     _state = _next_states[slast][ps][ss];
@@ -328,8 +328,8 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
     {
         if (resting)
         {
-            _display.wake();
-            _lighting.on();
+            _display.wake(!ui_state_changed);
+            _lighting.wake();
             resting = false;
         }
 
@@ -337,8 +337,8 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
     }
     else if (!resting && ((msecs() - rstart) >= _s_rest_time))
     {
-        _display.sleep();
-        _lighting.off();
+        _display.sleep(true);
+        _lighting.sleep();
         resting = true;
     }
 
@@ -357,7 +357,7 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
     // Don't like this.  Should have a way to just pass in the device.
     static PinIn < PIN_EN_SW > & ui_swi = PinIn < PIN_EN_SW >::acquire();
     static PinInPU < PIN_EN_A > & ui_enc = PinInPU < PIN_EN_A >::acquire();
-    static PinInPU < PIN_RS_L > & ui_rs = PinInPU < PIN_RS_L >::acquire();
+    static PinInPU < PIN_RS_M > & ui_rs = PinInPU < PIN_RS_M >::acquire();
     static PinInPU < PIN_EN_BR_A > & br_enc = PinInPU < PIN_EN_BR_A >::acquire();
     static PinIn < PIN_PLAY > & play = PinIn < PIN_PLAY >::acquire();
 
@@ -368,7 +368,8 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
                 ui_enc, IRQC_INTR_CHANGE,
                 ui_rs, IRQC_INTR_CHANGE,
                 br_enc, IRQC_INTR_CHANGE,
-                play, IRQC_INTR_FALLING))
+                play, IRQC_INTR_FALLING
+                ))
     {
         _llwu.disable();
         return resting;
@@ -390,8 +391,11 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
     }
     else
     {
-        _display.wake();
-        _lighting.on();
+        // If the rotary switch is the wakeup source, state is going to change
+        // so don't redisplay data from state prior to sleeping.
+        _display.wake(wakeup_pin != PIN_RS_M);
+
+        _lighting.wake();
 
         resting = false;
         rstart = msecs();

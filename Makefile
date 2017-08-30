@@ -19,8 +19,8 @@ SIZE = $(abspath $(GCCPATH))/arm-none-eabi-size
 # RTC_INIT - set only if first time using it
 # RTC_VBAT - set if a coin cell battery is connected to Teensy
 #RTC = -DRTC_INIT -DRTC_VBAT
-#RTC = -DRTC_VBAT
-RTC =
+RTC = -DRTC_VBAT
+#RTC =
 
 OPT = -O2
 STD = gnu++11

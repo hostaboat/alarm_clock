@@ -6,8 +6,8 @@
 #include "utility.h"
 
 #define PIN_RS_R         0 // Rotary Switch - Right
-#define PIN_RS_M         1 // Rotary Switch - Middle
-#define PIN_RS_L         2 // Rotary Switch - Left
+#define PIN_RS_L         1 // Rotary Switch - Left
+#define PIN_RS_M         2 // Rotary Switch - Middle
 #define PIN_PREV         3 // Play previous audio file buttion
 #define PIN_PLAY         4 // Play / Pause button
 #define PIN_NEXT         5 // Play next audio file button

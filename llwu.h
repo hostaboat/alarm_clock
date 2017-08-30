@@ -173,7 +173,8 @@ class Llwu
 
         static constexpr int8_t const _s_wups_to_pin[16] =
         {
-            -1, -1, -1, -1, 4, 16, 22, 9, 10, 13, 11, -1, -1, 7, 6, 21,
+            -1,  -1,  -1,  -1,   4,  16,  22,   9,
+            10,  13,  11,  -1,   2,   7,   6,  21,
         };
 
         wupe_e const _irqc_to_wupe[IRQC_MASK+1] =

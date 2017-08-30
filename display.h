@@ -19,8 +19,8 @@ enum br_e : uint8_t
 class Display
 {
     public:
-        virtual void wake(void) = 0;
-        virtual void sleep(void) = 0;
+        virtual void wake(bool redisplay = true) = 0;
+        virtual void sleep(bool clear = false) = 0;
         virtual bool isAwake(void) = 0;
 
         virtual void on(void) = 0;
@@ -78,8 +78,8 @@ class Seg7Display : public Display
         Seg7Display(void) {}
         Seg7Display(uint8_t colon, uint8_t decimal) : _colon(colon), _decimal(decimal) {}
 
-        virtual void wake(void) = 0;
-        virtual void sleep(void) = 0;
+        virtual void wake(bool redisplay = true) = 0;
+        virtual void sleep(bool clear = false) = 0;
         virtual bool isAwake(void) = 0;
         virtual void on(void) = 0;
         virtual void off(void) = 0;
@@ -278,8 +278,8 @@ class DevHT16K33 : public DevI2C < ADDR, I2C, SDA, SCL > , public Seg7Display
 
         virtual bool busy(void) { return this->_i2c.busy(); }
 
-        virtual void wake(void);
-        virtual void sleep(void);
+        virtual void wake(bool redisplay = true);
+        virtual void sleep(bool clear = false);
         virtual bool isAwake(void) { return _awake; }
         virtual void on(void);
         virtual void off(void);
@@ -314,12 +314,15 @@ DevHT16K33 < ADDR, I2C, SDA, SCL >::DevHT16K33(void)
 {
     this->_frequency = 400000;
 
-    wake(); on(); blank();
+    send(HT16K33_WAKEUP);
+    _awake = true;
+    on();
+    blank();
     brightness(BR_MID);
 }
 
 template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >
-void DevHT16K33 < ADDR, I2C, SDA, SCL >::wake(void)
+void DevHT16K33 < ADDR, I2C, SDA, SCL >::wake(bool redisplay)
 {
     if (isAwake())
         return;
@@ -334,13 +337,33 @@ void DevHT16K33 < ADDR, I2C, SDA, SCL >::wake(void)
     // turn it back on.
     if (isOn())
         send(HT16K33_ON);
+
+    // This delay seems to be necessary to prevent previously displayed
+    // data from flashing on - even when data was cleared via sleep().
+    delay_msecs(1);
+
+    // Redisplay data if requested.
+    if (redisplay)
+        show();
 }
 
 template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >
-void DevHT16K33 < ADDR, I2C, SDA, SCL >::sleep(void)
+void DevHT16K33 < ADDR, I2C, SDA, SCL >::sleep(bool clear)
 {
     if (!isAwake())
         return;
+
+    // Clear display if requested.
+    if (clear)
+    {
+        this->_i2c.begin(ADDR, this->_frequency);
+        this->_i2c.tx8(0x00);  // Command code
+
+        for (uint8_t i = 0; i < 8; i++)
+            this->_i2c.tx16(0x0000);
+
+        this->_i2c.end();
+    }
 
     send(HT16K33_STANDBY);
 
@@ -449,10 +472,7 @@ void DevHT16K33 < ADDR, I2C, SDA, SCL >::show(void)
 
     // Not sure if this is necessary
     for (; i < 8; i++)
-    {
-        this->_i2c.tx8(0x00);
-        this->_i2c.tx8(0x00);
-    }
+        this->_i2c.tx16(0x0000);
 
     this->_i2c.end();
 }

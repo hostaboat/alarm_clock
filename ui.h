@@ -1033,6 +1033,10 @@ class UI
 
                 void off(void) { _leds.blank(); _nl_on = false; }
                 void on(void) { _leds.show(); _nl_on = true; }
+                bool isOn(void) { return !_leds.isClear(); }
+
+                void sleep(void) { if (isOn()) { off(); _was_on = true; } }
+                void wake(void) { if (_was_on) { on(); _was_on = false; } }
 
                 void up(void);
                 void down(void);
@@ -1050,6 +1054,7 @@ class UI
                 CRGB _nl_color{CRGB::WHITE};
                 static constexpr uint8_t const _default_brightness = 128;
                 uint8_t _brightness = _default_brightness;
+                bool _was_on = false;
 
                 void state(ls_e state);
         };

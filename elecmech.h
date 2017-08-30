@@ -303,8 +303,8 @@ using TSwPlay = DevSwitch < PinIn, PIN_PLAY, false >;
 using TSwNext = DevSwitch < PinIn, PIN_NEXT, false >;
 
 using TSwRs0 = DevSwitch < PinInPU, PIN_RS_R >;
-using TSwRs1 = DevSwitch < PinInPU, PIN_RS_M >;
-using TSwRs2 = DevSwitch < PinInPU, PIN_RS_L >;
+using TSwRs1 = DevSwitch < PinInPU, PIN_RS_L >;
+using TSwRs2 = DevSwitch < PinInPU, PIN_RS_M >;
 using TRsw = DevRotarySwitch < TSwRs0, TSwRs1, TSwRs2 >;
 
 using TBrEnc = DevEncoder < PinInPU, PIN_EN_BR_A, PinInPU, PIN_EN_BR_B >;
