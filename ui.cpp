@@ -33,7 +33,7 @@ UI::UI(void)
 bool UI::valid(void)
 {
     return !_player.disabled() && _player._prev.valid() && _player._next.valid() && _player._play.valid()
-        && _player._fs.valid() && _player._audio.valid()
+        && _player._fs.valid() && _player._audio.valid() && _tsi.valid()
         && _select.valid() && _br_adjust.valid() && _enc_swi.valid()
         && _display.valid() && _lighting.valid() && _beeper.valid();
 }
@@ -79,6 +79,8 @@ void UI::error(uis_e state)
                     _display.showString("BEEP");
                 else if (!_lighting.valid())
                     _display.showString("LEdS");
+                else if (!_tsi.valid())
+                    _display.showString("tSI");
                 else if (state == UIS_SET_ALARM)
                     _display.showString("SE.AL.");
                 else if (state == UIS_SET_CLOCK)
@@ -747,10 +749,10 @@ void UI::Alarm::begin(void)
 {
     _state = AS_OFF;
     _ui._rtc.getAlarm(_alarm);
-    _ui._eeprom.getTouchThreshold(_touch_threshold);
     _alarm_time = _alarm.time * 60 * 60 * 1000;
     _snooze_time = _alarm.snooze * 60 * 1000;
     _wake_time = _alarm.wake * 60 * 1000;
+    _touch_disabled = false;
 }
 
 void UI::Alarm::update(uint8_t hour, uint8_t minute)
@@ -825,8 +827,16 @@ bool UI::Alarm::snooze(bool force)
     if (!inProgress())
         return false;
 
-    if (!force && (_ui._tsi_channel.read() < _touch_threshold))
+    if (!force && (!_ui._tsi_channel.touched() || _touch_disabled))
         return false;
+
+    // In case touch threshold was set too low.  Not likely that someone
+    // could react to and snooze the alarm within this time.
+    if (!force && ((msecs() - _wake_start) < _touch_disable_time))
+    {
+        _touch_disabled = true;
+        return false;
+    }
 
     if (_alarm_music)
         _ui._player.pause();
@@ -879,7 +889,7 @@ bool UI::SetAlarm::uisBegin(void)
 {
     _ui._rtc.getAlarm(_alarm);
     _state = _alarm.enabled ? SAS_HOUR : SAS_DISABLED;
-    _blink.reset(500);
+    _blink.reset(_s_set_blink_time);
     _updated = _done = false;
     display();
 
@@ -918,11 +928,11 @@ void UI::SetAlarm::uisChange(void)
         (void)_ui._rtc.setAlarm(_alarm);
         _done = true;
         _updated = false;
-        _blink.reset(1000);
+        _blink.reset(_s_done_blink_time);
     }
     else
     {
-        _blink.reset(500);
+        _blink.reset(_s_set_blink_time);
     }
 
     display();
@@ -1066,7 +1076,7 @@ void UI::SetAlarm::displayDone(df_t flags)
         case 2: displaySnooze(); break;
         case 3: displayWake(); break;
         case 4: displayTime(); break;
-        default: _ui._display.showString("... ");
+        default: _ui._display.showString("... "); break;
     }
 }
 
@@ -1097,7 +1107,7 @@ bool UI::SetClock::uisBegin(void)
 
     _state = SCS_TYPE;
 
-    _blink.reset(500);
+    _blink.reset(_s_set_blink_time);
     _updated = _done = false;
     display();
 
@@ -1129,11 +1139,11 @@ void UI::SetClock::uisChange(void)
         (void)_ui._rtc.setClock(_clock);
         _done = true;
         _updated = false;
-        _blink.reset(1000);
+        _blink.reset(_s_done_blink_time);
     }
     else
     {
-        _blink.reset(500);
+        _blink.reset(_s_set_blink_time);
     }
 
     display();
@@ -1279,7 +1289,7 @@ void UI::SetClock::displayDone(df_t flags)
         case 2: displayDate(); break;
         case 3: displayYear(); break;
         case 4: displayDST(); break;
-        default: _ui._display.showString("... ");
+        default: _ui._display.showString("... "); break;
     }
 }
 
@@ -1424,9 +1434,9 @@ void UI::Clock::uisUpdate(ev_e ev)
 {
     static uint32_t turn_wait = 0;
 
-    // Just in case touch isn't working when battery powered,
-    // snooze on encoder turn.
-    if (_alarm.inProgress())
+    // Snooze on encoder turn just in case touch isn't working when
+    // battery powered or touch threshold is set too high.
+    if (_alarm.inProgress() && !_alarm.snoozing())
     {
         (void)_alarm.snooze(true);
         turn_wait = msecs();
@@ -1820,20 +1830,27 @@ void UI::Timer::alert(void)
 ////////////////////////////////////////////////////////////////////////////////
 bool UI::Touch::uisBegin(void)
 {
-    _state = TS_READ;
-    _touch_read = 0;
+    if (_advanced)
+        _state = TS_NSCN;
+    else
+        _state = TS_READ;
+
+    _ui._tsi.get(_touch);
+    _ui._beeper.stop();
     _done = false;
 
     // Using this as a display update to show touch value when reading
     // as well as a display blink for setting.
-    _blink.reset(_s_touch_read_interval);
+    _blink.reset(_s_set_blink_time);
 
     return true;
 }
 
 void UI::Touch::uisWait(void)
 {
-    if ((_wait_actions[_state] != nullptr) && _blink.toggled())
+    if (_state == TS_TEST)
+        waitTest(_ui._beeper.on());
+    else if ((_wait_actions[_state] != nullptr) && _blink.toggled())
         MFC(_wait_actions[_state])(_blink.on());
 }
 
@@ -1843,22 +1860,26 @@ void UI::Touch::uisUpdate(ev_e ev)
         return;
 
     MFC(_update_actions[_state])(ev);
-
-    if (_state == TS_DONE)
-        _done = true;
-
     display();
 }
 
 void UI::Touch::uisChange(void)
 {
     _state = _next_states[_state];
-    MFC(_change_actions[_state])();
+
+    if (_change_actions[_state] != nullptr)
+        MFC(_change_actions[_state])();
+
     display();
 }
 
 void UI::Touch::uisReset(ps_e ps)
 {
+    if (ps == PS_ALT_STATE)
+        _advanced = !_advanced;
+    else if ((ps == PS_RESET) && _advanced)
+        Tsi::defaults(_touch);
+
     uisBegin();
 }
 
@@ -1872,9 +1893,29 @@ bool UI::Touch::uisSleep(void)
     return false;
 }
 
+void UI::Touch::waitNscn(bool on)
+{
+    display(on ? DF_NONE : DF_BL_AC);
+}
+
+void UI::Touch::waitPs(bool on)
+{
+    display(on ? DF_NONE : DF_BL_AC);
+}
+
+void UI::Touch::waitRefChrg(bool on)
+{
+    display(on ? DF_NONE : DF_BL_AC);
+}
+
+void UI::Touch::waitExtChrg(bool on)
+{
+    display(on ? DF_NONE : DF_BL_AC);
+}
+
 void UI::Touch::waitRead(bool on)
 {
-    _touch_read = _ui._tsi_channel.read();
+    _touch.threshold = _ui._tsi_channel.read();
     display();
 }
 
@@ -1885,10 +1926,21 @@ void UI::Touch::waitThreshold(bool on)
 
 void UI::Touch::waitTest(bool on)
 {
-    if (_ui._tsi_channel.read() >= _touch_read)
-        _ui._beeper.start();
+    static uint32_t beep_start = 0;
+
+    if ((msecs() - beep_start) < _s_beeper_wait)
+        return;
+
+    beep_start = msecs();
+
+    if (_ui._tsi_channel.read() >= _touch.threshold)
+    {
+        if (!on) _ui._beeper.start();
+    }
     else
-        _ui._beeper.stop();
+    {
+        if (on) _ui._beeper.stop();
+    }
 }
 
 void UI::Touch::waitDone(bool on)
@@ -1896,30 +1948,52 @@ void UI::Touch::waitDone(bool on)
     display(on ? DF_NONE : DF_BL);
 }
 
+void UI::Touch::updateNscn(ev_e ev)
+{
+    evUpdate < uint8_t > (_touch.nscn, ev, 0, Tsi::maxNscn());
+}
+
+void UI::Touch::updatePs(ev_e ev)
+{
+    evUpdate < uint8_t > (_touch.ps, ev, 0, Tsi::maxPs());
+}
+
+void UI::Touch::updateRefChrg(ev_e ev)
+{
+    evUpdate < uint8_t > (_touch.refchrg, ev, 0, Tsi::maxRefChrg());
+}
+
+void UI::Touch::updateExtChrg(ev_e ev)
+{
+    evUpdate < uint8_t > (_touch.extchrg, ev, 0, Tsi::maxExtChrg());
+}
+
 void UI::Touch::updateThreshold(ev_e ev)
 {
-    evUpdate < uint16_t > (_touch_read, ev, 0, 9999);
+    evUpdate < uint16_t > (_touch.threshold, ev, 0, Tsi::maxThreshold());
+}
+
+void UI::Touch::changeNscn(void)
+{
+    if (!_advanced)
+        _state = TS_READ;
 }
 
 void UI::Touch::changeRead(void)
 {
-    _blink.reset(_s_touch_read_interval);
-}
-
-void UI::Touch::changeThreshold(void)
-{
-    _blink.reset(_s_set_blink_time);
+    if (_advanced)
+        (void)_ui._tsi.configure(_touch.nscn, _touch.ps, _touch.refchrg, _touch.extchrg);
 }
 
 void UI::Touch::changeTest(void)
 {
-    _blink.reset(0);
+    _ui._display.showInteger(_touch.threshold, DF_HEX);
 }
 
 void UI::Touch::changeDone(void)
 {
-    (void)_ui._eeprom.setTouchThreshold(_touch_read);
-    _blink.reset(_s_set_blink_time);
+    (void)_ui._tsi.set(_touch);
+    _done = true;
 }
 
 void UI::Touch::display(df_t flags)
@@ -1927,14 +2001,29 @@ void UI::Touch::display(df_t flags)
     MFC(_display_actions[_state])(flags);
 }
 
-void UI::Touch::displayRead(df_t flags)
+void UI::Touch::displayNscn(df_t flags)
 {
-    _ui._display.showInteger(_touch_read, flags);
+    _ui._display.showOption("nS", Tsi::valNscn(_touch.nscn), flags);
+}
+
+void UI::Touch::displayPs(df_t flags)
+{
+    _ui._display.showOption("PS", Tsi::valPs(_touch.ps), flags | DF_HEX);
+}
+
+void UI::Touch::displayRefChrg(df_t flags)
+{
+    _ui._display.showOption("rC", Tsi::valRefChrg(_touch.refchrg), flags);
+}
+
+void UI::Touch::displayExtChrg(df_t flags)
+{
+    _ui._display.showOption("EC", Tsi::valExtChrg(_touch.extchrg), flags);
 }
 
 void UI::Touch::displayThreshold(df_t flags)
 {
-    _ui._display.showInteger(_touch_read, flags);
+    _ui._display.showInteger(_touch.threshold, flags | DF_HEX);
 }
 
 void UI::Touch::displayDone(df_t flags)
@@ -1945,10 +2034,28 @@ void UI::Touch::displayDone(df_t flags)
     else if (flags == DF_NONE) i++;
     else return;
 
-    if ((i % 2) == 0)
-        _ui._display.showString("thr.");
+    if (_advanced)
+    {
+        static constexpr uint8_t const nopts = 6;
+
+        switch (i % (nopts + 1))
+        {
+            case 0: displayNscn(); break;
+            case 1: displayPs(); break;
+            case 2: displayRefChrg(); break;
+            case 3: displayExtChrg(); break;
+            case 4: _ui._display.showString("thr."); break;
+            case 5: displayThreshold(); break;
+            default: _ui._display.showString("... "); break;
+        }
+    }
     else
-        displayThreshold();
+    {
+        if ((i % 2) == 0)
+            _ui._display.showString("thr.");
+        else
+            displayThreshold();
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

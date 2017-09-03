@@ -77,7 +77,7 @@ void Seg7Display::setColon(df_t flags)
     _positions[2] = (flags & DF_COLON) ? _colon : 0x00;
 }
 
-void Seg7Display::numberTypeValues(uint16_t & max, uint16_t & num, uint16_t & den, nd_e nd, df_t flags)
+void Seg7Display::numberTypeValues(uint32_t & max, uint32_t & num, uint32_t & den, nd_e nd, df_t flags)
 {
     if (flags & DF_OCT)
     {
@@ -164,7 +164,7 @@ void Seg7Display::setInteger(int32_t integer, dp_e dp, nd_e nd, df_t flags)
 
 
     nd_e ntv_nd = (dp + nd) > ND_4 ? (nd_e)(nd - dp) : nd;
-    uint16_t max, num, den;
+    uint32_t max, num, den;
     numberTypeValues(max, num, den, ntv_nd, flags);
 
     n = validateValue(n, 0, max);

@@ -22,12 +22,15 @@ class DevBeeper : public DevPin < PinOut, PIN > , public Toggle
         { static DevBeeper b(on_time, off_time); return b; }
 
         virtual void start(void) { reset(); this->_pin.set(); }
-        virtual void stop(void) { this->_pin.clear(); }
+        virtual void stop(void) { disable(); this->_pin.clear(); }
         virtual bool toggled(void)
         {
             if (!Toggle::toggled()) return false;
             this->_pin.toggle(); return true;
         }
+
+        virtual bool on(void) const { return Toggle::on() && this->_pin.isSet(); }
+        virtual bool off(void) const { return Toggle::off() && !this->_pin.isSet(); }
 
         DevBeeper(DevBeeper const &) = delete;
         DevBeeper & operator=(DevBeeper const &) = delete;
@@ -37,7 +40,7 @@ class DevBeeper : public DevPin < PinOut, PIN > , public Toggle
         DevBeeper(uint32_t on_time, uint32_t off_time) : Toggle(on_time, off_time) { init(); }
 
     private:
-        void init(void) { if (!this->valid()) return; this->_pin.clear(); }
+        void init(void) { if (!this->valid()) return; stop(); }
 
         static constexpr uint32_t _s_beep_on_time = 500;
         static constexpr uint32_t _s_beep_off_time = 80;
@@ -532,7 +535,6 @@ class DevAudio : public VS1053B, public AMP
                 return;
 
             VS1053B::start();
-            //delay_msecs(350);  // I thought this helped speaker pop but don't think it really does
             AMP::start();
         }
 

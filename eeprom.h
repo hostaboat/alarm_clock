@@ -25,6 +25,10 @@ enum eei_e : uint8_t
     EEI_TIMER_SECONDS,
     EEI_TIMER_MINUTES,
     EEI_FILE_INDEX,
+    EEI_TOUCH_NSCN,
+    EEI_TOUCH_PS,
+    EEI_TOUCH_REFCHRG,
+    EEI_TOUCH_EXTCHRG,
     EEI_TOUCH_THRESHOLD,
     EEI_LEDS_COLOR,
 };
@@ -74,6 +78,15 @@ struct eTimer
     uint8_t seconds;
 };
 
+struct eTouch
+{
+    uint8_t nscn;
+    uint8_t ps;
+    uint8_t refchrg;
+    uint8_t extchrg;
+    uint16_t threshold;
+};
+
 class Eeprom : public Module
 {
     public:
@@ -106,8 +119,8 @@ class Eeprom : public Module
         bool setFileIndex(uint16_t file_index);
         bool getFileIndex(uint16_t & file_index) const;
 
-        bool setTouchThreshold(uint16_t touch_threshold);
-        bool getTouchThreshold(uint16_t & touch_threshold) const;
+        bool setTouch(eTouch const & touch);
+        bool getTouch(eTouch & touch) const;
 
         bool setLedsColor(uint32_t color_code);
         bool getLedsColor(uint32_t & color_code) const;

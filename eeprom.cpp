@@ -243,14 +243,22 @@ bool Eeprom::getFileIndex(uint16_t & file_index) const
     return read < uint16_t > (EEI_FILE_INDEX, file_index);
 }
 
-bool Eeprom::setTouchThreshold(uint16_t touch_threshold)
+bool Eeprom::setTouch(eTouch const & touch)
 {
-    return write(EEI_TOUCH_THRESHOLD, touch_threshold);
+    return write(EEI_TOUCH_NSCN, touch.nscn)
+        && write(EEI_TOUCH_PS, touch.ps)
+        && write(EEI_TOUCH_REFCHRG, touch.refchrg)
+        && write(EEI_TOUCH_EXTCHRG, touch.extchrg)
+        && write(EEI_TOUCH_THRESHOLD, touch.threshold);
 }
 
-bool Eeprom::getTouchThreshold (uint16_t & touch_threshold) const
+bool Eeprom::getTouch(eTouch & touch) const
 {
-    return read < uint16_t > (EEI_TOUCH_THRESHOLD, touch_threshold);
+    return read < uint8_t > (EEI_TOUCH_NSCN, touch.nscn)
+        && read < uint8_t > (EEI_TOUCH_PS, touch.ps)
+        && read < uint8_t > (EEI_TOUCH_REFCHRG, touch.refchrg)
+        && read < uint8_t > (EEI_TOUCH_EXTCHRG, touch.extchrg)
+        && read < uint16_t > (EEI_TOUCH_THRESHOLD, touch.threshold);
 }
 
 bool Eeprom::setLedsColor(uint32_t color_code)

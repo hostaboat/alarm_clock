@@ -122,7 +122,7 @@ class UI
                 {     UIS_TOUCH,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK }, // PS_CHANGE
                 {     UIS_TOUCH,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK }, // PS_RESET
                 {     UIS_TOUCH, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_STATE
-                {     UIS_TOUCH, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_ALT_STATE
+                {     UIS_TOUCH,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK }, // PS_ALT_STATE
             },
             //                           UIS_SET_LEDS
             {
@@ -142,11 +142,7 @@ class UI
         void updateBrightness(ev_e ev);
         void error(uis_e state = UIS_CNT);
 
-        static constexpr uint32_t const _s_set_blink_time = 500; // milliseconds
         static constexpr uint32_t const _s_reset_blink_time = 300;
-
-        static constexpr uint32_t const _s_short_press = 2000;
-        static constexpr uint32_t const _s_medium_press = 6000;
 
         static constexpr uint32_t const _s_press_change = 1500;
         static constexpr uint32_t const _s_press_reset  = 4000;
@@ -165,7 +161,8 @@ class UI
         TBeep & _beeper = TBeep::acquire();
         Rtc & _rtc = Rtc::acquire();
         Eeprom & _eeprom = Eeprom::acquire();
-        Tsi::Channel & _tsi_channel = Tsi::acquire < PIN_TOUCH > ();
+        Tsi & _tsi = Tsi::acquire();
+        Tsi::Channel & _tsi_channel = _tsi.acquire < PIN_TOUCH > ();
         Llwu & _llwu = Llwu::acquire();
 
         // Want to have display and night light brightness synced.
@@ -238,6 +235,7 @@ class UI
                 void begin(void);
                 void update(uint8_t hour, uint8_t minute);
                 bool snooze(bool force = false);
+                bool snoozing(void) { return _state == AS_SNOOZE; }
                 void stop(void);
                 bool enabled(void);
                 bool inProgress(void);
@@ -262,7 +260,10 @@ class UI
                 uint32_t _wake_start = 0, _wake_time = 0;
                 uint32_t _snooze_start = 0, _snooze_time = 600000;
                 bool _alarm_music = false;
-                uint16_t _touch_threshold = 0;
+                bool _touch_disabled = false;
+                // If a touch is registered within this amount of time after
+                // alarming, it's likely that the threshold was set too low.
+                static constexpr uint32_t const _touch_disable_time = 10; // milliseconds
         };
 
         class UIState
@@ -296,7 +297,9 @@ class UI
                 virtual bool uisSleep(void) = 0;
 
             protected:
-                Toggle _blink{500};
+                static constexpr uint32_t const _s_set_blink_time = 500;   // milliseconds
+                static constexpr uint32_t const _s_done_blink_time = 1000;
+                Toggle _blink{_s_set_blink_time};
                 bool _updated = false;
                 bool _done = false;
         };
@@ -546,8 +549,10 @@ class UI
             private:
                 void waitMinutes(bool on);
                 void waitSeconds(bool on);
+
                 void updateMinutes(ev_e ev);
                 void updateSeconds(ev_e ev);
+
                 void display(df_t flags = DF_NONE);
                 void displayTimer(df_t flags = DF_NONE);
 
@@ -609,6 +614,7 @@ class UI
 
             private:
                 bool clockUpdate(bool force = false);
+
                 void display(void);
                 void displayTime(void);
                 void displayDate(void);
@@ -662,8 +668,10 @@ class UI
             private:
                 void waitMinutes(void);
                 void waitSeconds(void);
+
                 void updateMinutes(ev_e ev);
                 void updateSeconds(ev_e ev);
+
                 void displayTimer(df_t flags = DF_NONE);
 
                 void start(void);
@@ -777,25 +785,40 @@ class UI
                 virtual bool uisSleep(void);
 
             private:
+                void waitNscn(bool on);
+                void waitPs(bool on);
+                void waitRefChrg(bool on);
+                void waitExtChrg(bool on);
                 void waitRead(bool on);
                 void waitThreshold(bool on);
                 void waitTest(bool on);
                 void waitDone(bool on);
 
+                void updateNscn(ev_e val);
+                void updatePs(ev_e val);
+                void updateRefChrg(ev_e val);
+                void updateExtChrg(ev_e val);
                 void updateThreshold(ev_e val);
 
+                void changeNscn(void);
                 void changeRead(void);
-                void changeThreshold(void);
                 void changeTest(void);
                 void changeDone(void);
 
                 void display(df_t flags = DF_NONE);
-                void displayRead(df_t flags = DF_NONE);
+                void displayNscn(df_t flags = DF_NONE);
+                void displayPs(df_t flags = DF_NONE);
+                void displayRefChrg(df_t flags = DF_NONE);
+                void displayExtChrg(df_t flags = DF_NONE);
                 void displayThreshold(df_t flags = DF_NONE);
                 void displayDone(df_t flags = DF_NONE);
 
                 enum ts_e : uint8_t
                 {
+                    TS_NSCN,
+                    TS_PS,
+                    TS_REFCHRG,
+                    TS_EXTCHRG,
                     TS_READ,
                     TS_THRESHOLD,
                     TS_TEST,
@@ -805,15 +828,23 @@ class UI
 
                 ts_e const _next_states[TS_CNT] =
                 {
+                    TS_PS,
+                    TS_REFCHRG,
+                    TS_EXTCHRG,
+                    TS_READ,
                     TS_THRESHOLD,
                     TS_TEST,
                     TS_DONE,
-                    TS_READ
+                    TS_NSCN,
                 };
 
                 using ts_wait_action_t = void (Touch::*)(bool on);
                 ts_wait_action_t const _wait_actions[TS_CNT] =
                 {
+                    &Touch::waitNscn,
+                    &Touch::waitPs,
+                    &Touch::waitRefChrg,
+                    &Touch::waitExtChrg,
                     &Touch::waitRead,
                     &Touch::waitThreshold,
                     &Touch::waitTest,
@@ -823,6 +854,10 @@ class UI
                 using ts_update_action_t = void (Touch::*)(ev_e ev);
                 ts_update_action_t const _update_actions[TS_CNT] =
                 {
+                    &Touch::updateNscn,
+                    &Touch::updatePs,
+                    &Touch::updateRefChrg,
+                    &Touch::updateExtChrg,
                     nullptr,
                     &Touch::updateThreshold,
                     &Touch::updateThreshold,
@@ -832,24 +867,35 @@ class UI
                 using ts_change_action_t = void (Touch::*)(void);
                 ts_change_action_t const _change_actions[TS_CNT] =
                 {
+                    &Touch::changeNscn,
+                    nullptr,
+                    nullptr,
+                    nullptr,
                     &Touch::changeRead,
-                    &Touch::changeThreshold,
+                    nullptr,
                     &Touch::changeTest,
-                    &Touch::changeDone,
+                    &Touch::changeDone
                 };
 
                 using ts_display_action_t = void (Touch::*)(df_t flags);
                 ts_display_action_t const _display_actions[TS_CNT] =
                 {
-                    &Touch::displayRead,
+                    &Touch::displayNscn,
+                    &Touch::displayPs,
+                    &Touch::displayRefChrg,
+                    &Touch::displayExtChrg,
+                    &Touch::displayThreshold,
                     &Touch::displayThreshold,
                     &Touch::displayThreshold,
                     &Touch::displayDone,
                 };
 
                 ts_e _state = TS_READ;
-                uint16_t _touch_read = 0;
-                static constexpr uint32_t const _s_touch_read_interval = 500;
+                tTouch _touch = {};
+                bool _advanced = false;
+
+                // To prevent beeper from switching on/off too quickly
+                static constexpr uint32_t const _s_beeper_wait = 30;
         };
 
         class SetLeds : public UISetState
@@ -883,8 +929,6 @@ class UI
                 void displayRGB(df_t flags = DF_NONE);
                 void displayHSV(df_t flags = DF_NONE);
                 void displayDone(df_t flags = DF_NONE);
-
-                void displayLeds(void);
 
                 enum sls_e : uint8_t
                 {

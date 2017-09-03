@@ -138,7 +138,7 @@ class Seg7Display : public Display
         void setColon(void);
         void showColon(void);
 
-        static void numberTypeValues(uint16_t & max, uint16_t & num, uint16_t & den, nd_e nd, df_t flags);
+        static void numberTypeValues(uint32_t & max, uint32_t & num, uint32_t & den, nd_e nd, df_t flags);
 
         // Convenience functions
         void showDashes(df_t flags = DF_NONE);
