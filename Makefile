@@ -22,6 +22,9 @@ SIZE = $(abspath $(GCCPATH))/arm-none-eabi-size
 RTC = -DRTC_VBAT
 #RTC =
 
+# Set this on first use.  Value can be one of 32, 64, 128, 512, 1024 or 2048
+EEPROM_SIZE = -DEEPROM_SIZE=256
+
 OPT = -O2
 STD = gnu++11
 PFLAGS = -mthumb -mcpu=cortex-m4

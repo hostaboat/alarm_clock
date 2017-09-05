@@ -5,7 +5,9 @@
 // XXX Make sure to set this to what is wanted on *FIRST* use as there
 // is no easy way to change it after FlexRAM has been initialized as EEPROM.
 // The smaller the value, the higher the write endurance.
-#define EEPROM_SIZE  2048
+#ifndef EEPROM_SIZE
+# define EEPROM_SIZE  256
+#endif
 
 #define EEPROM_MAX  2048
 #define EEPARTITION 0x03  // all 32K dataflash for EEPROM, none for Data
@@ -95,7 +97,7 @@ Eeprom::Eeprom(void)
         // configured for EEPROM usage.
         *_s_fccob0 = 0x80;           // PGMPART = Program Partition Command
         *_s_fccob4 = EE_SIZE_CODE;   // EEPROM Size Code
-        *_s_fccob5 = 0x03;           // 0K for Dataflash, 32K for EEPROM backup
+        *_s_fccob5 = EEPARTITION;    // 0K for Dataflash, 32K for EEPROM backup
 
         __disable_irq();
 
