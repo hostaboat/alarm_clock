@@ -7,6 +7,23 @@
 #include "utility.h"
 #include "types.h"
 
+#define TSI_GENCS_STPE     (1 << 0)
+#define TSI_GENCS_STM      (1 << 1)
+#define TSI_GENCS_ESOR     (1 << 4)
+#define TSI_GENCS_ERIE     (1 << 5)
+#define TSI_GENCS_TSIIE    (1 << 6)
+#define TSI_GENCS_TSIEN    (1 << 7)
+#define TSI_GENCS_SWTS     (1 << 8)
+#define TSI_GENCS_SCNIP    (1 << 9)
+#define TSI_GENCS_OVRF     (1 << 12)
+#define TSI_GENCS_EXTERF   (1 << 13)
+#define TSI_GENCS_OUTRGF   (1 << 14)
+#define TSI_GENCS_EOSF     (1 << 15)
+//#define TSI_GENCS_PS
+//#define TSI_GENCS_NSCN
+//#define TSI_GENCS_LPSCNITV
+#define TSI_GENCS_LPCLKS   (1 << 28)
+
 using tTouch = eTouch;
 
 extern "C" void tsi0_isr(void);
@@ -66,7 +83,9 @@ class Tsi : public Module
 
         bool set(tTouch const & config);
         void get(tTouch & config) const;
-        static void defaults(tTouch & config);
+        void defaults(tTouch & config);
+
+        uint16_t threshold(void) const { return _touch.threshold; }
 
         bool configure(uint8_t nscn, uint8_t ps, uint8_t refchrg, uint8_t extchrg);
 
@@ -96,16 +115,21 @@ class Tsi : public Module
         void configure(void);
         void softTrigger(void);
 
-        static bool _s_error;
-        static bool _s_overrun;
+        static bool volatile _s_error;
+        static bool volatile _s_overrun;
+        static bool volatile _s_eos;
+
+        // Software triggered scan
+        bool _swts = false;
 
         // NSCN = 10 times per electrode
-        // PS = 4 (Electrode Oscillator Frequency divided by N)
+        // PS = 8 (Electrode Oscillator Frequency divided by N)
         // REFCHRG = 8uA
-        // EXTCHRG = 6uA
-        // Threshold = 1100
-        // These settings give approx 0.02 pF sensitivity and 1200 pF range
-        static constexpr tTouch const _s_default_touch{ 0x09, 0x02, 0x03, 0x02, 1100 };
+        // EXTCHRG = 20uA
+        // Threshold = 864
+        // These settings give approx 0.03pF sensitivity and about a 27pF electrode
+        // capacitance, 740kHz electrode frequency and 100us sample time when touched.
+        static constexpr tTouch const _s_default_touch{ 0x09, 0x03, 0x03, 0x09, 0x0360 };
 
         // NSCN = 32 times per electrode (0 - 31)
         // PS = 128 (0 - 7)
@@ -113,6 +137,14 @@ class Tsi : public Module
         // EXTCHRG = 32uA (0 - 15)
         // Threshold = 65535
         static constexpr tTouch const _s_max_touch{ 0x1F, 0x07, 0x0F, 0x0F, 65535 };
+
+        // Add Error interrupt mainly for short circuit detection of electrode and
+        // Touch Sensing interrupt for end of scan since depending on configuration,
+        // e.g. with high NSCN or PS, the scan may take too long to wait for.
+        static constexpr uint32_t const _s_gencs_flags =
+            TSI_GENCS_ERIE | TSI_GENCS_TSIIE |  // Interrupt flags
+            TSI_GENCS_ESOR |  // End of Scan Interrupt
+            TSI_GENCS_EOSF | TSI_GENCS_OUTRGF | TSI_GENCS_EXTERF | TSI_GENCS_OVRF; // Clear w1c flags
 
         tTouch _touch{_s_default_touch};
 

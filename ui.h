@@ -122,7 +122,7 @@ class UI
                 {     UIS_TOUCH,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK }, // PS_CHANGE
                 {     UIS_TOUCH,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK }, // PS_RESET
                 {     UIS_TOUCH, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_STATE
-                {     UIS_TOUCH,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK }, // PS_ALT_STATE
+                {     UIS_TOUCH, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_ALT_STATE
             },
             //                           UIS_SET_LEDS
             {
@@ -161,8 +161,6 @@ class UI
         TBeep & _beeper = TBeep::acquire();
         Rtc & _rtc = Rtc::acquire();
         Eeprom & _eeprom = Eeprom::acquire();
-        Tsi & _tsi = Tsi::acquire();
-        Tsi::Channel & _tsi_channel = _tsi.acquire < PIN_TOUCH > ();
         Llwu & _llwu = Llwu::acquire();
 
         // Want to have display and night light brightness synced.
@@ -260,10 +258,6 @@ class UI
                 uint32_t _wake_start = 0, _wake_time = 0;
                 uint32_t _snooze_start = 0, _snooze_time = 600000;
                 bool _alarm_music = false;
-                bool _touch_disabled = false;
-                // If a touch is registered within this amount of time after
-                // alarming, it's likely that the threshold was set too low.
-                static constexpr uint32_t const _touch_disable_time = 10; // milliseconds
         };
 
         class UIState
@@ -619,12 +613,14 @@ class UI
                 void displayTime(void);
                 void displayDate(void);
                 void displayYear(void);
+                void displayAlarm(void);
 
                 enum cs_e : uint8_t
                 {
                     CS_TIME,
                     CS_DATE,
                     CS_YEAR,
+                    CS_ALARM,
                     CS_CNT
                 };
 
@@ -632,7 +628,8 @@ class UI
                 {
                     CS_DATE,
                     CS_YEAR,
-                    CS_TIME
+                    CS_TIME,
+                    CS_TIME,
                 };
 
                 using cs_display_action_t = void (Clock::*)(void);
@@ -640,13 +637,14 @@ class UI
                 {
                     &Clock::displayTime,
                     &Clock::displayDate,
-                    &Clock::displayYear
+                    &Clock::displayYear,
+                    &Clock::displayAlarm,
                 };
 
                 cs_e _state = CS_TIME;
                 tClock _clock = {};
                 Alarm _alarm{_ui};
-                Toggle _date_display{3000};  // Show date/year for 3 seconds
+                Toggle _alt_display{3000};  // Show date/year/alarm off for 3 seconds
                 df_t _dflag = DF_12H;
         };
 
@@ -728,7 +726,6 @@ class UI
                     nullptr,
                 };
 
-
                 using ts_change_action_t = void (Timer::*)(void);
                 ts_change_action_t const _change_actions[TS_CNT] =
                 {
@@ -748,6 +745,7 @@ class UI
                 uint32_t _last_second = 0;
                 Pit * _display_timer = nullptr;
                 Pit * _led_timer = nullptr;
+                uint32_t _alarm_start = 0;
 
                 // For showing the clock while in timer state
                 bool _show_clock = false;
@@ -770,7 +768,7 @@ class UI
                 static uint32_t volatile _s_timer_seconds;
                 static uint8_t volatile _s_timer_hue;
         };
-       
+
         class Touch : public UISetState
         {
             public:
@@ -784,16 +782,33 @@ class UI
                 virtual void uisEnd(void);
                 virtual bool uisSleep(void);
 
+                bool valid(void);
+                bool enabled(void) const;
+                bool enable(void);
+                bool touched(uint32_t stime = 0);
+
             private:
+                struct TouchCal
+                {
+                    uint16_t lo, hi;
+                    TouchCal(void) { reset(); }
+                    void reset(void) { lo = UINT16_MAX; hi = 0; }
+                    uint16_t avg(void) { return (lo + hi) / 2; }
+                };
+
+                void waitOpt(bool on);
                 void waitNscn(bool on);
                 void waitPs(bool on);
                 void waitRefChrg(bool on);
                 void waitExtChrg(bool on);
-                void waitRead(bool on);
-                void waitThreshold(bool on);
+                void waitCalStart(bool on);
+                void waitCalUntouched(bool on);
+                void waitCalThreshold(bool on);
+                void waitCalTouched(bool on);
                 void waitTest(bool on);
                 void waitDone(bool on);
 
+                void updateOpt(ev_e val);
                 void updateNscn(ev_e val);
                 void updatePs(ev_e val);
                 void updateRefChrg(ev_e val);
@@ -801,101 +816,161 @@ class UI
                 void updateThreshold(ev_e val);
 
                 void changeNscn(void);
-                void changeRead(void);
-                void changeTest(void);
+                void changeCalStart(void);
+                void changeCalThreshold(void);
                 void changeDone(void);
 
                 void display(df_t flags = DF_NONE);
+                void displayOpt(df_t flags = DF_NONE);
                 void displayNscn(df_t flags = DF_NONE);
                 void displayPs(df_t flags = DF_NONE);
                 void displayRefChrg(df_t flags = DF_NONE);
                 void displayExtChrg(df_t flags = DF_NONE);
+                void displayCalStart(df_t flags = DF_NONE);
+                void displayCalThreshold(df_t flags = DF_NONE);
+                void displayCalWait(df_t flags = DF_NONE);
                 void displayThreshold(df_t flags = DF_NONE);
                 void displayDone(df_t flags = DF_NONE);
+                void displayDisabled(df_t flags = DF_NONE);
+
+                void reset(void);
+                void toggleEnabled(void);
+
+                enum topt_e : uint8_t { TOPT_CAL, TOPT_CONF, TOPT_DEF, TOPT_DIS, TOPT_CNT };
+
+                static constexpr char const * const _s_topts[TOPT_CNT] = { "CAL", "ConF", "dEF", "diS" };
 
                 enum ts_e : uint8_t
                 {
+                    TS_OPT,
+
+                    // Configure
                     TS_NSCN,
                     TS_PS,
                     TS_REFCHRG,
                     TS_EXTCHRG,
-                    TS_READ,
-                    TS_THRESHOLD,
+
+                    // Calibration
+                    TS_CAL_START,
+                    TS_CAL_UNTOUCHED,
+                    TS_CAL_THRESHOLD,
+                    TS_CAL_TOUCHED,
+
+                    // Test and adjustment
                     TS_TEST,
+
                     TS_DONE,
+                    TS_DISABLED,
+
                     TS_CNT
                 };
 
                 ts_e const _next_states[TS_CNT] =
                 {
+                    TS_NSCN,
                     TS_PS,
                     TS_REFCHRG,
                     TS_EXTCHRG,
-                    TS_READ,
-                    TS_THRESHOLD,
+                    TS_CAL_START,
+                    TS_CAL_UNTOUCHED,
+                    TS_CAL_THRESHOLD,
+                    TS_CAL_TOUCHED,
                     TS_TEST,
                     TS_DONE,
-                    TS_NSCN,
+                    TS_OPT,
+                    TS_OPT,
                 };
 
                 using ts_wait_action_t = void (Touch::*)(bool on);
                 ts_wait_action_t const _wait_actions[TS_CNT] =
                 {
+                    &Touch::waitOpt,
                     &Touch::waitNscn,
                     &Touch::waitPs,
                     &Touch::waitRefChrg,
                     &Touch::waitExtChrg,
-                    &Touch::waitRead,
-                    &Touch::waitThreshold,
+                    &Touch::waitCalStart,
+                    &Touch::waitCalUntouched,
+                    &Touch::waitCalThreshold,
+                    &Touch::waitCalTouched,
                     &Touch::waitTest,
-                    &Touch::waitDone
+                    &Touch::waitDone,
+                    nullptr,
                 };
 
                 using ts_update_action_t = void (Touch::*)(ev_e ev);
                 ts_update_action_t const _update_actions[TS_CNT] =
                 {
+                    &Touch::updateOpt,
                     &Touch::updateNscn,
                     &Touch::updatePs,
                     &Touch::updateRefChrg,
                     &Touch::updateExtChrg,
                     nullptr,
+                    nullptr,
+                    nullptr,
+                    nullptr,
                     &Touch::updateThreshold,
-                    &Touch::updateThreshold,
-                    nullptr
+                    nullptr,
+                    nullptr,
                 };
 
                 using ts_change_action_t = void (Touch::*)(void);
                 ts_change_action_t const _change_actions[TS_CNT] =
                 {
-                    &Touch::changeNscn,
                     nullptr,
                     nullptr,
                     nullptr,
-                    &Touch::changeRead,
                     nullptr,
-                    &Touch::changeTest,
-                    &Touch::changeDone
+                    nullptr,
+                    &Touch::changeCalStart,
+                    nullptr,
+                    &Touch::changeCalThreshold,
+                    nullptr,
+                    nullptr,
+                    &Touch::changeDone,
+                    nullptr,
                 };
 
                 using ts_display_action_t = void (Touch::*)(df_t flags);
                 ts_display_action_t const _display_actions[TS_CNT] =
                 {
+                    &Touch::displayOpt,
                     &Touch::displayNscn,
                     &Touch::displayPs,
                     &Touch::displayRefChrg,
                     &Touch::displayExtChrg,
-                    &Touch::displayThreshold,
-                    &Touch::displayThreshold,
+                    &Touch::displayCalStart,
+                    &Touch::displayCalWait,
+                    &Touch::displayCalThreshold,
+                    &Touch::displayCalWait,
                     &Touch::displayThreshold,
                     &Touch::displayDone,
+                    &Touch::displayDisabled,
                 };
 
-                ts_e _state = TS_READ;
+                Tsi & _tsi = Tsi::acquire();
+                Tsi::Channel & _tsi_channel = _tsi.acquire < PIN_TOUCH > ();
+
+                ts_e _state = TS_CAL_START;
+                topt_e _topt = TOPT_CAL;
                 tTouch _touch = {};
-                bool _advanced = false;
+                TouchCal _untouched = {};
+                TouchCal _touched_amp_off = {};
+                TouchCal _touched_amp_on = {};
+                TouchCal * _touched = &_touched_amp_off;
+                uint32_t _readings = 0;
+
+                // Need to calibrate with Amp turned on since when it's on, for
+                // some reason, it gives a wide and varying range of readings.
+                TAmp & _amp = TAmp::acquire();
 
                 // To prevent beeper from switching on/off too quickly
                 static constexpr uint32_t const _s_beeper_wait = 30;
+                static constexpr uint32_t const _s_readings = UINT16_MAX;
+
+                static constexpr uint32_t const _s_touch_disable_time = 20; // milliseconds
+                bool _touch_enabled = true;
         };
 
         class SetLeds : public UISetState
@@ -1057,12 +1132,9 @@ class UI
 
         class Lighting
         {
-            enum ls_e { LS_NIGHT_LIGHT, LS_TIMER, LS_SET };
-
-            friend class Timer;
-            friend class SetLeds;
-
             public:
+                enum ls_e { LS_NIGHT_LIGHT, LS_SET, LS_OTHER };
+
                 Lighting(uint8_t brightness = _default_brightness);
 
                 bool valid(void) { return _leds.valid(); }
@@ -1075,8 +1147,8 @@ class UI
                 void setNL(CRGB const & c);
                 void paletteNL(void);
 
-                void off(void) { _leds.blank(); _nl_on = false; }
-                void on(void) { _leds.show(); _nl_on = true; }
+                void off(void) { _leds.blank(); if (_state == LS_NIGHT_LIGHT) _nl_on = false; }
+                void on(void) { _leds.show(); if (_state == LS_NIGHT_LIGHT) _nl_on = true; }
                 bool isOn(void) { return !_leds.isClear(); }
 
                 void sleep(void) { if (isOn()) { off(); _was_on = true; } }
@@ -1088,6 +1160,7 @@ class UI
                 uint8_t brightness(void) const { return _brightness; }
 
                 void setColor(CRGB const & c);
+                void state(ls_e state);
 
             private:
                 TLeds & _leds = TLeds::acquire();
@@ -1099,10 +1172,7 @@ class UI
                 static constexpr uint8_t const _default_brightness = 128;
                 uint8_t _brightness = _default_brightness;
                 bool _was_on = false;
-
-                void state(ls_e state);
         };
-
 
         Player _player;
         Lighting _lighting{_brightness};

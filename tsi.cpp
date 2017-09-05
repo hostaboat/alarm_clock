@@ -1,27 +1,6 @@
 #include "tsi.h"
 #include "types.h"
 
-#define TSI_GENCS_STPE     (1 << 0)
-#define TSI_GENCS_STM      (1 << 1)
-#define TSI_GENCS_ESOR     (1 << 4)
-#define TSI_GENCS_ERIE     (1 << 5)
-#define TSI_GENCS_TSIIE    (1 << 6)
-#define TSI_GENCS_TSIEN    (1 << 7)
-#define TSI_GENCS_SWTS     (1 << 8)
-#define TSI_GENCS_SCNIP    (1 << 9)
-#define TSI_GENCS_OVRF     (1 << 12)
-#define TSI_GENCS_EXTERF   (1 << 13)
-#define TSI_GENCS_OUTRGF   (1 << 14)
-#define TSI_GENCS_EOSF     (1 << 15)
-//#define TSI_GENCS_PS
-//#define TSI_GENCS_NSCN
-//#define TSI_GENCS_LPSCNITV
-#define TSI_GENCS_LPCLKS   (1 << 28)
-
-constexpr tTouch const Tsi::_s_default_touch;
-bool Tsi::_s_error = false;
-bool Tsi::_s_overrun = false;
-
 reg32 Tsi::_s_conf_base = (reg32)0x40045000;
 reg32 Tsi::_s_gencs  = _s_conf_base;
 reg32 Tsi::_s_scanc  = _s_conf_base +  1;
@@ -39,6 +18,12 @@ reg16 Tsi::_s_cntr = (reg16)_s_cntr_base;
 //reg32 Tsi::_s_cntr15 = _s_cntr_base + 7;
 reg32 Tsi::_s_threshold = _s_cntr_base + 8;
 
+constexpr tTouch const Tsi::_s_default_touch;
+
+bool volatile Tsi::_s_error = false;
+bool volatile Tsi::_s_overrun = false;
+bool volatile Tsi::_s_eos = false;
+
 void tsi0_isr(void)
 {
     if (*Tsi::_s_gencs & TSI_GENCS_EXTERF)
@@ -52,25 +37,31 @@ void tsi0_isr(void)
         Tsi::_s_overrun = true;
         *Tsi::_s_gencs |= TSI_GENCS_OVRF;
     }
+
+    if (*Tsi::_s_gencs & TSI_GENCS_EOSF)
+    {
+        Tsi::_s_eos = true;
+        *Tsi::_s_gencs |= TSI_GENCS_EOSF;
+    }
 }
 
 Tsi::Tsi(void)
 {
-    Module::enable(MOD_TSI);
-
-    *_s_gencs = 0;
-
     if (!_eeprom.getTouch(_touch) || !isValid(_touch))
     {
         _touch = _s_default_touch;
         (void)_eeprom.setTouch(_touch);
     }
 
+    Module::enable(MOD_TSI);
+    *_s_gencs = 0;
+
     configure();
 }
 
 void Tsi::start(void)
 {
+    _s_error = _s_overrun = _s_eos = _swts = false;
     *_s_gencs |= TSI_GENCS_TSIEN;
     NVIC::enable(IRQ_TSI);
 }
@@ -102,12 +93,26 @@ bool Tsi::touched(uint8_t channel)
     return read(channel) >= _touch.threshold;
 }
 
+// Returns 0 until scan is finished
 uint16_t Tsi::read(uint8_t channel)
 {
-    *_s_gencs |= TSI_GENCS_SWTS;
-    while (scanning());
-    while (!eos());
-    *_s_gencs |= TSI_GENCS_EOSF;
+    // Use variable so that scans are synced with end of scan
+    if (!_swts)
+    {
+        *_s_gencs |= TSI_GENCS_SWTS;
+        _swts = true;
+    }
+
+    NVIC::disable(IRQ_TSI);
+    bool eos = _s_eos;
+    if (_s_eos) _s_eos = false;
+    NVIC::enable(IRQ_TSI);
+
+    if (!eos)
+        return 0;
+
+    _swts = false;
+
     return _s_cntr[channel];
 }
 
@@ -127,8 +132,8 @@ bool Tsi::set(tTouch const & touch)
         return false;
 
     _touch = touch;
-
     (void)_eeprom.setTouch(_touch);
+
     configure();
 
     return true;
@@ -141,7 +146,8 @@ void Tsi::get(tTouch & touch) const
 
 void Tsi::defaults(tTouch & touch)
 {
-    touch = _s_default_touch;
+    touch = _touch = _s_default_touch;
+    configure();
 }
 
 bool Tsi::configure(uint8_t nscn, uint8_t ps, uint8_t refchrg, uint8_t extchrg)
@@ -168,14 +174,7 @@ void Tsi::configure(void)
 
     // REFCHRG, EXTCHRG
     *_s_scanc = ((uint32_t)_touch.refchrg << 24) | ((uint32_t)_touch.extchrg << 16);
-
-    // NSCAN, PS, STM (Scan Trigger Mode) - set for periodic scan
-    // Doesn't make sense to have it scanning continuously
-    // and I couldn't get it to work, so use soft trigger.
-    //*_s_gencs = ((uint32_t)_touch.nscn << 19) | ((uint32_t)_touch.ps << 16) | TSI_GENCS_STM;
-    //*_s_gencs = ((uint32_t)_touch.nscn << 19) | ((uint32_t)_touch.ps << 16);
-    // Add Error interrupt mainly for short circuit detection of electrode
-    *_s_gencs = ((uint32_t)_touch.nscn << 19) | ((uint32_t)_touch.ps << 16) | TSI_GENCS_ERIE;
+    *_s_gencs = ((uint32_t)_touch.nscn << 19) | ((uint32_t)_touch.ps << 16) | _s_gencs_flags;
 
     start();
 }

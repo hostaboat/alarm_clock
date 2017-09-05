@@ -105,9 +105,9 @@ template < typename T >
 inline void evUpdate(T & val, ev_e ev, T const & min, T const & max, bool wrap = true)
 {
     if (ev == EV_NEG)
-        val = (val == min) ? (wrap ? max : min) : val - 1;
+        val = (val == min) ? (wrap ? max : min) : static_cast < T > (val - 1);
     else if (ev == EV_POS)
-        val = (val == max) ? (wrap ? min : max) : val + 1;
+        val = (val == max) ? (wrap ? min : max) : static_cast < T > (val + 1);
 }
 
 enum epos_e  // Encoder Position
