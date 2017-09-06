@@ -58,7 +58,6 @@ class UI
             PS_CNT
         };
 
-
         // UI states
         enum uis_e : uint8_t
         {
@@ -196,9 +195,12 @@ class UI
                 bool occupied(void) const;
                 bool disabled(void) const { return _error != ERR_NONE; }
                 err_e error(void) const { return _error; }
+                uint16_t numTracks(void) const { return _num_files; }
+                uint16_t currentTrack(void) const { return _file_index; }
+                bool setTrack(uint16_t index);
 
             private:
-                bool newTrack(int16_t inc);
+                bool newTrack(int32_t inc);
                 void disable(void);
                 void start(void) { if (!running()) _audio.start(); _paused = false; }
 
@@ -609,11 +611,15 @@ class UI
             private:
                 bool clockUpdate(bool force = false);
 
+                void updateTrack(ev_e ev);
+                void changeTrack(void);
+
                 void display(void);
                 void displayTime(void);
                 void displayDate(void);
                 void displayYear(void);
                 void displayAlarm(void);
+                void displayTrack(void);
 
                 enum cs_e : uint8_t
                 {
@@ -621,6 +627,7 @@ class UI
                     CS_DATE,
                     CS_YEAR,
                     CS_ALARM,
+                    CS_TRACK,
                     CS_CNT
                 };
 
@@ -628,6 +635,7 @@ class UI
                 {
                     CS_DATE,
                     CS_YEAR,
+                    CS_TRACK,
                     CS_TIME,
                     CS_TIME,
                 };
@@ -639,13 +647,27 @@ class UI
                     &Clock::displayDate,
                     &Clock::displayYear,
                     &Clock::displayAlarm,
+                    &Clock::displayTrack,
                 };
 
                 cs_e _state = CS_TIME;
                 tClock _clock = {};
                 Alarm _alarm{_ui};
-                Toggle _alt_display{3000};  // Show date/year/alarm off for 3 seconds
                 df_t _dflag = DF_12H;
+
+                // Amount of time to wait after snoozing via encoder turn
+                // before cycling through lighting.
+                static constexpr uint32_t const _s_snooze_wait = 1000;
+
+                // Show date / year / alarm off / track selection time
+                static constexpr uint32_t const _s_flash_time = 3000;
+                Toggle _alt_display{_s_flash_time};
+
+                // Sustained touch time to enter track selection state
+                static constexpr uint32_t const _s_touch_time = 3000;
+                // Time out for inactivity after track number update
+                static constexpr uint32_t const _s_track_idle_time = 15000;
+                uint16_t _track = 0;
         };
 
         class Timer : public UIRunState
@@ -786,6 +808,7 @@ class UI
                 bool enabled(void) const;
                 bool enable(void);
                 bool touched(uint32_t stime = 0);
+                bool timedTouch(uint32_t ttime);
 
             private:
                 struct TouchCal
@@ -805,6 +828,7 @@ class UI
                 void waitCalUntouched(bool on);
                 void waitCalThreshold(bool on);
                 void waitCalTouched(bool on);
+                void waitRead(bool on);
                 void waitTest(bool on);
                 void waitDone(bool on);
 
@@ -818,6 +842,7 @@ class UI
                 void changeNscn(void);
                 void changeCalStart(void);
                 void changeCalThreshold(void);
+                void changeRead(void);
                 void changeDone(void);
 
                 void display(df_t flags = DF_NONE);
@@ -836,9 +861,9 @@ class UI
                 void reset(void);
                 void toggleEnabled(void);
 
-                enum topt_e : uint8_t { TOPT_CAL, TOPT_CONF, TOPT_DEF, TOPT_DIS, TOPT_CNT };
+                enum topt_e : uint8_t { TOPT_CAL, TOPT_CONF, TOPT_DEF, TOPT_DIS, TOPT_READ, TOPT_CNT };
 
-                static constexpr char const * const _s_topts[TOPT_CNT] = { "CAL", "ConF", "dEF", "diS" };
+                static constexpr char const * const _s_topts[TOPT_CNT] = { "CAL", "ConF", "dEF", "dIS", "rEAD" };
 
                 enum ts_e : uint8_t
                 {
@@ -855,6 +880,8 @@ class UI
                     TS_CAL_UNTOUCHED,
                     TS_CAL_THRESHOLD,
                     TS_CAL_TOUCHED,
+
+                    TS_READ,
 
                     // Test and adjustment
                     TS_TEST,
@@ -876,6 +903,7 @@ class UI
                     TS_CAL_THRESHOLD,
                     TS_CAL_TOUCHED,
                     TS_TEST,
+                    TS_TEST,
                     TS_DONE,
                     TS_OPT,
                     TS_OPT,
@@ -893,6 +921,7 @@ class UI
                     &Touch::waitCalUntouched,
                     &Touch::waitCalThreshold,
                     &Touch::waitCalTouched,
+                    &Touch::waitRead,
                     &Touch::waitTest,
                     &Touch::waitDone,
                     nullptr,
@@ -906,6 +935,7 @@ class UI
                     &Touch::updatePs,
                     &Touch::updateRefChrg,
                     &Touch::updateExtChrg,
+                    nullptr,
                     nullptr,
                     nullptr,
                     nullptr,
@@ -927,6 +957,7 @@ class UI
                     nullptr,
                     &Touch::changeCalThreshold,
                     nullptr,
+                    &Touch::changeRead,
                     nullptr,
                     &Touch::changeDone,
                     nullptr,
@@ -945,6 +976,7 @@ class UI
                     &Touch::displayCalThreshold,
                     &Touch::displayCalWait,
                     &Touch::displayThreshold,
+                    &Touch::displayThreshold,
                     &Touch::displayDone,
                     &Touch::displayDisabled,
                 };
@@ -960,6 +992,7 @@ class UI
                 TouchCal _touched_amp_on = {};
                 TouchCal * _touched = &_touched_amp_off;
                 uint32_t _readings = 0;
+                TouchCal _read = {};
 
                 // Need to calibrate with Amp turned on since when it's on, for
                 // some reason, it gives a wide and varying range of readings.

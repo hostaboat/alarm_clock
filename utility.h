@@ -162,6 +162,9 @@ class Toggle
         virtual bool on(void) const { return (_disabled ? false : _on); }
         virtual bool off(void) const { return (_disabled ? true : !_on); }
 
+        virtual uint32_t onTime(void) const { return _on_time; }
+        virtual uint32_t offTime(void) const { return _off_time; }
+
         virtual void disable(void) { _disabled = true; }
         virtual void enable(void) { _disabled = false; }
         virtual bool disabled(void) const { return _disabled; }

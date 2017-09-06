@@ -629,8 +629,7 @@ void UI::Player::process(void)
 
     uint32_t m = msecs();
 
-    // If the audio isn't on and a button was pressed or soft play is enabled
-    // start the audio.
+    // If the audio isn't on and a button was pressed start the audio.
     if (!running() && (play_ctime || prev_ctime || next_ctime))
     {
         play();
@@ -658,7 +657,7 @@ void UI::Player::process(void)
         return;
     }
 
-    auto skip = [](uint32_t t) -> int16_t
+    auto skip = [](uint32_t t) -> int32_t
     {
         if (t == 0) return 0;
         else if ((t >> 10) == 0) return 1;
@@ -677,13 +676,13 @@ void UI::Player::process(void)
         }
 
         val += (t >> i) + 1;
-        if (val > INT16_MAX) val = INT16_MAX;
+        if (val > INT32_MAX) val = INT32_MAX;
         return val;
     };
 
     if (_file->eof() || (prev_ctime != 0) || (next_ctime != 0))
     {
-        int16_t inc = 1;
+        int32_t inc = 1;
 
         if (!_file->eof())
         {
@@ -692,21 +691,15 @@ void UI::Player::process(void)
         }
 
         if (!newTrack(inc))
-        {
-            _error = ERR_OPEN_FILE;
             return;
-        }
     }
 
     if (_audio.ready() && !_audio.send(_file, 32) && !_file->valid())
         _error = ERR_AUDIO;
 }
 
-bool UI::Player::newTrack(int16_t inc)
+bool UI::Player::newTrack(int32_t inc)
 {
-    if (inc == 0)
-        return true;
-
     uint32_t file_size = _files[_file_index].size;
 
     // If at least 1/4 of the song played save index to EEPROM
@@ -718,19 +711,42 @@ bool UI::Player::newTrack(int16_t inc)
             inc++;  // Do rewind of current
     }
 
-    int16_t new_index = (_file_index + inc) % _num_files;
-    if (new_index == _file_index)
-        return _file->rewind();
-    else if (new_index < 0)
-        _file_index = (uint16_t)(_num_files + new_index); // Actually a subtraction
+    int32_t new_index = ((int32_t)_file_index + inc) % _num_files;
+    if (new_index == (int32_t)_file_index)
+    {
+        if (_file->rewind())
+            return true;
+    }
     else
-        _file_index = (uint16_t)new_index;
+    {
+        if (new_index < 0)
+            _file_index = (uint16_t)((int32_t)_num_files + new_index); // Actually a subtraction
+        else
+            _file_index = (uint16_t)new_index;
 
-    _file->close();
+        _file->close();
 
-    _file = _fs.open(_files[_file_index]);
-    if (_file == nullptr)
+        _file = _fs.open(_files[_file_index]);
+        if (_file != nullptr)
+            return true;
+    }
+
+    _error = ERR_OPEN_FILE;
+    return false;
+}
+
+bool UI::Player::setTrack(uint16_t index)
+{
+    if (index >= _num_files)
         return false;
+
+    if (running() && !_file->eof())
+        _audio.cancel(_file);
+
+    if (!newTrack((int32_t)index - (int32_t)_file_index))
+        return false;
+
+    play();
 
     return true;
 }
@@ -1392,12 +1408,13 @@ bool UI::Clock::uisBegin(void)
 {
     _state = CS_TIME;
 
+    _alt_display.reset(_s_flash_time);
+
     clockUpdate(true);
+    _alarm.begin();
 
     _dflag = _ui._rtc.clockIs12H() ? DF_12H : DF_24H;
     display();
-
-    _alarm.begin();
 
     return true;
 }
@@ -1408,12 +1425,24 @@ void UI::Clock::uisWait(void)
 
     if ((_state != CS_TIME) && _alt_display.toggled())
     {
+        _alt_display.reset(_s_flash_time);
         _state = CS_TIME;
         force = true;
     }
 
-    if (clockUpdate(force))
-        display();
+    if (_state != CS_TRACK)
+    {
+        if (clockUpdate(force))
+        {
+            display();
+        }
+        else if (_ui._touch.timedTouch(_s_touch_time))
+        {
+            _state = CS_TRACK;
+            changeTrack();
+            display();
+        }
+    }
 
     if (_alarm.enabled())
         _alarm.update(_clock.hour, _clock.minute);
@@ -1430,13 +1459,17 @@ void UI::Clock::uisUpdate(ev_e ev)
         (void)_alarm.snooze(true);
         turn_wait = msecs();
     }
-    else
+    else if (_state != CS_TRACK)
     {
         // Don't process turns for a second after turn to snooze
-        if ((msecs() - turn_wait) > 1000)
+        if ((msecs() - turn_wait) > _s_snooze_wait)
             _ui._lighting.cycleNL(ev);
 
         uisWait();
+    }
+    else
+    {
+        updateTrack(ev);
     }
 }
 
@@ -1447,12 +1480,14 @@ void UI::Clock::uisChange(void)
         _alarm.stop();
         _state = CS_ALARM;
     }
-    else
+    else if (_state != CS_TRACK)
     {
         _state = _next_states[_state];
     }
 
-    if (_state != CS_TIME)
+    if (_state == CS_TRACK)
+        changeTrack();
+    else if (_state != CS_TIME)
         _alt_display.reset();
 
     display();
@@ -1509,6 +1544,23 @@ bool UI::Clock::clockUpdate(bool force)
     return updated;
 }
 
+void UI::Clock::changeTrack(void)
+{
+    if (_alt_display.onTime() == _s_flash_time)
+        _track = _ui._player.currentTrack();
+    else
+        _ui._player.setTrack(_track);
+
+    _alt_display.reset(_s_flash_time);
+}
+
+void UI::Clock::updateTrack(ev_e ev)
+{
+    evUpdate < uint16_t > (_track, ev, 0, _ui._player.numTracks() - 1);
+    _alt_display.reset(_s_track_idle_time);
+    display();
+}
+
 void UI::Clock::display(void)
 {
     MFC(_display_actions[_state])();
@@ -1532,6 +1584,11 @@ void UI::Clock::displayYear(void)
 void UI::Clock::displayAlarm(void)
 {
     _ui._display.showOff();
+}
+
+void UI::Clock::displayTrack(void)
+{
+    _ui._display.showInteger(_track + 1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1881,12 +1938,32 @@ bool UI::Touch::touched(uint32_t stime)
     return _touch_enabled && touched;
 }
 
+bool UI::Touch::timedTouch(uint32_t ttime)
+{
+    static uint32_t touched_time = msecs();
+
+    if (!_touch_enabled)
+        return false;
+
+    uint16_t tval = _tsi_channel.read();
+    if (tval < _tsi.threshold())
+    {
+        if (tval != 0)
+            touched_time = msecs();
+
+        return false;
+    }
+
+    return (msecs() - touched_time) >= ttime;
+}
+
 bool UI::Touch::uisBegin(void)
 {
     _tsi.get(_touch);
     _state = (_touch.threshold == 0) ? TS_DISABLED : TS_OPT;
     _ui._player.stop();
     reset();
+    _ui._lighting.state(Lighting::LS_OTHER);
     return true;
 }
 
@@ -1895,7 +1972,7 @@ void UI::Touch::uisWait(void)
     if (_wait_actions[_state] == nullptr)
         return;
 
-    if ((_state == TS_CAL_UNTOUCHED) || (_state == TS_CAL_TOUCHED))
+    if ((_state == TS_CAL_UNTOUCHED) || (_state == TS_CAL_TOUCHED) || (_state == TS_READ))
         MFC(_wait_actions[_state])(_blink.toggled());
     else if (_state == TS_TEST)
         MFC(_wait_actions[_state])(_ui._beeper.on());
@@ -1914,6 +1991,13 @@ void UI::Touch::uisUpdate(ev_e ev)
 
 void UI::Touch::uisChange(void)
 {
+    if (_state == TS_READ)
+    {
+        _touch.threshold = _read.hi;
+        _untouched.hi = _read.lo;
+        _ui._lighting.setColor(CHSV(_touch.threshold % 256, 255, 255));
+    }
+
     if (_state == TS_DISABLED)
     {
         toggleEnabled();
@@ -1926,6 +2010,7 @@ void UI::Touch::uisChange(void)
             case TOPT_CONF: _state = TS_NSCN; break;
             case TOPT_DEF: _tsi.defaults(_touch); _state = TS_DONE; _topt = TOPT_CONF; break;
             case TOPT_DIS: toggleEnabled(); break;
+            case TOPT_READ: _state = TS_READ; break;
             default: break;
         }
     }
@@ -2100,6 +2185,23 @@ void UI::Touch::waitCalTouched(bool on)
     }
 }
 
+void UI::Touch::waitRead(bool on)
+{
+    uint16_t read = _tsi_channel.read();
+    if ((read != 0) && (read != _touch.threshold))
+    {
+        if (read > _read.hi)
+            _read.hi = read;
+
+        if (read < _read.lo)
+            _read.lo = read;
+
+        _touch.threshold = read;
+        _ui._lighting.setColor(CHSV(read % 256, 255, 255));
+        display();
+    }
+}
+
 void UI::Touch::waitTest(bool on)
 {
     static uint32_t beep_start = 0;
@@ -2130,7 +2232,7 @@ void UI::Touch::waitDone(bool on)
 
 void UI::Touch::updateOpt(ev_e ev)
 {
-    evUpdate < topt_e > (_topt, ev, TOPT_CAL, TOPT_DIS);
+    evUpdate < topt_e > (_topt, ev, TOPT_CAL, (topt_e)(TOPT_CNT - 1));
 }
 
 void UI::Touch::updateNscn(ev_e ev)
@@ -2164,7 +2266,6 @@ void UI::Touch::changeCalStart(void)
     if (_topt == TOPT_CONF)
         (void)_tsi.configure(_touch.nscn, _touch.ps, _touch.refchrg, _touch.extchrg);
 
-    _ui._lighting.state(Lighting::LS_OTHER);
     _ui._lighting.setColor(CHSV(0, 255, 255));
     _readings = 0;
     _untouched.reset();
@@ -2180,9 +2281,15 @@ void UI::Touch::changeCalThreshold(void)
     _touched = &_touched_amp_off;
 }
 
+void UI::Touch::changeRead(void)
+{
+    _read.reset();
+    _untouched.reset();
+}
+
 void UI::Touch::changeDone(void)
 {
-    _ui._lighting.state(Lighting::LS_NIGHT_LIGHT);
+    _ui._lighting.setColor(CRGB::BLACK);
     _ui._beeper.stop();
     (void)_tsi.set(_touch);
     _done = true;
