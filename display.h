@@ -303,9 +303,12 @@ class DevHT16K33 : public DevI2C < ADDR, I2C, SDA, SCL > , public Seg7Display
             this->_i2c.end();
         }
 
+        void display(void);
+
         bool _awake = false;
         bool _on = false;
         uint8_t _brightness = BR_MID;
+        uint8_t _last_positions[5] = {};
 };
 
 template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >
@@ -344,7 +347,7 @@ void DevHT16K33 < ADDR, I2C, SDA, SCL >::wake(bool redisplay)
 
     // Redisplay data if requested.
     if (redisplay)
-        show();
+        display();
 }
 
 template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >
@@ -409,7 +412,7 @@ void DevHT16K33 < ADDR, I2C, SDA, SCL >::up(void)
     if (!isOn())
     {
         on();
-        show();
+        display();
     }
 }
 
@@ -460,6 +463,23 @@ void DevHT16K33 < ADDR, I2C, SDA, SCL >::show(void)
     if (!isAwake() || !isOn())
         return;
 
+    bool updated = false;
+    for (uint8_t i = 0; i < sizeof(_positions); i++)
+    {
+        if (_last_positions[i] != _positions[i])
+        {
+            _last_positions[i] = _positions[i];
+            if (!updated) updated = true;
+        }
+    }
+
+    if (!updated) return;
+    display();
+}
+
+template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >
+void DevHT16K33 < ADDR, I2C, SDA, SCL >::display(void)
+{
     this->_i2c.begin(ADDR, this->_frequency);
     this->_i2c.tx8(0x00);  // Command code
 

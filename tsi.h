@@ -123,13 +123,13 @@ class Tsi : public Module
         bool _swts = false;
 
         // NSCN = 10 times per electrode
-        // PS = 8 (Electrode Oscillator Frequency divided by N)
-        // REFCHRG = 8uA
-        // EXTCHRG = 20uA
-        // Threshold = 864
-        // These settings give approx 0.03pF sensitivity and about a 27pF electrode
-        // capacitance, 740kHz electrode frequency and 100us sample time when touched.
-        static constexpr tTouch const _s_default_touch{ 0x09, 0x03, 0x03, 0x09, 0x0360 };
+        // PS = 4 (Electrode Oscillator Frequency divided by N)
+        // REFCHRG = 16uA
+        // EXTCHRG = 32uA
+        // Threshold = 352
+        // These settings give approx 0.05pF sensitivity and about a 17.5pF electrode
+        // capacitance, 1.8MHz electrode frequency and 20us sample time when touched.
+        static constexpr tTouch const _s_default_touch{ 0x09, 0x02, 0x07, 0x0F, 0x0160 };
 
         // NSCN = 32 times per electrode (0 - 31)
         // PS = 128 (0 - 7)

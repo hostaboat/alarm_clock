@@ -24,13 +24,17 @@ enum eei_e : uint8_t
     EEI_CLOCK_MIN_YEAR,
     EEI_TIMER_SECONDS,
     EEI_TIMER_MINUTES,
-    EEI_FILE_INDEX,
-    EEI_LEDS_COLOR,
+    EEI_TRACK,
+    EEI_LEDS_COLOR_LOW,
+    EEI_LEDS_COLOR_HIGH,
     EEI_TOUCH_NSCN,
     EEI_TOUCH_PS,
     EEI_TOUCH_REFCHRG,
     EEI_TOUCH_EXTCHRG,
     EEI_TOUCH_THRESHOLD,
+    // Num entries : 26
+// Used to determine the EEPROM size
+#define EEI_CNT  26
 };
 
 #define EE_ALARM_TYPE_BEEP   0x00
@@ -102,7 +106,7 @@ class Eeprom : public Module
             return true;
         }
 
-        bool write(eei_e index, uint32_t value);
+        bool write(eei_e index, uint16_t value);
 
         bool setAlarm(eAlarm const & alarm);
         bool getAlarm(eAlarm & alarm) const;
@@ -116,8 +120,8 @@ class Eeprom : public Module
         bool setTimer(eTimer const & timer);
         bool getTimer(eTimer & timer) const;
 
-        bool setFileIndex(uint16_t file_index);
-        bool getFileIndex(uint16_t & file_index) const;
+        bool setTrack(uint16_t track);
+        bool getTrack(uint16_t & track) const;
 
         bool setTouch(eTouch const & touch);
         bool getTouch(eTouch & touch) const;
@@ -135,7 +139,7 @@ class Eeprom : public Module
 
         bool ready(eei_e index) const;
 
-        reg32 _eeprom = (reg32)0x14000000;
+        reg16 _eeprom = (reg16)0x14000000;
         int16_t _max_index = 0;
 
         static constexpr int const _s_ready_times = 96000;

@@ -6,7 +6,7 @@
 // is no easy way to change it after FlexRAM has been initialized as EEPROM.
 // The smaller the value, the higher the write endurance.
 #ifndef EEPROM_SIZE
-# define EEPROM_SIZE  256
+# define EEPROM_SIZE  (EEI_CNT * 2)
 #endif
 
 #define EEPROM_MAX  2048
@@ -24,26 +24,29 @@
 
 #define EE_SIZE(n)  EE_SIZE_ ## n
 
-#if EEPROM_SIZE == 2048
+#if EEPROM_SIZE > 2048
+# error "Not enough EEPROM"
+#elif EEPROM_SIZE > 1024
 # define EE_SIZE_CODE  (EEESPLIT | EE_SIZE(2048))
-#elif EEPROM_SIZE == 1024
+#elif EEPROM_SIZE > 512
 # define EE_SIZE_CODE  (EEESPLIT | EE_SIZE(1024))
-#elif EEPROM_SIZE == 512
+#elif EEPROM_SIZE > 256
 # define EE_SIZE_CODE  (EEESPLIT | EE_SIZE(512))
-#elif EEPROM_SIZE == 256
+#elif EEPROM_SIZE > 128
 # define EE_SIZE_CODE  (EEESPLIT | EE_SIZE(256))
-#elif EEPROM_SIZE == 128
+#elif EEPROM_SIZE > 64
 # define EE_SIZE_CODE  (EEESPLIT | EE_SIZE(128))
-#elif EEPROM_SIZE == 64
+#elif EEPROM_SIZE > 32
 # define EE_SIZE_CODE  (EEESPLIT | EE_SIZE(64))
-#elif EEPROM_SIZE == 32
-# define EE_SIZE_CODE  (EEESPLIT | EE_SIZE(32))
 #else
-# error "Invalid EEPROM_SIZE"
+# define EE_SIZE_CODE  (EEESPLIT | EE_SIZE(32))
 #endif
 
-// 32 bit
-#define EE_MAX_INDEX(eeprom_size)   (uint16_t)(((eeprom_size) / 4) - 1)
+// Datasheet says that write efficiency is the same for both 16 and 32 bit writes
+// * 0.25 for 8-bit writes to FlexRAM
+// * 0.50 for 16-bit or 32-bit writes to FlexRAM
+// Use 16 bit to maximize both space and write efficiency
+#define EE_MAX_INDEX(eeprom_size)   (uint16_t)(((eeprom_size) / 2) - 1)
 
 #define FTFL_FCNFG_EEERDY  (1 << 0)
 #define FTFL_FCNFG_RAMRDY  (1 << 1)
@@ -146,7 +149,7 @@ bool Eeprom::ready(eei_e index) const
     return i < _s_ready_times;
 }
 
-bool Eeprom::write(eei_e index, uint32_t value)
+bool Eeprom::write(eei_e index, uint16_t value)
 {
     if (!ready(index))
         return false;
@@ -235,14 +238,14 @@ bool Eeprom::getTimer(eTimer & timer) const
             && read < uint8_t > (EEI_TIMER_MINUTES, timer.minutes));
 }
 
-bool Eeprom::setFileIndex(uint16_t file_index)
+bool Eeprom::setTrack(uint16_t track)
 {
-    return write(EEI_FILE_INDEX, file_index);
+    return write(EEI_TRACK, track);
 }
 
-bool Eeprom::getFileIndex(uint16_t & file_index) const
+bool Eeprom::getTrack(uint16_t & track) const
 {
-    return read < uint16_t > (EEI_FILE_INDEX, file_index);
+    return read < uint16_t > (EEI_TRACK, track);
 }
 
 bool Eeprom::setTouch(eTouch const & touch)
@@ -265,10 +268,17 @@ bool Eeprom::getTouch(eTouch & touch) const
 
 bool Eeprom::setLedsColor(uint32_t color_code)
 {
-    return write(EEI_LEDS_COLOR, color_code);
+    return write(EEI_LEDS_COLOR_LOW, color_code & 0xFFFF)
+        && write(EEI_LEDS_COLOR_HIGH, color_code >> 16);
 }
 
 bool Eeprom::getLedsColor(uint32_t & color_code) const
 {
-    return read < uint32_t > (EEI_LEDS_COLOR, color_code);
+    uint16_t ccl, cch;
+    if (!read < uint16_t > (EEI_LEDS_COLOR_LOW, ccl)
+            || !read < uint16_t > (EEI_LEDS_COLOR_HIGH, cch))
+        return false;
+
+    color_code = ((uint32_t)cch << 16) | (uint32_t)ccl;
+    return true;
 }

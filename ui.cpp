@@ -171,6 +171,14 @@ void UI::process(void)
         if (!_states[_state]->uisBegin())
             error(_state);
     }
+    else if (_refresh_start)
+    {
+        if ((msecs() - _refresh_start) < _s_refresh_wait)
+            return;
+
+        _states[_state]->uisRefresh();
+        _refresh_start = 0;
+    }
 
     switch (es)
     {
@@ -208,6 +216,21 @@ UI::ps_e UI::pressState(uint32_t msecs)
 
 bool UI::pressing(es_e encoder_state, uint32_t depressed_time)
 {
+    if (_player.stopping() || _player.skipping())
+    {
+        if (_player.stopping())
+            _display.showString("STOP");
+        else
+            _display.showInteger(_player.nextTrack() + 1);
+
+        _refresh_start = msecs();
+
+        if ((_state == UIS_TIMER) && _timer.running())
+            _timer.hueUpdate();
+
+        return true;
+    }
+
     // Depressed states
     enum ds_e : uint8_t
     {
@@ -272,6 +295,7 @@ bool UI::pressing(es_e encoder_state, uint32_t depressed_time)
         case DS_STATE:
             if (_state == UIS_CLOCK)
                 _lighting.offNL();
+
             t.reset();
             display_type = DT_2;
             ds = DS_WAIT_ALT_STATE;
@@ -290,13 +314,15 @@ bool UI::pressing(es_e encoder_state, uint32_t depressed_time)
                 _lighting.setNL(_s_default_color);
                 _lighting.setColor(_s_default_color);
                 _lighting.onNL();
+                _display.blank();
+                t.disable();
             }
             else
             {
+                t.reset();
                 display_type = DT_3;
             }
 
-            t.reset();
             ds = DS_WAIT_RELEASED;
             break;
 
@@ -328,7 +354,8 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
         if (resting)
         {
             _display.wake(!ui_state_changed);
-            _lighting.wake();
+            if (!_lighting.isOnNL())
+                _lighting.wake();
             resting = false;
         }
 
@@ -337,7 +364,8 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
     else if (!resting && ((msecs() - rstart) >= _s_rest_time))
     {
         _display.sleep(true);
-        _lighting.sleep();
+        if (!_lighting.isOnNL())
+            _lighting.sleep();
         resting = true;
     }
 
@@ -348,10 +376,11 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
 
     // Puts MCU in LLS (Low Leakage Stop) mode - a state retention power mode
     // where most peripherals are in state retention mode (with clocks stopped).
-    // Current is reduced by about 44mA.  With the VS1053 off (~14mA) should get
-    // a total of ~58mA savings putting things ~17mA which should be about what
-    // the LED on the PowerBoost is consuming and the Neopixel strip which
-    // despite being "off" still consumes ~7mA.
+    // Current is reduced by about 44mA if the night light is off.  With the
+    // VS1053 off (~14mA) should get a total of ~58mA savings putting things
+    // ~17mA (if night light is off) which should be about what the LED on the
+    // PowerBoost is consuming and the Neopixel strip which despite being "off"
+    // (again if the night light is off) still consumes ~7mA.
 
     // Don't like this.  Should have a way to just pass in the device.
     static PinIn < PIN_EN_SW > & ui_swi = PinIn < PIN_EN_SW >::acquire();
@@ -359,6 +388,9 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
     static PinInPU < PIN_RS_M > & ui_rs = PinInPU < PIN_RS_M >::acquire();
     static PinInPU < PIN_EN_BR_A > & br_enc = PinInPU < PIN_EN_BR_A >::acquire();
     static PinIn < PIN_PLAY > & play = PinIn < PIN_PLAY >::acquire();
+
+    if (!_lighting.isOnNL())
+        _lighting.sleep();
 
     _llwu.enable();
 
@@ -394,7 +426,8 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
         // so don't redisplay data from state prior to sleeping.
         _display.wake(wakeup_pin != PIN_RS_M);
 
-        _lighting.wake();
+        if (!_lighting.isOnNL())
+            _lighting.wake();
 
         resting = false;
         rstart = msecs();
@@ -563,30 +596,32 @@ void UI::Lighting::state(ls_e state)
 ////////////////////////////////////////////////////////////////////////////////
 UI::Player::Player(void)
 {
-    if (!_prev.valid() || !_play.valid() || !_next.valid()
-            || !_audio.valid() || !_fs.valid() || !_eeprom.valid())
+    if (!_prev.valid() || !_play.valid() || !_next.valid() || !_audio.valid() || !_fs.valid())
     {
         _error = ERR_INVALID;
         return;
     }
 
-    int file_cnt = _fs.getFiles(_files, _s_max_files, _exts);
-    if (file_cnt <= 0)
+    int num_tracks = _fs.getFiles(_tracks, _s_max_tracks, _track_exts);
+    if (num_tracks <= 0)
     {
         _error = ERR_GET_FILES;
         return;
     }
 
-    _num_files = (uint16_t)file_cnt;
+    // Max tracks is less than UINT16_MAX
+    _num_tracks = (uint16_t)num_tracks;
 
-    if (!_eeprom.getFileIndex(_file_index) || (_file_index >= _num_files))
+    if (!_eeprom.getTrack(_current_track) || (_current_track >= _num_tracks))
     {
-        _file_index = 0;
-        _eeprom.setFileIndex(_file_index);
+        _current_track = 0;
+        (void)_eeprom.setTrack(_current_track);
     }
 
-    _file = _fs.open(_files[_file_index]);
-    if (_file == nullptr)
+    _next_track = _current_track;
+
+    _track = _fs.open(_tracks[_current_track]);
+    if (_track == nullptr)
     {
         _error = ERR_OPEN_FILE;
         return;
@@ -598,7 +633,7 @@ void UI::Player::play(void)
     if (disabled() || playing())
         return;
 
-    if (!running() && !_file->rewind())
+    if (!running() && !_track->rewind())
     {
         _error = ERR_OPEN_FILE;
         return;
@@ -612,11 +647,57 @@ bool UI::Player::occupied(void) const
     return playing() || _play.closed() || _prev.closed() || _next.closed();
 }
 
+bool UI::Player::pressing(void)
+{
+    if (!_play.closed() && !_prev.closed() && !_next.closed())
+        return false;
+
+    __disable_irq();
+
+    uint32_t play_cs = _play.closeStart();
+    uint32_t prev_cs = _prev.closeStart();
+    uint32_t next_cs = _next.closeStart();
+
+    __enable_irq();
+
+    if ((play_cs == 0) && (prev_cs == 0) && (next_cs == 0))
+        return false;
+
+    if (stopping())
+        return true;
+
+    uint32_t m = msecs();
+
+    if (running() && (play_cs != 0) && ((m - play_cs) >= _s_stop_time))
+    {
+        _stopping = true;
+        return true;
+    }
+
+    uint32_t tn = (next_cs != 0) ? m - next_cs : 0;
+    uint32_t tp = (prev_cs != 0) ? m - prev_cs : 0;
+
+    if ((tn < _s_skip_msecs) && (tp < _s_skip_msecs))
+        return true;
+
+    if (tn >= _s_skip_msecs)
+        tn -= _s_skip_msecs;
+    if (tp >= _s_skip_msecs)
+        tp -= _s_skip_msecs;
+
+    int32_t s = skip(tn) - skip(tp);
+    if (s == 0) return true;
+
+    _next_track = skipTracks(s);
+
+    return true;
+}
+
 void UI::Player::process(void)
 {
     static uint32_t sstart = msecs();
 
-    if (disabled() || _play.closed() || _prev.closed() || _next.closed())
+    if (disabled() || pressing())
         return;
 
     __disable_irq();
@@ -629,11 +710,10 @@ void UI::Player::process(void)
 
     uint32_t m = msecs();
 
-    // If the audio isn't on and a button was pressed start the audio.
-    if (!running() && (play_ctime || prev_ctime || next_ctime))
+    // XXX If the MCU is asleep only the play/pause pushbutton will wake it.
+    if (!running() && (play_ctime != 0))
     {
         play();
-        play_ctime = prev_ctime = next_ctime = 0;
     }
     else if (play_ctime != 0)
     {
@@ -643,6 +723,11 @@ void UI::Player::process(void)
             _paused = !_paused;
 
         sstart = m;
+    }
+    else if ((prev_ctime != 0) || (next_ctime != 0))
+    {
+        if (!running() || paused())
+            play();
     }
 
     if (playing())
@@ -657,77 +742,83 @@ void UI::Player::process(void)
         return;
     }
 
-    auto skip = [](uint32_t t) -> int32_t
+    if (_track->eof() || (prev_ctime != 0) || (next_ctime != 0))
     {
-        if (t == 0) return 0;
-        else if ((t >> 10) == 0) return 1;
-
-        uint32_t val = 0, i = 10;
-        uint32_t const end = 8;
-
-        for (; i > end; i--)
+        if (_track->eof())
         {
-            t >>= i;
-            uint32_t tmp = (t > 10) ? 10 : t;
-            val += tmp;
-            t -= tmp;
-            if (t == 0) break;
-            t <<= i;
+            // Only save file index to eeprom if track was played to completion
+            (void)_eeprom.setTrack(_current_track);
+            _next_track = skipTracks(1);
+        }
+        else
+        {
+            _audio.cancel(_track);
+            if (!skipping())
+            {
+                int32_t s = skip(next_ctime) - skip(prev_ctime);
+                if ((s < 0) && rewind()) s++;  // Increment so as not to count it
+                _next_track = skipTracks(s);
+            }
         }
 
-        val += (t >> i) + 1;
-        if (val > INT32_MAX) val = INT32_MAX;
-        return val;
-    };
-
-    if (_file->eof() || (prev_ctime != 0) || (next_ctime != 0))
-    {
-        int32_t inc = 1;
-
-        if (!_file->eof())
-        {
-            _audio.cancel(_file);
-            inc = skip(next_ctime) - skip(prev_ctime);
-        }
-
-        if (!newTrack(inc))
+        if (!newTrack())
             return;
     }
 
-    if (_audio.ready() && !_audio.send(_file, 32) && !_file->valid())
+    if (_audio.ready() && !_audio.send(_track, 32) && !_track->valid())
         _error = ERR_AUDIO;
 }
 
-bool UI::Player::newTrack(int32_t inc)
+bool UI::Player::rewind(void)
 {
-    uint32_t file_size = _files[_file_index].size;
+    if ((_track == nullptr)
+            || ((_track->size() - _track->remaining()) < (_track->size() / 4)))
+        return false;
 
-    // If at least 1/4 of the song played save index to EEPROM
-    // and just rewind it, i.e. decrement number of tracks.
-    if ((file_size - _file->remaining()) > (file_size >> 2))
-    {
-        (void)_eeprom.setFileIndex(_file_index);  // Eeprom will only write if value is different
-        if (inc < 0)
-            inc++;  // Do rewind of current
-    }
+    return true;
+}
 
-    int32_t new_index = ((int32_t)_file_index + inc) % _num_files;
-    if (new_index == (int32_t)_file_index)
+int32_t UI::Player::skip(uint32_t t)
+{
+    static constexpr uint16_t const ss = 5;
+    static constexpr uint32_t const sm = ss * _s_skip_msecs;
+
+    if (t == 0) return 0;
+
+    uint16_t speed = t / sm;
+    if (speed > 5) speed = 5;
+
+    uint32_t s = (ss * ((1 << speed) - 1)) + ((t - (sm * speed)) / (_s_skip_msecs / (1 << speed)));
+
+    if (s > INT32_MAX)
+        return INT32_MAX;
+
+    return s + 1;
+}
+
+uint16_t UI::Player::skipTracks(int32_t skip)
+{
+    int32_t track = ((int32_t)_current_track + skip) % _num_tracks;
+    if (track < 0)
+        track = (int32_t)_num_tracks + track;
+
+    return (uint16_t)track;
+}
+
+bool UI::Player::newTrack(void)
+{
+    if (_next_track == _current_track)
     {
-        if (_file->rewind())
+        if (_track->rewind())
             return true;
     }
     else
     {
-        if (new_index < 0)
-            _file_index = (uint16_t)((int32_t)_num_files + new_index); // Actually a subtraction
-        else
-            _file_index = (uint16_t)new_index;
+        _current_track = _next_track;
+        _track->close();
 
-        _file->close();
-
-        _file = _fs.open(_files[_file_index]);
-        if (_file != nullptr)
+        _track = _fs.open(_tracks[_current_track]);
+        if (_track != nullptr)
             return true;
     }
 
@@ -735,15 +826,16 @@ bool UI::Player::newTrack(int32_t inc)
     return false;
 }
 
-bool UI::Player::setTrack(uint16_t index)
+bool UI::Player::setTrack(uint16_t track)
 {
-    if (index >= _num_files)
+    if (track >= _num_tracks)
         return false;
 
-    if (running() && !_file->eof())
-        _audio.cancel(_file);
+    if (running() && !_track->eof())
+        _audio.cancel(_track);
 
-    if (!newTrack((int32_t)index - (int32_t)_file_index))
+    _next_track = skipTracks((int32_t)track - (int32_t)_current_track);
+    if (!newTrack())
         return false;
 
     play();
@@ -969,6 +1061,12 @@ bool UI::SetAlarm::uisSleep(void)
     return true;
 }
 
+void UI::SetAlarm::uisRefresh(void)
+{
+    _blink.reset();
+    display();
+}
+
 void UI::SetAlarm::waitHour(bool on)
 {
     display(on ? DF_NONE : DF_BL_BC);
@@ -1172,6 +1270,12 @@ bool UI::SetClock::uisSleep(void)
     return true;
 }
 
+void UI::SetClock::uisRefresh(void)
+{
+    _blink.reset();
+    display();
+}
+
 void UI::SetClock::waitType(bool on)
 {
     display(on ? DF_NONE : DF_BL);
@@ -1366,6 +1470,12 @@ bool UI::SetTimer::uisSleep(void)
     return true;
 }
 
+void UI::SetTimer::uisRefresh(void)
+{
+    _blink.reset();
+    display();
+}
+
 void UI::SetTimer::waitMinutes(bool on)
 {
     display(on ? DF_NONE : DF_BL_BC);
@@ -1412,6 +1522,8 @@ bool UI::Clock::uisBegin(void)
 
     clockUpdate(true);
     _alarm.begin();
+
+    _track_updated = false;
 
     _dflag = _ui._rtc.clockIs12H() ? DF_12H : DF_24H;
     display();
@@ -1470,6 +1582,7 @@ void UI::Clock::uisUpdate(ev_e ev)
     else
     {
         updateTrack(ev);
+        _track_updated = true;
     }
 }
 
@@ -1480,7 +1593,7 @@ void UI::Clock::uisChange(void)
         _alarm.stop();
         _state = CS_ALARM;
     }
-    else if (_state != CS_TRACK)
+    else if ((_state != CS_TRACK) || !_track_updated)
     {
         _state = _next_states[_state];
     }
@@ -1512,6 +1625,13 @@ void UI::Clock::uisEnd(void)
 bool UI::Clock::uisSleep(void)
 {
     return false;
+}
+
+void UI::Clock::uisRefresh(void)
+{
+    _alt_display.reset();
+    clockUpdate(true);
+    display();
 }
 
 bool UI::Clock::clockUpdate(bool force)
@@ -1547,9 +1667,14 @@ bool UI::Clock::clockUpdate(bool force)
 void UI::Clock::changeTrack(void)
 {
     if (_alt_display.onTime() == _s_flash_time)
+    {
         _track = _ui._player.currentTrack();
+    }
     else
+    {
         _ui._player.setTrack(_track);
+        _track_updated = false;
+    }
 
     _alt_display.reset(_s_flash_time);
 }
@@ -1641,7 +1766,7 @@ void UI::Timer::uisWait(void)
         MFC(_wait_actions[_state])();
 
     if (_show_clock)
-        clock();
+        clockUpdate();
 }
 
 void UI::Timer::uisUpdate(ev_e ev)
@@ -1679,9 +1804,9 @@ void UI::Timer::uisUpdate(ev_e ev)
 
         _show_clock = !_show_clock;
         if (_show_clock)
-            clock(true);
+            clockUpdate(true);
         else if (_state != TS_WAIT)
-            timer(true);
+            timerUpdate(true);
         else
             _ui._display.showTimer(_timer.minutes, _timer.seconds, DF_NO_LZ);
     }
@@ -1745,6 +1870,16 @@ bool UI::Timer::uisSleep(void)
     return (_state != TS_RUNNING) && (_state != TS_ALERT);
 }
 
+void UI::Timer::uisRefresh(void)
+{
+    if (_state < TS_WAIT)
+        displayTimer(DF_NONE);
+    else if (_show_clock)
+        clockUpdate(true);
+    else
+        timerUpdate(true);
+}
+
 void UI::Timer::waitMinutes(void)
 {
     if (!_blink.toggled())
@@ -1777,7 +1912,7 @@ void UI::Timer::displayTimer(df_t flags)
             (_timer.minutes == 0) ? (flags | DF_BL0) : (flags | DF_NO_LZ));
 }
 
-void UI::Timer::timer(bool force)
+void UI::Timer::timerUpdate(bool force)
 {
     // Not critical that interrupts be disabled
     _second = _s_timer_seconds;
@@ -1797,7 +1932,7 @@ void UI::Timer::timer(bool force)
     _ui._display.showTimer(_minute, (uint8_t)_second, DF_NO_LZ);
 }
 
-void UI::Timer::clock(bool force)
+void UI::Timer::clockUpdate(bool force)
 {
     if ((_ui._rtc.update() >= RU_MIN) || force)
     {
@@ -1831,17 +1966,10 @@ void UI::Timer::reset(void)
 
 void UI::Timer::run(void)
 {
-    // Again, not critical that interrupts be disabled
-    uint8_t hue = _s_timer_hue;
-
     if (!_show_clock || (_s_timer_seconds == 0))
-        timer();
+        timerUpdate();
 
-    if (hue != _last_hue)
-    {
-        _last_hue = hue;
-        _ui._lighting.setColor(CHSV(hue, 255, 255));
-    }
+    hueUpdate();
 
     if (_last_second == 0)
     {
@@ -1850,6 +1978,18 @@ void UI::Timer::run(void)
         _ui._beeper.start();
         _state = TS_ALERT;
         _alarm_start = msecs();
+    }
+}
+
+void UI::Timer::hueUpdate(void)
+{
+    // Again, not critical that interrupts be disabled
+    uint8_t hue = _s_timer_hue;
+
+    if (hue != _last_hue)
+    {
+        _last_hue = hue;
+        _ui._lighting.setColor(CHSV(hue, 255, 255));
     }
 }
 
@@ -2052,7 +2192,13 @@ void UI::Touch::uisEnd(void)
 
 bool UI::Touch::uisSleep(void)
 {
-    return false;
+    return ((_state != TS_CAL_UNTOUCHED) && (_state != TS_CAL_TOUCHED));
+}
+
+void UI::Touch::uisRefresh(void)
+{
+    _blink.reset();
+    display();
 }
 
 void UI::Touch::reset(void)
@@ -2511,12 +2657,20 @@ void UI::SetLeds::uisEnd(void)
         _ui._lighting.setNL(_color);
 
     _ui._lighting.state(Lighting::LS_NIGHT_LIGHT);
+    if (_ui._lighting.isOn())
+        _ui._lighting.onNL();
     _ui._display.blank();
 }
 
 bool UI::SetLeds::uisSleep(void)
 {
     return true;
+}
+
+void UI::SetLeds::uisRefresh(void)
+{
+    _blink.reset();
+    display();
 }
 
 void UI::SetLeds::waitType(bool on)

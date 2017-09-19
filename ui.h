@@ -169,6 +169,9 @@ class UI
         uint8_t _brightness = 120;
         static constexpr CRGB::Color const _s_default_color = CRGB::WHITE;
 
+        uint32_t _refresh_start = 0;
+        static constexpr uint32_t const _s_refresh_wait = 1000;
+
         class Player
         {
             friend class UI;
@@ -190,19 +193,26 @@ class UI
                 void pause(void) { _paused = true; }
                 bool paused(void) const { return _paused; }
                 bool running(void) const { return _audio.running(); }
-                void stop(void) { if (running()) _audio.stop(); _paused = true; }
+                void stop(void) { if (running()) _audio.stop(); _paused = true; _stopping = false; }
                 bool playing(void) const { return running() && !paused(); }
+                bool stopping(void) { return _stopping; }
+                bool skipping(void) { return _next_track != _current_track; }
                 bool occupied(void) const;
                 bool disabled(void) const { return _error != ERR_NONE; }
                 err_e error(void) const { return _error; }
-                uint16_t numTracks(void) const { return _num_files; }
-                uint16_t currentTrack(void) const { return _file_index; }
-                bool setTrack(uint16_t index);
+                uint16_t numTracks(void) const { return _num_tracks; }
+                uint16_t currentTrack(void) const { return _current_track; }
+                uint16_t nextTrack(void) const { return _next_track; }
+                bool setTrack(uint16_t track);
 
             private:
-                bool newTrack(int32_t inc);
+                bool newTrack(void);
                 void disable(void);
                 void start(void) { if (!running()) _audio.start(); _paused = false; }
+                bool rewind(void);
+                bool pressing(void);
+                int32_t skip(uint32_t t);
+                uint16_t skipTracks(int32_t skip);
 
                 TAudio & _audio = TAudio::acquire();
                 TFs & _fs = TFs::acquire();
@@ -211,19 +221,22 @@ class UI
                 TSwNext & _next = TSwNext::acquire(IRQC_INTR_CHANGE);
                 Eeprom & _eeprom = Eeprom::acquire();
 
-                File * _file = nullptr;
+                File * _track = nullptr;
                 bool _paused = false;
+                bool _stopping = false;
                 bool _disabled = false;
 
                 // 2 or more seconds of continuous press on play/pause pushbutton stops player
-                static constexpr uint32_t _s_stop_time = 2000;
+                static constexpr uint32_t const _s_stop_time = 2000;
                 // 15 minutes of inactivity before turning audio off
-                static constexpr uint32_t _s_sleep_time = 15 * 60000; 
-                static constexpr uint16_t _s_max_files = 4096;
-                char const * const _exts[3] = { "MP3", "M4A", nullptr };
-                FileInfo _files[_s_max_files] = {};
-                uint16_t _num_files = 0;
-                uint16_t _file_index = 0;
+                static constexpr uint32_t const _s_sleep_time = 15 * 60000;
+                static constexpr uint32_t const _s_skip_msecs = 1024;
+                static constexpr uint16_t const _s_max_tracks = 4096;
+                char const * const _track_exts[3] = { "MP3", "M4A", nullptr };
+                FileInfo _tracks[_s_max_tracks] = {};
+                uint16_t _num_tracks = 0;
+                uint16_t _current_track = 0;
+                uint16_t _next_track = 0;
                 err_e _error = ERR_NONE;
         };
 
@@ -274,6 +287,7 @@ class UI
                 virtual void uisReset(ps_e ps) = 0;
                 virtual void uisEnd(void) = 0;
                 virtual bool uisSleep(void) = 0;
+                virtual void uisRefresh(void) = 0;
 
             protected:
                 UI & _ui;
@@ -291,6 +305,7 @@ class UI
                 virtual void uisReset(ps_e ps) = 0;
                 virtual void uisEnd(void) = 0;
                 virtual bool uisSleep(void) = 0;
+                virtual void uisRefresh(void) = 0;
 
             protected:
                 static constexpr uint32_t const _s_set_blink_time = 500;   // milliseconds
@@ -312,6 +327,7 @@ class UI
                 virtual void uisReset(ps_e ps) = 0;
                 virtual void uisEnd(void) = 0;
                 virtual bool uisSleep(void) = 0;
+                virtual void uisRefresh(void) = 0;
         };
 
         class SetAlarm : public UISetState
@@ -326,6 +342,7 @@ class UI
                 virtual void uisReset(ps_e ps);
                 virtual void uisEnd(void);
                 virtual bool uisSleep(void);
+                virtual void uisRefresh(void);
 
             private:
                 void waitHour(bool on);
@@ -434,6 +451,7 @@ class UI
                 virtual void uisReset(ps_e ps);
                 virtual void uisEnd(void);
                 virtual bool uisSleep(void);
+                virtual void uisRefresh(void);
 
             private:
                 void waitType(bool on);
@@ -541,6 +559,7 @@ class UI
                 virtual void uisReset(ps_e ps);
                 virtual void uisEnd(void);
                 virtual bool uisSleep(void);
+                virtual void uisRefresh(void);
 
             private:
                 void waitMinutes(bool on);
@@ -607,6 +626,7 @@ class UI
                 virtual void uisReset(ps_e ps);
                 virtual void uisEnd(void);
                 virtual bool uisSleep(void);
+                virtual void uisRefresh(void);
 
             private:
                 bool clockUpdate(bool force = false);
@@ -668,6 +688,7 @@ class UI
                 // Time out for inactivity after track number update
                 static constexpr uint32_t const _s_track_idle_time = 15000;
                 uint16_t _track = 0;
+                bool _track_updated = false;
         };
 
         class Timer : public UIRunState
@@ -682,8 +703,10 @@ class UI
                 virtual void uisReset(ps_e ps);
                 virtual void uisEnd(void);
                 virtual bool uisSleep(void);
+                virtual void uisRefresh(void);
 
                 bool running(void) { return (_state == TS_RUNNING) || (_state == TS_ALERT); }
+                void hueUpdate(void);
 
             private:
                 void waitMinutes(void);
@@ -702,8 +725,8 @@ class UI
                 void alert(void);
                 void stop(void);
 
-                void timer(bool force = false);
-                void clock(bool force = false);
+                void timerUpdate(bool force = false);
+                void clockUpdate(bool force = false);
 
                 enum ts_e : uint8_t
                 {
@@ -803,6 +826,7 @@ class UI
                 virtual void uisReset(ps_e ps);
                 virtual void uisEnd(void);
                 virtual bool uisSleep(void);
+                virtual void uisRefresh(void);
 
                 bool valid(void);
                 bool enabled(void) const;
@@ -1018,6 +1042,7 @@ class UI
                 virtual void uisReset(ps_e ps);
                 virtual void uisEnd(void);
                 virtual bool uisSleep(void);
+                virtual void uisRefresh(void);
 
             private:
                 void waitType(bool on);
