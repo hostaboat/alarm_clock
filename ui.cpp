@@ -170,6 +170,8 @@ void UI::process(void)
 
         if (!_states[_state]->uisBegin())
             error(_state);
+
+        _refresh_start = 0;
     }
     else if (_refresh_start)
     {
