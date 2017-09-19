@@ -706,7 +706,6 @@ class UI
                 virtual void uisRefresh(void);
 
                 bool running(void) { return (_state == TS_RUNNING) || (_state == TS_ALERT); }
-                void hueUpdate(void);
 
             private:
                 void waitMinutes(void);
@@ -727,6 +726,7 @@ class UI
 
                 void timerUpdate(bool force = false);
                 void clockUpdate(bool force = false);
+                void hueUpdate(void);
 
                 enum ts_e : uint8_t
                 {

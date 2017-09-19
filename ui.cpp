@@ -175,11 +175,14 @@ void UI::process(void)
     }
     else if (_refresh_start)
     {
+        if ((_state == UIS_TIMER) && _timer.running())
+            _timer.uisWait();
+
         if ((msecs() - _refresh_start) < _s_refresh_wait)
             return;
 
-        _states[_state]->uisRefresh();
         _refresh_start = 0;
+        _states[_state]->uisRefresh();
     }
 
     switch (es)
@@ -228,7 +231,7 @@ bool UI::pressing(es_e encoder_state, uint32_t depressed_time)
         _refresh_start = msecs();
 
         if ((_state == UIS_TIMER) && _timer.running())
-            _timer.hueUpdate();
+            _timer.uisWait();
 
         return true;
     }
@@ -1767,7 +1770,7 @@ void UI::Timer::uisWait(void)
     if (_wait_actions[_state] != nullptr)
         MFC(_wait_actions[_state])();
 
-    if (_show_clock)
+    if (_show_clock && (_ui._refresh_start == 0))
         clockUpdate();
 }
 
@@ -1914,37 +1917,6 @@ void UI::Timer::displayTimer(df_t flags)
             (_timer.minutes == 0) ? (flags | DF_BL0) : (flags | DF_NO_LZ));
 }
 
-void UI::Timer::timerUpdate(bool force)
-{
-    // Not critical that interrupts be disabled
-    _second = _s_timer_seconds;
-
-    if ((_second == _last_second) && !force)
-        return;
-
-    _last_second = _second;
-
-    _minute = 0;
-    if (_second >= 60)
-    {
-        _minute = (uint8_t)(_second / 60);
-        _second %= 60;
-    }
-
-    _ui._display.showTimer(_minute, (uint8_t)_second, DF_NO_LZ);
-}
-
-void UI::Timer::clockUpdate(bool force)
-{
-    if ((_ui._rtc.update() >= RU_MIN) || force)
-    {
-        _ui._display.showClock(
-                _ui._rtc.clockHour(),
-                _ui._rtc.clockMinute(),
-                _ui._rtc.clockIs12H() ? DF_12H : DF_24H);
-    }
-}
-
 void UI::Timer::start(void)
 {
     _s_timer_seconds = ((uint32_t)_timer.minutes * 60) + (uint32_t)_timer.seconds;
@@ -1980,6 +1952,38 @@ void UI::Timer::run(void)
         _ui._beeper.start();
         _state = TS_ALERT;
         _alarm_start = msecs();
+    }
+}
+
+void UI::Timer::timerUpdate(bool force)
+{
+    // Not critical that interrupts be disabled
+    _second = _s_timer_seconds;
+
+    if ((_second == _last_second) && !force)
+        return;
+
+    _last_second = _second;
+
+    _minute = 0;
+    if (_second >= 60)
+    {
+        _minute = (uint8_t)(_second / 60);
+        _second %= 60;
+    }
+
+    if (_ui._refresh_start == 0)
+        _ui._display.showTimer(_minute, (uint8_t)_second, DF_NO_LZ);
+}
+
+void UI::Timer::clockUpdate(bool force)
+{
+    if ((_ui._rtc.update() >= RU_MIN) || force)
+    {
+        _ui._display.showClock(
+                _ui._rtc.clockHour(),
+                _ui._rtc.clockMinute(),
+                _ui._rtc.clockIs12H() ? DF_12H : DF_24H);
     }
 }
 
@@ -2026,12 +2030,16 @@ void UI::Timer::alert(void)
 
     if (_ui._beeper.on())
     {
-        _ui._display.showDone();
+        if (_ui._refresh_start == 0)
+            _ui._display.showDone();
+
         _ui._lighting.on();
     }
     else
     {
-        _ui._display.blank();
+        if (_ui._refresh_start == 0)
+            _ui._display.blank();
+
         _ui._lighting.off();
     }
 }
