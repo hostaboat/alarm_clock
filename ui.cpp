@@ -2178,15 +2178,19 @@ void UI::Touch::uisChange(void)
 
 void UI::Touch::uisReset(ps_e ps)
 {
-    if ((_state == TS_CAL_START) || (_state == TS_NSCN))
-        _state = TS_OPT;
-    else if (_state == TS_DISABLED)
-        toggleEnabled();
-    else if (_topt == TOPT_CAL)
-        _state = TS_CAL_START;
-    else if (_topt == TOPT_CONF)
-        _state = TS_NSCN;
+    if (_state != TS_OPT)
+    {
+        if ((_state == TS_CAL_START) || (_state == TS_NSCN) || (_state == TS_READ) || (_state == TS_DONE))
+            _state = TS_OPT;
+        else if (_state == TS_DISABLED)
+            toggleEnabled();
+        else if (_topt == TOPT_CAL)
+            _state = TS_CAL_START;
+        else if (_topt == TOPT_CONF)
+            _state = TS_NSCN;
+    }
 
+    _ui._lighting.setColor(CRGB::BLACK);
     _ui._beeper.stop();
     _amp.stop();
 
