@@ -223,6 +223,10 @@ bool UI::pressing(es_e encoder_state, uint32_t depressed_time)
 {
     if (_player.stopping() || _player.skipping())
     {
+        // Forcibly wake from resting
+        if (!_display.isAwake())
+            (void)resting(ES_NONE, true, false);
+
         if (_player.stopping())
             _display.showString("STOP");
         else
@@ -359,8 +363,10 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
         if (resting)
         {
             _display.wake(!ui_state_changed);
+
             if (!_lighting.isOnNL())
                 _lighting.wake();
+
             resting = false;
         }
 
@@ -369,8 +375,10 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
     else if (!resting && ((msecs() - rstart) >= _s_rest_time))
     {
         _display.sleep(true);
+
         if (!_lighting.isOnNL())
             _lighting.sleep();
+
         resting = true;
     }
 
@@ -1792,10 +1800,7 @@ void UI::Timer::uisUpdate(ev_e ev)
     }
 
     if (_state == TS_ALERT)
-    {
-        uisChange();
         return;
-    }
 
     if ((msecs() - turn_msecs) < _s_turn_wait)
         return;
