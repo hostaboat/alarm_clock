@@ -63,73 +63,73 @@ class UI
         {
             UIS_SET_ALARM,
             UIS_SET_CLOCK,
+            UIS_SET_SLEEP,
             UIS_CLOCK,
             UIS_TIMER,
-            UIS_TOUCH,
+            UIS_SET_TOUCH,
             UIS_SET_LEDS,
-            UIS_SET_SLEEP,
             UIS_CNT
         };
 
         uis_e const _next_states[UIS_CNT][PS_CNT][SS_CNT] =
         {
-            //       SS_NONE        SS_LEFT     SS_MIDDLE     SS_RIGHT
+            //       SS_NONE        SS_LEFT     SS_MIDDLE      SS_RIGHT
             //
             //                          UIS_SET_ALARM
             {
-                { UIS_SET_ALARM, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_NONE
-                { UIS_SET_ALARM, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_CHANGE
-                { UIS_SET_ALARM, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_RESET
-                { UIS_SET_ALARM,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK },  // PS_STATE
-                { UIS_SET_ALARM, UIS_SET_SLEEP, UIS_CLOCK, UIS_SET_CLOCK },  // PS_ALT_STATE
+                { UIS_SET_ALARM, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER },  // PS_NONE
+                { UIS_SET_ALARM, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER },  // PS_CHANGE
+                { UIS_SET_ALARM, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER },  // PS_RESET
+                { UIS_SET_ALARM, UIS_SET_CLOCK, UIS_CLOCK,     UIS_TIMER },  // PS_STATE
+                { UIS_SET_ALARM, UIS_SET_SLEEP, UIS_CLOCK,     UIS_TIMER },  // PS_ALT_STATE
             },
             //                          UIS_SET_CLOCK
             {
-                { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_NONE
-                { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_CHANGE
-                { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK },  // PS_RESET
+                { UIS_SET_CLOCK, UIS_SET_CLOCK, UIS_CLOCK,     UIS_TIMER },  // PS_NONE
+                { UIS_SET_CLOCK, UIS_SET_CLOCK, UIS_CLOCK,     UIS_TIMER },  // PS_CHANGE
+                { UIS_SET_CLOCK, UIS_SET_CLOCK, UIS_CLOCK,     UIS_TIMER },  // PS_RESET
                 { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER },  // PS_STATE
-                { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS },  // PS_ALT_STATE
+                { UIS_SET_CLOCK, UIS_SET_SLEEP, UIS_CLOCK,     UIS_TIMER },  // PS_ALT_STATE
+            },
+            //                           UIS_SET_SLEEP
+            {
+                { UIS_SET_SLEEP, UIS_SET_SLEEP, UIS_CLOCK,     UIS_TIMER }, // PS_NONE
+                { UIS_SET_SLEEP, UIS_SET_SLEEP, UIS_CLOCK,     UIS_TIMER }, // PS_CHANGE
+                { UIS_SET_SLEEP, UIS_SET_SLEEP, UIS_CLOCK,     UIS_TIMER }, // PS_RESET
+                { UIS_SET_SLEEP, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_STATE
+                { UIS_SET_SLEEP, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_ALT_STATE
             },
             //                            UIS_CLOCK
             {
-                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_NONE
-                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_CHANGE
-                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_RESET
-                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_STATE
-                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_ALT_STATE
+                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_NONE
+                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_CHANGE
+                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_RESET
+                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_STATE
+                {     UIS_CLOCK, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_ALT_STATE
             },
             //                            UIS_TIMER
             {
                 {     UIS_TIMER, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_NONE
                 {     UIS_TIMER, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_CHANGE
                 {     UIS_TIMER, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_RESET
-                {     UIS_TIMER, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_STATE
+                {     UIS_TIMER, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_TOUCH }, // PS_STATE
                 {     UIS_TIMER, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS }, // PS_ALT_STATE
             },
-            //                            UIS_TOUCH
+            //                           UIS_SET_TOUCH
             {
-                {     UIS_TOUCH,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK }, // PS_NONE
-                {     UIS_TOUCH,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK }, // PS_CHANGE
-                {     UIS_TOUCH,     UIS_TOUCH, UIS_CLOCK, UIS_SET_CLOCK }, // PS_RESET
-                {     UIS_TOUCH, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_STATE
-                {     UIS_TOUCH, UIS_SET_SLEEP, UIS_CLOCK, UIS_SET_CLOCK }, // PS_ALT_STATE
+                { UIS_SET_TOUCH, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_TOUCH }, // PS_NONE
+                { UIS_SET_TOUCH, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_TOUCH }, // PS_CHANGE
+                { UIS_SET_TOUCH, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_TOUCH }, // PS_RESET
+                { UIS_SET_TOUCH, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_STATE
+                { UIS_SET_TOUCH, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS }, // PS_ALT_STATE
             },
             //                           UIS_SET_LEDS
             {
                 {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS }, // PS_NONE
                 {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS }, // PS_CHANGE
                 {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS }, // PS_RESET
-                {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_STATE
-                {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_ALT_STATE
-            },
-            //                           UIS_SET_SLEEP
-            {
-                { UIS_SET_SLEEP, UIS_SET_SLEEP, UIS_CLOCK, UIS_SET_CLOCK }, // PS_NONE
-                { UIS_SET_SLEEP, UIS_SET_SLEEP, UIS_CLOCK, UIS_SET_CLOCK }, // PS_CHANGE
-                { UIS_SET_SLEEP, UIS_SET_SLEEP, UIS_CLOCK, UIS_SET_CLOCK }, // PS_RESET
-                { UIS_SET_SLEEP, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_STATE
-                { UIS_SET_SLEEP, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_CLOCK }, // PS_ALT_STATE
+                {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_STATE
+                {  UIS_SET_LEDS, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_ALT_STATE
             },
         };
 
@@ -917,10 +917,10 @@ class UI
                 static uint8_t volatile _s_hue_interval;
         };
 
-        class Touch : public UISetState
+        class SetTouch : public UISetState
         {
             public:
-                Touch(UI & ui) : UISetState(ui) {}
+                SetTouch(UI & ui) : UISetState(ui) {}
 
                 virtual void uisBegin(void);
                 virtual void uisWait(void);
@@ -990,7 +990,7 @@ class UI
 
                 enum topt_e : uint8_t { TOPT_CAL, TOPT_CONF, TOPT_DEF, TOPT_DIS, TOPT_READ, TOPT_CNT };
 
-                static constexpr char const * const _s_topts[TOPT_CNT] = { "CAL", "ConF", "dEF", "dIS", "rEAD" };
+                static constexpr char const * const _s_topts[TOPT_CNT] = { "CAL", "ConF", "dEF", "OFF", "rEAD" };
 
                 enum ts_e : uint8_t
                 {
@@ -1036,43 +1036,43 @@ class UI
                     TS_OPT,
                 };
 
-                using ts_wait_action_t = void (Touch::*)(bool on);
+                using ts_wait_action_t = void (SetTouch::*)(bool on);
                 ts_wait_action_t const _wait_actions[TS_CNT] =
                 {
-                    &Touch::waitOpt,
-                    &Touch::waitNscn,
-                    &Touch::waitPs,
-                    &Touch::waitRefChrg,
-                    &Touch::waitExtChrg,
-                    &Touch::waitCalStart,
-                    &Touch::waitCalUntouched,
-                    &Touch::waitCalThreshold,
-                    &Touch::waitCalTouched,
-                    &Touch::waitRead,
-                    &Touch::waitTest,
-                    &Touch::waitDone,
+                    &SetTouch::waitOpt,
+                    &SetTouch::waitNscn,
+                    &SetTouch::waitPs,
+                    &SetTouch::waitRefChrg,
+                    &SetTouch::waitExtChrg,
+                    &SetTouch::waitCalStart,
+                    &SetTouch::waitCalUntouched,
+                    &SetTouch::waitCalThreshold,
+                    &SetTouch::waitCalTouched,
+                    &SetTouch::waitRead,
+                    &SetTouch::waitTest,
+                    &SetTouch::waitDone,
                     nullptr,
                 };
 
-                using ts_update_action_t = void (Touch::*)(ev_e ev);
+                using ts_update_action_t = void (SetTouch::*)(ev_e ev);
                 ts_update_action_t const _update_actions[TS_CNT] =
                 {
-                    &Touch::updateOpt,
-                    &Touch::updateNscn,
-                    &Touch::updatePs,
-                    &Touch::updateRefChrg,
-                    &Touch::updateExtChrg,
+                    &SetTouch::updateOpt,
+                    &SetTouch::updateNscn,
+                    &SetTouch::updatePs,
+                    &SetTouch::updateRefChrg,
+                    &SetTouch::updateExtChrg,
                     nullptr,
                     nullptr,
                     nullptr,
                     nullptr,
                     nullptr,
-                    &Touch::updateThreshold,
+                    &SetTouch::updateThreshold,
                     nullptr,
                     nullptr,
                 };
 
-                using ts_change_action_t = void (Touch::*)(void);
+                using ts_change_action_t = void (SetTouch::*)(void);
                 ts_change_action_t const _change_actions[TS_CNT] =
                 {
                     nullptr,
@@ -1080,32 +1080,32 @@ class UI
                     nullptr,
                     nullptr,
                     nullptr,
-                    &Touch::changeCalStart,
+                    &SetTouch::changeCalStart,
                     nullptr,
-                    &Touch::changeCalThreshold,
+                    &SetTouch::changeCalThreshold,
                     nullptr,
-                    &Touch::changeRead,
+                    &SetTouch::changeRead,
                     nullptr,
-                    &Touch::changeDone,
+                    &SetTouch::changeDone,
                     nullptr,
                 };
 
-                using ts_display_action_t = void (Touch::*)(df_t flags);
+                using ts_display_action_t = void (SetTouch::*)(df_t flags);
                 ts_display_action_t const _display_actions[TS_CNT] =
                 {
-                    &Touch::displayOpt,
-                    &Touch::displayNscn,
-                    &Touch::displayPs,
-                    &Touch::displayRefChrg,
-                    &Touch::displayExtChrg,
-                    &Touch::displayCalStart,
-                    &Touch::displayCalWait,
-                    &Touch::displayCalThreshold,
-                    &Touch::displayCalWait,
-                    &Touch::displayThreshold,
-                    &Touch::displayThreshold,
-                    &Touch::displayDone,
-                    &Touch::displayDisabled,
+                    &SetTouch::displayOpt,
+                    &SetTouch::displayNscn,
+                    &SetTouch::displayPs,
+                    &SetTouch::displayRefChrg,
+                    &SetTouch::displayExtChrg,
+                    &SetTouch::displayCalStart,
+                    &SetTouch::displayCalWait,
+                    &SetTouch::displayCalThreshold,
+                    &SetTouch::displayCalWait,
+                    &SetTouch::displayThreshold,
+                    &SetTouch::displayThreshold,
+                    &SetTouch::displayDone,
+                    &SetTouch::displayDisabled,
                 };
 
                 Tsi & _tsi = Tsi::acquire();
@@ -1337,11 +1337,11 @@ class UI
 
         SetAlarm _set_alarm{*this};
         SetClock _set_clock{*this};
+        SetSleep _set_sleep{*this};
         Clock _clock{*this};
         Timer _timer{*this};
-        Touch _touch{*this};
+        SetTouch _set_touch{*this};
         SetLeds _set_leds{*this};
-        SetSleep _set_sleep{*this};
 
         Player _player{*this};
 
@@ -1351,11 +1351,11 @@ class UI
         {
             &_set_alarm,
             &_set_clock,
+            &_set_sleep,
             &_clock,
             &_timer,
-            &_touch,
+            &_set_touch,
             &_set_leds,
-            &_set_sleep,
         };
 };
 

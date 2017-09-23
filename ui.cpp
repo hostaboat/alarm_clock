@@ -38,7 +38,7 @@ bool UI::valid(void)
         _display.valid() && _lighting.valid() && _beeper.valid() &&
         _player._prev.valid() && _player._next.valid() && _player._play.valid() &&
         _player._fs.valid() && _player._audio.valid() && !_player.disabled() &&
-        _touch.valid();
+        _set_touch.valid();
 }
 
 void UI::error(uis_e state)
@@ -93,13 +93,13 @@ void UI::error(uis_e state)
                     _display.showString("CL.");
                 else if (state == UIS_TIMER)
                     _display.showString("tI.");
-                else if (state == UIS_TOUCH)
-                    _display.showString("tUCH");
+                else if (state == UIS_SET_TOUCH)
+                    _display.showString("SE.tU.");
                 else if (state == UIS_SET_LEDS)
                     _display.showString("SE.LE.");
                 else if (state == UIS_CNT)
                     _display.showString("Init");
-                else if (!_touch.valid())
+                else if (!_set_touch.valid())
                     _display.showString("tSI");
             }
         }
@@ -359,7 +359,7 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
     static bool resting = false;
 
     bool wake = (encoder_state != ES_NONE) || ui_state_changed || brightness_changed
-        || (resting && _touch.touched(tstart));
+        || (resting && _set_touch.touched(tstart));
     bool woke = false;
     uint32_t m = msecs();
 
@@ -491,131 +491,6 @@ void UI::updateBrightness(ev_e bev)
 
 ////////////////////////////////////////////////////////////////////////////////
 // UI END //////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////
-// Lighting START //////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-UI::Lighting::Lighting(uint8_t brightness)
-{
-    uint32_t color_code;
-    if (_eeprom.getLedsColor(color_code))
-        _nl_color = color_code;
-
-    _leds.updateColor(CRGB::BLACK);
-    setBrightness(brightness);
-}
-
-void UI::Lighting::onNL(void)
-{
-    if (_state != LS_NIGHT_LIGHT)
-        return;
-
-    _nl_on = true;
-
-    if (_nl_index == 0)
-        _leds.updateColor(_nl_color);
-    else
-        _leds.startPalette(static_cast < Palette::pal_e > (_nl_index - 1));
-}
-
-void UI::Lighting::offNL(void)
-{
-    if (_state != LS_NIGHT_LIGHT)
-        return;
-
-    _nl_on = false;
-    _leds.updateColor(CRGB::BLACK);
-}
-
-void UI::Lighting::toggleNL(void)
-{
-    if (_state != LS_NIGHT_LIGHT)
-        return;
-
-    if (isOnNL()) offNL();
-    else onNL();
-}
-
-bool UI::Lighting::isOnNL(void) const
-{
-    return (_state == LS_NIGHT_LIGHT) && _nl_on;
-}
-
-void UI::Lighting::paletteNL(void)
-{
-    if ((_state != LS_NIGHT_LIGHT) || !_nl_on || (_nl_index == 0))
-        return;
-
-    _leds.updatePalette();
-}
-
-void UI::Lighting::cycleNL(ev_e ev)
-{
-    if ((_state != LS_NIGHT_LIGHT) || !_nl_on || (ev == EV_ZERO))
-        return;
-
-    evUpdate < uint8_t > (_nl_index, ev, 0, Palette::PAL_CNT);
-
-    if (_nl_index == 0)
-        _leds.updateColor(_nl_color);
-    else
-        _leds.startPalette(static_cast < Palette::pal_e > (_nl_index - 1));
-}
-
-void UI::Lighting::setNL(CRGB const & c)
-{
-    _nl_color = c; _nl_index = 0;
-    (void)_eeprom.setLedsColor(c.colorCode());
-}
-
-void UI::Lighting::setColor(CRGB const & c)
-{
-    if ((_state == LS_NIGHT_LIGHT) && !_nl_on)
-        _leds.setColor(c);
-
-    _leds.updateColor(c);
-}
-
-void UI::Lighting::up(void)
-{
-    if (_brightness == 255) return;
-    setBrightness(_brightness + 1);
-}
-
-void UI::Lighting::down(void)
-{
-    if (_brightness == 0) return;
-    setBrightness(_brightness - 1);
-}
-
-void UI::Lighting::setBrightness(uint8_t b)
-{
-    if (_leds.isClear())
-        _leds.setBrightness(b);
-    else
-        _leds.updateBrightness(b);
-
-    _brightness = b;
-}
-
-void UI::Lighting::state(ls_e state)
-{
-    if (_state == state)
-        return;
-
-    ls_e lstate = _state;
-    _state = state;
-
-    if ((lstate != LS_SET) && (state == LS_NIGHT_LIGHT))
-    {
-        if (_nl_on) onNL();
-        else offNL();
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Lighting END ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -894,7 +769,7 @@ void UI::Alarm::begin(void)
     _alarm_time = _alarm.time * 60 * 60 * 1000;
     _snooze_time = _alarm.snooze * 60 * 1000;
     _wake_time = _alarm.wake * 60 * 1000;
-    (void)_ui._touch.enable();
+    (void)_ui._set_touch.enable();
 }
 
 void UI::Alarm::update(uint8_t hour, uint8_t minute)
@@ -969,7 +844,7 @@ bool UI::Alarm::snooze(bool force)
     if (!inProgress())
         return false;
 
-    if (!force && !_ui._touch.touched(_wake_start))
+    if (!force && !_ui._set_touch.touched(_wake_start))
         return false;
 
     if (_alarm_music)
@@ -1014,6 +889,131 @@ void UI::Alarm::done(uint8_t hour, uint8_t minute)
 }
 ////////////////////////////////////////////////////////////////////////////////
 // Alarm END ///////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+// Lighting START //////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+UI::Lighting::Lighting(uint8_t brightness)
+{
+    uint32_t color_code;
+    if (_eeprom.getLedsColor(color_code))
+        _nl_color = color_code;
+
+    _leds.updateColor(CRGB::BLACK);
+    setBrightness(brightness);
+}
+
+void UI::Lighting::onNL(void)
+{
+    if (_state != LS_NIGHT_LIGHT)
+        return;
+
+    _nl_on = true;
+
+    if (_nl_index == 0)
+        _leds.updateColor(_nl_color);
+    else
+        _leds.startPalette(static_cast < Palette::pal_e > (_nl_index - 1));
+}
+
+void UI::Lighting::offNL(void)
+{
+    if (_state != LS_NIGHT_LIGHT)
+        return;
+
+    _nl_on = false;
+    _leds.updateColor(CRGB::BLACK);
+}
+
+void UI::Lighting::toggleNL(void)
+{
+    if (_state != LS_NIGHT_LIGHT)
+        return;
+
+    if (isOnNL()) offNL();
+    else onNL();
+}
+
+bool UI::Lighting::isOnNL(void) const
+{
+    return (_state == LS_NIGHT_LIGHT) && _nl_on;
+}
+
+void UI::Lighting::paletteNL(void)
+{
+    if ((_state != LS_NIGHT_LIGHT) || !_nl_on || (_nl_index == 0))
+        return;
+
+    _leds.updatePalette();
+}
+
+void UI::Lighting::cycleNL(ev_e ev)
+{
+    if ((_state != LS_NIGHT_LIGHT) || !_nl_on || (ev == EV_ZERO))
+        return;
+
+    evUpdate < uint8_t > (_nl_index, ev, 0, Palette::PAL_CNT);
+
+    if (_nl_index == 0)
+        _leds.updateColor(_nl_color);
+    else
+        _leds.startPalette(static_cast < Palette::pal_e > (_nl_index - 1));
+}
+
+void UI::Lighting::setNL(CRGB const & c)
+{
+    _nl_color = c; _nl_index = 0;
+    (void)_eeprom.setLedsColor(c.colorCode());
+}
+
+void UI::Lighting::setColor(CRGB const & c)
+{
+    if ((_state == LS_NIGHT_LIGHT) && !_nl_on)
+        _leds.setColor(c);
+
+    _leds.updateColor(c);
+}
+
+void UI::Lighting::up(void)
+{
+    if (_brightness == 255) return;
+    setBrightness(_brightness + 1);
+}
+
+void UI::Lighting::down(void)
+{
+    if (_brightness == 0) return;
+    setBrightness(_brightness - 1);
+}
+
+void UI::Lighting::setBrightness(uint8_t b)
+{
+    if (_leds.isClear())
+        _leds.setBrightness(b);
+    else
+        _leds.updateBrightness(b);
+
+    _brightness = b;
+}
+
+void UI::Lighting::state(ls_e state)
+{
+    if (_state == state)
+        return;
+
+    ls_e lstate = _state;
+    _state = state;
+
+    if ((lstate != LS_SET) && (state == LS_NIGHT_LIGHT))
+    {
+        if (_nl_on) onNL();
+        else offNL();
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Lighting END ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1440,1351 +1440,6 @@ void UI::SetClock::displayDone(df_t flags)
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
-// Clock START /////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-void UI::Clock::uisBegin(void)
-{
-    _state = CS_TIME;
-
-    _alt_display.reset(_s_flash_time);
-
-    (void)_ui._touch.enable();
-    clockUpdate(true);
-    _alarm.begin();
-
-    _track_updated = false;
-
-    _dflag = _ui._rtc.clockIs12H() ? DF_12H : DF_24H;
-    display();
-}
-
-void UI::Clock::uisWait(void)
-{
-    bool force = false;
-
-    if ((_state != CS_TIME) && _alt_display.toggled())
-    {
-        _alt_display.reset(_s_flash_time);
-        _state = CS_TIME;
-        force = true;
-    }
-
-    if (_state != CS_TRACK)
-    {
-        if (clockUpdate(force))
-        {
-            display();
-        }
-        else if (!_alarm.alerting() && _ui._touch.timedTouch(_s_touch_time))
-        {
-            _state = CS_TRACK;
-            changeTrack();
-            display();
-        }
-    }
-
-    if (_alarm.enabled())
-        _alarm.update(_clock.hour, _clock.minute);
-}
-
-void UI::Clock::uisUpdate(ev_e ev)
-{
-    static uint32_t turn_wait = 0;
-
-    // Snooze on encoder turn just in case touch isn't working when
-    // battery powered or touch threshold is set too high.
-    if (_alarm.inProgress() && !_alarm.snoozing())
-    {
-        (void)_alarm.snooze(true);
-        turn_wait = msecs();
-    }
-    else if (_state != CS_TRACK)
-    {
-        // Don't process turns for a second after turn to snooze
-        if ((msecs() - turn_wait) > _s_snooze_wait)
-            _ui._lighting.cycleNL(ev);
-
-        uisWait();
-    }
-    else
-    {
-        updateTrack(ev);
-        _track_updated = true;
-    }
-}
-
-void UI::Clock::uisChange(void)
-{
-    if (_alarm.inProgress())
-    {
-        _alarm.stop();
-        _state = CS_ALARM;
-    }
-    else if ((_state != CS_TRACK) || !_track_updated)
-    {
-        _state = _next_states[_state];
-    }
-
-    if (_state == CS_TRACK)
-        changeTrack();
-    else if (_state != CS_TIME)
-        _alt_display.reset();
-
-    display();
-}
-
-void UI::Clock::uisReset(ps_e ps)
-{
-    if (ps >= PS_STATE)
-        uisBegin();
-
-    // For PS_RESET, night light gets turned on
-}
-
-void UI::Clock::uisEnd(void)
-{
-    if (_alarm.inProgress())
-        _alarm.stop();
-
-    _ui._display.blank();
-}
-
-bool UI::Clock::uisSleep(void)
-{
-    return false;
-}
-
-void UI::Clock::uisRefresh(void)
-{
-    _alt_display.reset();
-    clockUpdate(true);
-    display();
-}
-
-bool UI::Clock::clockUpdate(bool force)
-{
-    if ((_ui._rtc.update() < RU_MIN) && !force)
-        return false;
-
-    tClock c;
-    bool updated = force;
-
-    _ui._rtc.getClock(c);
-
-    if ((_state == CS_TIME)
-            && ((c.minute != _clock.minute) || (c.hour != _clock.hour)))
-    {
-        updated = true;
-    }
-    else if ((_state == CS_DATE)
-            && ((c.day != _clock.day) || (c.month != _clock.month)))
-    {
-        updated = true;
-    }
-    else if ((_state == CS_YEAR) && (c.year != _clock.year))
-    {
-        updated = true;
-    }
-
-    _clock = c;
-
-    return updated;
-}
-
-void UI::Clock::changeTrack(void)
-{
-    if (_alt_display.onTime() == _s_flash_time)
-    {
-        _track = _ui._player.currentTrack();
-    }
-    else
-    {
-        _ui._player.setTrack(_track);
-        _track_updated = false;
-    }
-
-    _alt_display.reset(_s_flash_time);
-}
-
-void UI::Clock::updateTrack(ev_e ev)
-{
-    evUpdate < uint16_t > (_track, ev, 0, _ui._player.numTracks() - 1);
-    _alt_display.reset(_s_track_idle_time);
-    display();
-}
-
-void UI::Clock::display(void)
-{
-    MFC(_display_actions[_state])();
-}
-
-void UI::Clock::displayTime(void)
-{
-    _ui._display.showClock(_clock.hour, _clock.minute, _dflag);
-}
-
-void UI::Clock::displayDate(void)
-{
-    _ui._display.showDate(_clock.month, _clock.day);
-}
-
-void UI::Clock::displayYear(void)
-{
-    _ui._display.showInteger(_clock.year);
-}
-
-void UI::Clock::displayAlarm(void)
-{
-    _ui._display.showOff();
-}
-
-void UI::Clock::displayTrack(void)
-{
-    _ui._display.showInteger(_track + 1);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Clock END ///////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////
-// Timer START /////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-uint32_t volatile UI::Timer::_s_seconds = 0;
-uint8_t volatile UI::Timer::_s_hue = UI::Timer::_s_hue_max;
-uint32_t volatile UI::Timer::_s_hue_calls = 0;
-uint8_t volatile UI::Timer::_s_hue_interval = 1;
-
-void UI::Timer::timerDisplay(void)
-{
-    if (_s_seconds == 0)
-        return;
-
-    _s_seconds--;
-}
-
-void UI::Timer::timerLeds(void)
-{
-    if (_s_hue == _s_hue_min)
-        return;
-
-    if ((++_s_hue_calls % _s_hue_interval) == 0)
-        _s_hue--;
-}
-
-void UI::Timer::uisBegin(void)
-{
-    _state = TS_SET_HM;
-    _show_clock = false;
-    (void)_ui._touch.enable();
-
-    _display_timer = Pit::acquire(timerDisplay, _s_seconds_interval);
-    _led_timer = Pit::acquire(timerLeds, _s_seconds_interval);  // Will get updated
-
-    if ((_display_timer == nullptr) || (_led_timer == nullptr))
-        _ui.error();
-
-    _blink.reset();
-    displaySetTimer();
-}
-
-void UI::Timer::uisWait(void)
-{
-    if (_wait_actions[_state] != nullptr)
-        MFC(_wait_actions[_state])();
-
-    if (_show_clock && (_ui._refresh_start == 0))
-        clockUpdate();
-}
-
-void UI::Timer::uisUpdate(ev_e ev)
-{
-    static uint32_t turn_msecs = 0;
-    static int8_t turns = 0;
-
-    if (_state <= TS_WAIT)
-    {
-        if (_state == TS_WAIT)
-            _state = TS_SET_HM;
-
-        MFC(_update_actions[_state])(ev);
-
-        _blink.reset();
-        displaySetTimer();
-
-        return;
-    }
-
-    if (_state == TS_ALERT)
-        return;
-
-    if ((msecs() - turn_msecs) < _s_turn_wait)
-        return;
-
-    turns += (int8_t)ev;
-
-    if ((turns == _s_turns) || (turns == -_s_turns))
-    {
-        turns = 0;
-        turn_msecs = msecs();
-
-        _show_clock = !_show_clock;
-        if (_show_clock)
-            clockUpdate(true);
-        else if (_state != TS_WAIT)
-            timerUpdate(true);
-        else
-            displayTimer();
-    }
-
-    uisWait();
-}
-
-void UI::Timer::uisChange(void)
-{
-    if ((_state != TS_SET_HM) && (_hm == 0) && (_ms == 0))
-        return;
-
-    // Action comes before changing state
-    MFC(_change_actions[_state])();
-
-    _state = _next_states[_state];
-}
-
-void UI::Timer::uisReset(ps_e ps)
-{
-    stop();
-    reset();
-
-    if (_state <= TS_WAIT)
-        _state = TS_SET_HM;
-    else
-        _state = TS_WAIT;
-
-    _show_clock = false;
-    (void)_ui._touch.enable();
-}
-
-void UI::Timer::uisEnd(void)
-{
-    stop();
-    _ui._lighting.state(Lighting::LS_NIGHT_LIGHT);
-    _ui._beeper.stop();
-    _ui._display.blank();
-    _display_timer->release();
-    _led_timer->release();
-    _display_timer = _led_timer = nullptr;
-}
-
-bool UI::Timer::uisSleep(void)
-{
-    return (_state != TS_RUNNING) && (_state != TS_ALERT);
-}
-
-void UI::Timer::uisRefresh(void)
-{
-    if (_state < TS_WAIT)
-        displaySetTimer();
-    else if (_show_clock)
-        clockUpdate(true);
-    else
-        timerUpdate(true);
-}
-
-void UI::Timer::waitHM(void)
-{
-    if (!_blink.toggled())
-        return;
-
-    displaySetTimer(_blink.on() ? DF_NONE : DF_BL_BC);
-}
-
-void UI::Timer::waitMS(void)
-{
-    if (!_blink.toggled())
-        return;
-
-    displaySetTimer(_blink.on() ? DF_NONE : DF_BL_AC);
-}
-
-void UI::Timer::updateHM(ev_e ev)
-{
-    if ((_hm_flag != DF_NONE) && (_hm == 1) && (ev == EV_NEG))
-    {
-        _hm_flag = DF_NONE;
-        _hm = 59;
-    }
-    else if ((_hm_flag == DF_NONE) && (_hm == 59) && (ev == EV_POS))
-    {
-        _hm_flag = DF_HM;
-        _hm = 1;
-    }
-    else
-    {
-        evUpdate < uint8_t > (_hm, ev, 0, 99, false);
-    }
-}
-
-void UI::Timer::updateMS(ev_e ev)
-{
-    evUpdate < uint8_t > (_ms, ev, _min_ms, 59);
-}
-
-void UI::Timer::displaySetTimer(df_t flags)
-{
-    flags |= _hm_flag;
-    _ui._display.showTimer(_hm, _ms, (_hm == 0) ? (flags | DF_BL0) : (flags | DF_NO_LZ));
-}
-
-void UI::Timer::displayTimer(void)
-{
-    _ui._display.showTimer(_hm, _ms, DF_NO_LZ | _hm_flag);
-}
-
-void UI::Timer::changeHM(void)
-{
-    if (_hm == 0)
-        _min_ms = 1;
-    else
-        _min_ms = 0;
-
-    if (_ms < _min_ms)
-        _ms = _min_ms;
-
-    _blink.reset();
-    displaySetTimer();
-}
-
-void UI::Timer::start(void)
-{
-    displayTimer();
-
-    if (_hm_flag == DF_NONE)
-        _s_seconds = ((uint32_t)_hm * 60) + (uint32_t)_ms;
-    else
-        _s_seconds = ((uint32_t)_hm * 60 * 60) + ((uint32_t)_ms * 60);
-
-    uint32_t minutes = _s_seconds / 60;
-    if (minutes > (10 * 60))
-        _s_hue_interval = 64;
-    else if (minutes > 60)
-        _s_hue_interval = 8;
-    else
-        _s_hue_interval = 1;
-
-    _led_timer->updateInterval((_s_seconds * _s_us_per_hue) / _s_hue_interval, false);
-
-    _last_second = _s_seconds;
-    _hm_toggle = true;
-
-    _s_hue_calls = 0;
-    _s_hue = _s_hue_max;
-    _last_hue = _s_hue;
-    _ui._lighting.state(Lighting::LS_OTHER);
-    _ui._lighting.setColor(CHSV(_last_hue, 255, 255));
-
-    _display_timer->start();
-    _led_timer->start();
-}
-
-void UI::Timer::reset(void)
-{
-    _ui._beeper.stop();
-    _ui._lighting.state(Lighting::LS_NIGHT_LIGHT);
-    _blink.reset();
-    displayTimer();
-}
-
-void UI::Timer::run(void)
-{
-    if (!_show_clock || (_s_seconds == 0))
-        timerUpdate();
-
-    hueUpdate();
-
-    if (_last_second == 0)
-    {
-        stop();
-        _show_clock = false;
-        _ui._beeper.start();
-        _state = TS_ALERT;
-        _alert_start = msecs();
-    }
-}
-
-void UI::Timer::timerUpdate(bool force)
-{
-    // Not critical that interrupts be disabled
-    uint32_t second = _s_seconds;
-
-    if (!force && (second == _last_second))
-        return;
-
-    _last_second = second;
-
-    df_t hm_flag;
-    uint8_t hm, ms;
-    uint32_t minute = second / 60;
-    if (minute < 60)
-    {
-        hm_flag = DF_NONE;
-        hm = (uint8_t)minute;
-        ms = (uint8_t)(second % 60);
-    }
-    else
-    {
-        _hm_toggle = !_hm_toggle;
-        hm_flag = _hm_toggle ? DF_HM : DF_NONE;
-        hm = (uint8_t)(minute / 60);
-        ms = (uint8_t)(minute % 60);
-    }
-
-    if (_ui._refresh_start == 0)
-        _ui._display.showTimer(hm, ms, DF_NO_LZ | hm_flag);
-}
-
-void UI::Timer::clockUpdate(bool force)
-{
-    if ((_ui._rtc.update() >= RU_MIN) || force)
-    {
-        _ui._display.showClock(
-                _ui._rtc.clockHour(),
-                _ui._rtc.clockMinute(),
-                _ui._rtc.clockIs12H() ? DF_12H : DF_24H);
-    }
-}
-
-void UI::Timer::hueUpdate(void)
-{
-    // Again, not critical that interrupts be disabled
-    uint8_t hue = _s_hue;
-
-    if (hue != _last_hue)
-    {
-        _last_hue = hue;
-        _ui._lighting.setColor(CHSV(hue, 255, 255));
-    }
-}
-
-void UI::Timer::pause(void)
-{
-    _display_timer->pause();
-    _led_timer->pause();
-}
-
-void UI::Timer::resume(void)
-{
-    _display_timer->resume();
-    _led_timer->resume();
-}
-
-void UI::Timer::stop(void)
-{
-    _display_timer->stop();
-    _led_timer->stop();
-}
-
-void UI::Timer::alert(void)
-{
-    if (_ui._touch.touched(_alert_start))
-    {
-        uisChange();
-        return;
-    }
-
-    if (!_ui._beeper.toggled())
-        return;
-
-    if (_ui._beeper.on())
-    {
-        if (_ui._refresh_start == 0)
-            _ui._display.showDone();
-
-        _ui._lighting.on();
-    }
-    else
-    {
-        if (_ui._refresh_start == 0)
-            _ui._display.blank();
-
-        _ui._lighting.off();
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Timer END ///////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////
-// Touch START /////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-constexpr char const * const UI::Touch::_s_topts[TOPT_CNT];
-
-bool UI::Touch::valid(void)
-{
-    return _tsi.valid();
-}
-
-bool UI::Touch::enabled(void) const
-{
-    return _touch_enabled;
-}
-
-bool UI::Touch::enable(void)
-{
-    if (_touch.threshold != 0)
-        _touch_enabled = true;
-
-    return _touch_enabled;
-}
-
-// Argument passed in is to guard against a touch threshold that is too low.
-// It should be the start time of some event for which a touch is expected.
-// If a touch event occurs within this amount of time, touch will be disabled
-// until re-enabled or re-configured.
-bool UI::Touch::touched(uint32_t stime)
-{
-    if (!_touch_enabled)
-        return false;
-
-    bool touched = _tsi_channel.touched();
-
-    if (touched && (stime != 0) && ((msecs() - stime) < _s_touch_disable_time))
-        _touch_enabled = false;
-
-    return _touch_enabled && touched;
-}
-
-bool UI::Touch::timedTouch(uint32_t ttime)
-{
-    static uint32_t touched_time = msecs();
-
-    if (!_touch_enabled)
-        return false;
-
-    uint16_t tval = _tsi_channel.read();
-    if (tval < _tsi.threshold())
-    {
-        if (tval != 0)
-            touched_time = msecs();
-
-        return false;
-    }
-
-    return (msecs() - touched_time) >= ttime;
-}
-
-void UI::Touch::uisBegin(void)
-{
-    _tsi.get(_touch);
-    _state = (_touch.threshold == 0) ? TS_DISABLED : TS_OPT;
-    _ui._player.stop();
-    reset();
-    _ui._lighting.state(Lighting::LS_OTHER);
-}
-
-void UI::Touch::uisWait(void)
-{
-    if (_wait_actions[_state] == nullptr)
-        return;
-
-    if ((_state == TS_CAL_UNTOUCHED) || (_state == TS_CAL_TOUCHED) || (_state == TS_READ))
-        MFC(_wait_actions[_state])(_blink.toggled());
-    else if (_state == TS_TEST)
-        MFC(_wait_actions[_state])(_ui._beeper.on());
-    else if (_blink.toggled())
-        MFC(_wait_actions[_state])(_blink.on());
-}
-
-void UI::Touch::uisUpdate(ev_e ev)
-{
-    if (_update_actions[_state] == nullptr)
-        return;
-
-    MFC(_update_actions[_state])(ev);
-    display();
-}
-
-void UI::Touch::uisChange(void)
-{
-    if (_state == TS_READ)
-    {
-        _touch.threshold = _read.hi;
-        _untouched.hi = _read.lo;
-        _ui._lighting.setColor(CHSV(_touch.threshold % 256, 255, 255));
-    }
-
-    if (_state == TS_DISABLED)
-    {
-        toggleEnabled();
-    }
-    else if (_state == TS_OPT)
-    {
-        switch (_topt)
-        {
-            case TOPT_CAL: _state = TS_CAL_START; break;
-            case TOPT_CONF: _state = TS_NSCN; break;
-            case TOPT_DEF: _tsi.defaults(_touch); _state = TS_DONE; _topt = TOPT_CONF; break;
-            case TOPT_DIS: toggleEnabled(); break;
-            case TOPT_READ: _state = TS_READ; break;
-            default: break;
-        }
-    }
-    else
-    {
-        _state = _next_states[_state];
-    }
-
-    if (_change_actions[_state] != nullptr)
-        MFC(_change_actions[_state])();
-
-    _blink.reset();
-    display();
-}
-
-void UI::Touch::uisReset(ps_e ps)
-{
-    if (_state != TS_OPT)
-    {
-        if ((_state == TS_CAL_START) || (_state == TS_NSCN) || (_state == TS_READ) || (_state == TS_DONE))
-            _state = TS_OPT;
-        else if (_state == TS_DISABLED)
-            toggleEnabled();
-        else if (_topt == TOPT_CAL)
-            _state = TS_CAL_START;
-        else if (_topt == TOPT_CONF)
-            _state = TS_NSCN;
-    }
-
-    _ui._lighting.setColor(CRGB::BLACK);
-    _ui._beeper.stop();
-    _amp.stop();
-
-    reset();
-}
-
-void UI::Touch::uisEnd(void)
-{
-    _ui._lighting.state(Lighting::LS_NIGHT_LIGHT);
-    _ui._display.blank();
-    _touch_enabled = (_touch.threshold != 0);
-}
-
-bool UI::Touch::uisSleep(void)
-{
-    return ((_state != TS_CAL_UNTOUCHED) && (_state != TS_CAL_TOUCHED));
-}
-
-void UI::Touch::uisRefresh(void)
-{
-    _blink.reset();
-    display();
-}
-
-void UI::Touch::reset(void)
-{
-    _readings = 0;
-    _untouched.reset();
-    _topt = TOPT_CAL;
-
-    _done = false;
-
-    _blink.reset();
-    display();
-}
-
-void UI::Touch::toggleEnabled(void)
-{
-    if (_touch.threshold == 0)
-        _tsi.defaults(_touch);
-    else
-        _touch.threshold = 0;
-    _state = (_touch.threshold == 0) ? TS_DISABLED : TS_OPT;
-    _topt = TOPT_CAL;
-    (void)_tsi.set(_touch);
-}
-
-void UI::Touch::waitOpt(bool on)
-{
-    display(on ? DF_NONE : DF_BL);
-}
-
-void UI::Touch::waitNscn(bool on)
-{
-    display(on ? DF_NONE : DF_BL_AC);
-}
-
-void UI::Touch::waitPs(bool on)
-{
-    display(on ? DF_NONE : DF_BL_AC);
-}
-
-void UI::Touch::waitRefChrg(bool on)
-{
-    display(on ? DF_NONE : DF_BL_AC);
-}
-
-void UI::Touch::waitExtChrg(bool on)
-{
-    display(on ? DF_NONE : DF_BL_AC);
-}
-
-void UI::Touch::waitCalStart(bool on)
-{
-    display(on ? DF_NONE : DF_BL);
-}
-
-void UI::Touch::waitCalUntouched(bool on)
-{
-    if (on) display();
-
-    uint16_t read = _tsi_channel.read();
-    if (read == 0)
-        return;
-
-    if (read > _untouched.hi)
-        _untouched.hi = read;
-
-    _readings++;
-
-    if (_readings == (_s_readings / 2))
-    {
-        _amp.start();
-    }
-    else if (_readings == _s_readings)
-    {
-        _amp.stop();
-        uisChange();
-    }
-    else if ((_readings % 256) == 0)
-    {
-        _ui._lighting.setColor(CHSV(_readings / 256, 255, 255));
-    }
-}
-
-void UI::Touch::waitCalThreshold(bool on)
-{
-    display(on ? DF_NONE : DF_BL);
-}
-
-void UI::Touch::waitCalTouched(bool on)
-{
-    if (on) display();
-
-    uint16_t read = _tsi_channel.read();
-    if (read == 0)
-        return;
-
-    if (read < _touched->lo)
-        _touched->lo = read;
-
-    if (read > _touched->hi)
-        _touched->hi = read;
-
-    _readings++;
-
-    if (_readings == (_s_readings / 2))
-    {
-        _amp.start();
-        _touched = &_touched_amp_on;
-    }
-    else if (_readings == _s_readings)
-    {
-        if (_touched_amp_off.lo < _untouched.hi)
-            _touched_amp_off.lo = _untouched.hi;
-
-        if (_touched_amp_on.lo < _untouched.hi)
-            _touched_amp_on.lo = _untouched.hi;
-
-        uint16_t amp_off_avg = _touched_amp_off.avg();
-        uint16_t amp_on_avg = _touched_amp_on.avg();
-
-        _touch.threshold = (amp_off_avg + amp_on_avg) / 2;
-
-        _ui._lighting.setColor(CHSV(_touch.threshold % 256, 255, 255));
-        _amp.stop();
-        uisChange();
-    }
-    else if ((_readings % 256) == 0)
-    {
-        _ui._lighting.setColor(CHSV(_readings / 256, 255, 255));
-    }
-}
-
-void UI::Touch::waitRead(bool on)
-{
-    uint16_t read = _tsi_channel.read();
-    if ((read != 0) && (read != _touch.threshold))
-    {
-        if (read > _read.hi)
-            _read.hi = read;
-
-        if (read < _read.lo)
-            _read.lo = read;
-
-        _touch.threshold = read;
-        _ui._lighting.setColor(CHSV(read % 256, 255, 255));
-        display();
-    }
-}
-
-void UI::Touch::waitTest(bool on)
-{
-    static uint32_t beep_start = 0;
-
-    uint16_t read = _tsi_channel.read();
-    if (read == 0)
-        return;
-
-    if ((msecs() - beep_start) < _s_beeper_wait)
-        return;
-
-    beep_start = msecs();
-
-    if (read >= _touch.threshold)
-    {
-        if (!on) _ui._beeper.start();
-    }
-    else
-    {
-        if (on) _ui._beeper.stop();
-    }
-}
-
-void UI::Touch::waitDone(bool on)
-{
-    display(on ? DF_NONE : DF_BL);
-}
-
-void UI::Touch::updateOpt(ev_e ev)
-{
-    evUpdate < topt_e > (_topt, ev, TOPT_CAL, (topt_e)(TOPT_CNT - 1));
-}
-
-void UI::Touch::updateNscn(ev_e ev)
-{
-    evUpdate < uint8_t > (_touch.nscn, ev, 0, Tsi::maxNscn());
-}
-
-void UI::Touch::updatePs(ev_e ev)
-{
-    evUpdate < uint8_t > (_touch.ps, ev, 0, Tsi::maxPs());
-}
-
-void UI::Touch::updateRefChrg(ev_e ev)
-{
-    evUpdate < uint8_t > (_touch.refchrg, ev, 0, Tsi::maxRefChrg());
-}
-
-void UI::Touch::updateExtChrg(ev_e ev)
-{
-    evUpdate < uint8_t > (_touch.extchrg, ev, 0, Tsi::maxExtChrg());
-}
-
-void UI::Touch::updateThreshold(ev_e ev)
-{
-    evUpdate < uint16_t > (_touch.threshold, ev, _untouched.hi, Tsi::maxThreshold(), false);
-    _ui._lighting.setColor(CHSV(_touch.threshold % 256, 255, 255));
-}
-
-void UI::Touch::changeCalStart(void)
-{
-    if (_topt == TOPT_CONF)
-        (void)_tsi.configure(_touch.nscn, _touch.ps, _touch.refchrg, _touch.extchrg);
-
-    _ui._lighting.setColor(CHSV(0, 255, 255));
-    _readings = 0;
-    _untouched.reset();
-    _ui._player.stop();
-}
-
-void UI::Touch::changeCalThreshold(void)
-{
-    _ui._lighting.setColor(CHSV(0, 255, 255));
-    _readings = 0;
-    _touched_amp_off.reset();
-    _touched_amp_on.reset();
-    _touched = &_touched_amp_off;
-}
-
-void UI::Touch::changeRead(void)
-{
-    _read.reset();
-    _untouched.reset();
-}
-
-void UI::Touch::changeDone(void)
-{
-    _ui._lighting.setColor(CRGB::BLACK);
-    _ui._beeper.stop();
-    (void)_tsi.set(_touch);
-    _done = true;
-}
-
-void UI::Touch::display(df_t flags)
-{
-    MFC(_display_actions[_state])(flags);
-}
-
-void UI::Touch::displayOpt(df_t flags)
-{
-    _ui._display.showString(_s_topts[_topt], flags);
-}
-
-void UI::Touch::displayNscn(df_t flags)
-{
-    _ui._display.showOption("nS", Tsi::valNscn(_touch.nscn), flags);
-}
-
-void UI::Touch::displayPs(df_t flags)
-{
-    _ui._display.showOption("PS", Tsi::valPs(_touch.ps), flags | DF_HEX);
-}
-
-void UI::Touch::displayRefChrg(df_t flags)
-{
-    _ui._display.showOption("rC", Tsi::valRefChrg(_touch.refchrg), flags);
-}
-
-void UI::Touch::displayExtChrg(df_t flags)
-{
-    _ui._display.showOption("EC", Tsi::valExtChrg(_touch.extchrg), flags);
-}
-
-void UI::Touch::displayCalStart(df_t flags)
-{
-    _ui._display.showString("bASE", flags);
-}
-
-void UI::Touch::displayCalThreshold(df_t flags)
-{
-    _ui._display.showString("tUCH", flags);
-}
-
-void UI::Touch::displayCalWait(df_t flags)
-{
-    _ui._display.showInteger(_readings, flags | DF_HEX);
-}
-
-void UI::Touch::displayThreshold(df_t flags)
-{
-    _ui._display.showInteger(_touch.threshold, flags | DF_HEX);
-}
-
-void UI::Touch::displayDone(df_t flags)
-{
-    static uint32_t i = 0;
-
-    if (_done) { i = 0; _done = false; }
-    else if (flags == DF_NONE) i++;
-    else return;
-
-    if (_topt == TOPT_CONF)
-    {
-        static constexpr uint8_t const nopts = 6;
-
-        switch (i % (nopts + 1))
-        {
-            case 0: displayNscn(); break;
-            case 1: displayPs(); break;
-            case 2: displayRefChrg(); break;
-            case 3: displayExtChrg(); break;
-            case 4: _ui._display.showString("thr."); break;
-            case 5: displayThreshold(); break;
-            default: _ui._display.showString("...."); break;
-        }
-    }
-    else
-    {
-        if ((i % 2) == 0)
-            _ui._display.showString("thr.");
-        else
-            displayThreshold();
-    }
-}
-
-void UI::Touch::displayDisabled(df_t flags)
-{
-    _ui._display.showOff(flags);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Touch END ///////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////
-// SetLeds START ///////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-constexpr CRGB::Color const UI::SetLeds::_s_colors[];
-
-void UI::SetLeds::uisBegin(void)
-{
-    _state = SLS_TYPE;
-    _blink.reset();
-    _updated = _done = false;
-    _ui._lighting.state(Lighting::LS_SET);
-    display();
-}
-
-void UI::SetLeds::uisWait(void)
-{
-    if ((_wait_actions[_state] != nullptr) && _blink.toggled())
-        MFC(_wait_actions[_state])(_blink.on());
-}
-
-void UI::SetLeds::uisUpdate(ev_e ev)
-{
-    if (_update_actions[_state] == nullptr)
-        return;
-
-    MFC(_update_actions[_state])(ev);
-
-    if (_state != SLS_TYPE)
-    {
-        _updated = true;
-        _ui._lighting.setColor(_color);
-    }
-
-    display();
-}
-
-void UI::SetLeds::uisChange(void)
-{
-    static uint32_t click = 0;
-    bool double_click = (msecs() - click) < 300;
-
-    click = msecs();
-
-    if (_state == SLS_TYPE)
-    {
-        _state = _next_type_states[_type];
-
-        if (_state == SLS_COLOR)
-        {
-            _color = _s_colors[_cindex];
-        }
-        else
-        {
-            _sub_state = 0;
-
-            if (_state == SLS_RGB)
-            {
-                _opt = _rgb_opts[_sub_state];
-                _val = &_rgb[_sub_state];
-                _color = _rgb;
-            }
-            else  // _state == SLS_HSV
-            {
-                _opt = _hsv_opts[_sub_state];
-                _val = &_hsv[_sub_state];
-                _color = _hsv;
-            }
-        }
-
-        _ui._lighting.setColor(_color);
-    }
-    else if ((_state == SLS_COLOR) || double_click)
-    {
-        _state = SLS_DONE;
-    }
-    else if (_state == SLS_DONE)
-    {
-        _state = SLS_TYPE;
-    }
-    else
-    {
-        _sub_state = (_sub_state == 2) ? 0 : _sub_state + 1;
-
-        if (_state == SLS_RGB)
-        {
-            _opt = _rgb_opts[_sub_state];
-            _val = &_rgb[_sub_state];
-        }
-        else  // _state == SLS_HSV
-        {
-            _opt = _hsv_opts[_sub_state];
-            _val = &_hsv[_sub_state];
-        }
-    }
-
-    if (_state == SLS_DONE)
-    {
-        _ui._lighting.setNL(_color);
-        _done = true;
-    }
-
-    _blink.reset();
-    display();
-}
-
-void UI::SetLeds::uisReset(ps_e ps)
-{
-    _state = SLS_TYPE;
-    _type = SLT_COLOR;
-    _sub_state = 0;
-    _rgb = _default_rgb;
-    _hsv = _default_hsv;
-    _cindex = 0;
-    _ui._lighting.setColor(CRGB::BLACK);
-    display();
-}
-
-void UI::SetLeds::uisEnd(void)
-{
-    if (_updated)
-        _ui._lighting.setNL(_color);
-
-    _ui._lighting.state(Lighting::LS_NIGHT_LIGHT);
-    if (_ui._lighting.isOn())
-        _ui._lighting.onNL();
-    _ui._display.blank();
-}
-
-bool UI::SetLeds::uisSleep(void)
-{
-    return true;
-}
-
-void UI::SetLeds::uisRefresh(void)
-{
-    _blink.reset();
-    display();
-}
-
-void UI::SetLeds::waitType(bool on)
-{
-    display(on ? DF_NONE : DF_BL);
-}
-
-void UI::SetLeds::waitColor(bool on)
-{
-    display(on ? DF_NONE : DF_BL);
-}
-
-void UI::SetLeds::waitRGB(bool on)
-{
-    display(on ? DF_NONE : DF_BL_AC);
-}
-
-void UI::SetLeds::waitHSV(bool on)
-{
-    display(on ? DF_NONE : DF_BL_AC);
-}
-
-void UI::SetLeds::waitDone(bool on)
-{
-    display(on ? DF_NONE : DF_BL);
-}
-
-void UI::SetLeds::updateType(ev_e ev)
-{
-    evUpdate < slt_e > (_type, ev, SLT_COLOR, SLT_HSV);
-}
-
-void UI::SetLeds::updateColor(ev_e ev)
-{
-    evUpdate < uint8_t > (_cindex, ev, 0, (sizeof(_s_colors) / sizeof(CRGB::Color)) - 1);
-    _color = _s_colors[_cindex];
-}
-
-void UI::SetLeds::updateRGB(ev_e ev)
-{
-    evUpdate < uint8_t > (*_val, ev, 0, 255);
-    _color = _rgb;
-}
-
-void UI::SetLeds::updateHSV(ev_e ev)
-{
-    evUpdate < uint8_t > (*_val, ev, 0, 255);
-    _color = _hsv;
-}
-
-void UI::SetLeds::display(df_t flags)
-{
-    if (_display_actions[_state] != nullptr)
-        MFC(_display_actions[_state])(flags);
-}
-
-void UI::SetLeds::displayType(df_t flags)
-{
-    switch (_type)
-    {
-        case SLT_COLOR:
-            _ui._display.showString("CoLr", flags);
-            break;
-        case SLT_RGB:
-            _ui._display.showString("RGB", flags);
-            break;
-        case SLT_HSV:  // Can't display 'V' so use 'B' for value/brightness
-            _ui._display.showString("HSB", flags);
-            break;
-    }
-}
-
-void UI::SetLeds::displayColor(df_t flags)
-{
-    _ui._display.showInteger(_cindex, flags);
-}
-
-void UI::SetLeds::displayRGB(df_t flags)
-{
-    _ui._display.showOption(_opt, *_val, flags | DF_HEX | DF_LZ);
-}
-
-void UI::SetLeds::displayHSV(df_t flags)
-{
-    _ui._display.showOption(_opt, *_val, flags | DF_HEX | DF_LZ);
-}
-
-void UI::SetLeds::displayDone(df_t flags)
-{
-    static uint32_t i = 0;
-
-    if (_done) { i = 0; _done = false; }
-    else if (flags == DF_NONE) i++;
-    else return;
-
-    switch (_type)
-    {
-        case SLT_COLOR:
-            if ((i % 2) == 0)
-                displayType();
-            else
-                displayColor();
-            break;
-
-        case SLT_RGB:
-            if ((i % 4) == 0)
-            {
-                displayType();
-            }
-            else
-            {
-                _opt = _rgb_opts[(i % 4) - 1];
-                _val = &_rgb[(i % 4) - 1];
-                displayRGB();
-            }
-            break;
-
-        case SLT_HSV:
-            if ((i % 4) == 0)
-            {
-                displayType();
-            }
-            else
-            {
-                _opt = _hsv_opts[(i % 4) - 1];
-                _val = &_hsv[(i % 4) - 1];
-                displayHSV();
-            }
-            break;
-    }
-}
-////////////////////////////////////////////////////////////////////////////////
-// SetLeds END /////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////
 // SetSleep START //////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 constexpr char const * const UI::SetSleep::_s_opts[SOPT_CNT];
@@ -3074,8 +1729,1351 @@ void UI::SetSleep::displayDone(df_t flags)
         default: _ui._display.showString("...."); break;
     }
 }
-
 ////////////////////////////////////////////////////////////////////////////////
 // SetSleep END ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+////////////////////////////////////////////////////////////////////////////////
+// Clock START /////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+void UI::Clock::uisBegin(void)
+{
+    _state = CS_TIME;
+
+    _alt_display.reset(_s_flash_time);
+
+    (void)_ui._set_touch.enable();
+    clockUpdate(true);
+    _alarm.begin();
+
+    _track_updated = false;
+
+    _dflag = _ui._rtc.clockIs12H() ? DF_12H : DF_24H;
+    display();
+}
+
+void UI::Clock::uisWait(void)
+{
+    bool force = false;
+
+    if ((_state != CS_TIME) && _alt_display.toggled())
+    {
+        _alt_display.reset(_s_flash_time);
+        _state = CS_TIME;
+        force = true;
+    }
+
+    if (_state != CS_TRACK)
+    {
+        if (clockUpdate(force))
+        {
+            display();
+        }
+        else if (!_alarm.alerting() && _ui._set_touch.timedTouch(_s_touch_time))
+        {
+            _state = CS_TRACK;
+            changeTrack();
+            display();
+        }
+    }
+
+    if (_alarm.enabled())
+        _alarm.update(_clock.hour, _clock.minute);
+}
+
+void UI::Clock::uisUpdate(ev_e ev)
+{
+    static uint32_t turn_wait = 0;
+
+    // Snooze on encoder turn just in case touch isn't working when
+    // battery powered or touch threshold is set too high.
+    if (_alarm.inProgress() && !_alarm.snoozing())
+    {
+        (void)_alarm.snooze(true);
+        turn_wait = msecs();
+    }
+    else if (_state != CS_TRACK)
+    {
+        // Don't process turns for a second after turn to snooze
+        if ((msecs() - turn_wait) > _s_snooze_wait)
+            _ui._lighting.cycleNL(ev);
+
+        uisWait();
+    }
+    else
+    {
+        updateTrack(ev);
+        _track_updated = true;
+    }
+}
+
+void UI::Clock::uisChange(void)
+{
+    if (_alarm.inProgress())
+    {
+        _alarm.stop();
+        _state = CS_ALARM;
+    }
+    else if ((_state != CS_TRACK) || !_track_updated)
+    {
+        _state = _next_states[_state];
+    }
+
+    if (_state == CS_TRACK)
+        changeTrack();
+    else if (_state != CS_TIME)
+        _alt_display.reset();
+
+    display();
+}
+
+void UI::Clock::uisReset(ps_e ps)
+{
+    if (ps >= PS_STATE)
+        uisBegin();
+
+    // For PS_RESET, night light gets turned on
+}
+
+void UI::Clock::uisEnd(void)
+{
+    if (_alarm.inProgress())
+        _alarm.stop();
+
+    _ui._display.blank();
+}
+
+bool UI::Clock::uisSleep(void)
+{
+    return false;
+}
+
+void UI::Clock::uisRefresh(void)
+{
+    _alt_display.reset();
+    clockUpdate(true);
+    display();
+}
+
+bool UI::Clock::clockUpdate(bool force)
+{
+    if ((_ui._rtc.update() < RU_MIN) && !force)
+        return false;
+
+    tClock c;
+    bool updated = force;
+
+    _ui._rtc.getClock(c);
+
+    if ((_state == CS_TIME)
+            && ((c.minute != _clock.minute) || (c.hour != _clock.hour)))
+    {
+        updated = true;
+    }
+    else if ((_state == CS_DATE)
+            && ((c.day != _clock.day) || (c.month != _clock.month)))
+    {
+        updated = true;
+    }
+    else if ((_state == CS_YEAR) && (c.year != _clock.year))
+    {
+        updated = true;
+    }
+
+    _clock = c;
+
+    return updated;
+}
+
+void UI::Clock::changeTrack(void)
+{
+    if (_alt_display.onTime() == _s_flash_time)
+    {
+        _track = _ui._player.currentTrack();
+    }
+    else
+    {
+        _ui._player.setTrack(_track);
+        _track_updated = false;
+    }
+
+    _alt_display.reset(_s_flash_time);
+}
+
+void UI::Clock::updateTrack(ev_e ev)
+{
+    evUpdate < uint16_t > (_track, ev, 0, _ui._player.numTracks() - 1);
+    _alt_display.reset(_s_track_idle_time);
+    display();
+}
+
+void UI::Clock::display(void)
+{
+    MFC(_display_actions[_state])();
+}
+
+void UI::Clock::displayTime(void)
+{
+    _ui._display.showClock(_clock.hour, _clock.minute, _dflag);
+}
+
+void UI::Clock::displayDate(void)
+{
+    _ui._display.showDate(_clock.month, _clock.day);
+}
+
+void UI::Clock::displayYear(void)
+{
+    _ui._display.showInteger(_clock.year);
+}
+
+void UI::Clock::displayAlarm(void)
+{
+    _ui._display.showOff();
+}
+
+void UI::Clock::displayTrack(void)
+{
+    _ui._display.showInteger(_track + 1);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Clock END ///////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+// Timer START /////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+uint32_t volatile UI::Timer::_s_seconds = 0;
+uint8_t volatile UI::Timer::_s_hue = UI::Timer::_s_hue_max;
+uint32_t volatile UI::Timer::_s_hue_calls = 0;
+uint8_t volatile UI::Timer::_s_hue_interval = 1;
+
+void UI::Timer::timerDisplay(void)
+{
+    if (_s_seconds == 0)
+        return;
+
+    _s_seconds--;
+}
+
+void UI::Timer::timerLeds(void)
+{
+    if (_s_hue == _s_hue_min)
+        return;
+
+    if ((++_s_hue_calls % _s_hue_interval) == 0)
+        _s_hue--;
+}
+
+void UI::Timer::uisBegin(void)
+{
+    _state = TS_SET_HM;
+    _show_clock = false;
+    (void)_ui._set_touch.enable();
+
+    _display_timer = Pit::acquire(timerDisplay, _s_seconds_interval);
+    _led_timer = Pit::acquire(timerLeds, _s_seconds_interval);  // Will get updated
+
+    if ((_display_timer == nullptr) || (_led_timer == nullptr))
+        _ui.error();
+
+    _blink.reset();
+    displaySetTimer();
+}
+
+void UI::Timer::uisWait(void)
+{
+    if (_wait_actions[_state] != nullptr)
+        MFC(_wait_actions[_state])();
+
+    if (_show_clock && (_ui._refresh_start == 0))
+        clockUpdate();
+}
+
+void UI::Timer::uisUpdate(ev_e ev)
+{
+    static uint32_t turn_msecs = 0;
+    static int8_t turns = 0;
+
+    if (_state <= TS_WAIT)
+    {
+        if (_state == TS_WAIT)
+            _state = TS_SET_HM;
+
+        MFC(_update_actions[_state])(ev);
+
+        _blink.reset();
+        displaySetTimer();
+
+        return;
+    }
+
+    if (_state == TS_ALERT)
+        return;
+
+    if ((msecs() - turn_msecs) < _s_turn_wait)
+        return;
+
+    turns += (int8_t)ev;
+
+    if ((turns == _s_turns) || (turns == -_s_turns))
+    {
+        turns = 0;
+        turn_msecs = msecs();
+
+        _show_clock = !_show_clock;
+        if (_show_clock)
+            clockUpdate(true);
+        else if (_state != TS_WAIT)
+            timerUpdate(true);
+        else
+            displayTimer();
+    }
+
+    uisWait();
+}
+
+void UI::Timer::uisChange(void)
+{
+    if ((_state != TS_SET_HM) && (_hm == 0) && (_ms == 0))
+        return;
+
+    // Action comes before changing state
+    MFC(_change_actions[_state])();
+
+    _state = _next_states[_state];
+}
+
+void UI::Timer::uisReset(ps_e ps)
+{
+    stop();
+    reset();
+
+    if (_state <= TS_WAIT)
+        _state = TS_SET_HM;
+    else
+        _state = TS_WAIT;
+
+    _show_clock = false;
+    (void)_ui._set_touch.enable();
+}
+
+void UI::Timer::uisEnd(void)
+{
+    stop();
+    _ui._lighting.state(Lighting::LS_NIGHT_LIGHT);
+    _ui._beeper.stop();
+    _ui._display.blank();
+    _display_timer->release();
+    _led_timer->release();
+    _display_timer = _led_timer = nullptr;
+}
+
+bool UI::Timer::uisSleep(void)
+{
+    return (_state != TS_RUNNING) && (_state != TS_ALERT);
+}
+
+void UI::Timer::uisRefresh(void)
+{
+    if (_state < TS_WAIT)
+        displaySetTimer();
+    else if (_show_clock)
+        clockUpdate(true);
+    else
+        timerUpdate(true);
+}
+
+void UI::Timer::waitHM(void)
+{
+    if (!_blink.toggled())
+        return;
+
+    displaySetTimer(_blink.on() ? DF_NONE : DF_BL_BC);
+}
+
+void UI::Timer::waitMS(void)
+{
+    if (!_blink.toggled())
+        return;
+
+    displaySetTimer(_blink.on() ? DF_NONE : DF_BL_AC);
+}
+
+void UI::Timer::updateHM(ev_e ev)
+{
+    if ((_hm_flag != DF_NONE) && (_hm == 1) && (ev == EV_NEG))
+    {
+        _hm_flag = DF_NONE;
+        _hm = 59;
+    }
+    else if ((_hm_flag == DF_NONE) && (_hm == 59) && (ev == EV_POS))
+    {
+        _hm_flag = DF_HM;
+        _hm = 1;
+    }
+    else
+    {
+        evUpdate < uint8_t > (_hm, ev, 0, 99, false);
+    }
+}
+
+void UI::Timer::updateMS(ev_e ev)
+{
+    evUpdate < uint8_t > (_ms, ev, _min_ms, 59);
+}
+
+void UI::Timer::displaySetTimer(df_t flags)
+{
+    flags |= _hm_flag;
+    _ui._display.showTimer(_hm, _ms, (_hm == 0) ? (flags | DF_BL0) : (flags | DF_NO_LZ));
+}
+
+void UI::Timer::displayTimer(void)
+{
+    _ui._display.showTimer(_hm, _ms, DF_NO_LZ | _hm_flag);
+}
+
+void UI::Timer::changeHM(void)
+{
+    if (_hm == 0)
+        _min_ms = 1;
+    else
+        _min_ms = 0;
+
+    if (_ms < _min_ms)
+        _ms = _min_ms;
+
+    _blink.reset();
+    displaySetTimer();
+}
+
+void UI::Timer::start(void)
+{
+    displayTimer();
+
+    if (_hm_flag == DF_NONE)
+        _s_seconds = ((uint32_t)_hm * 60) + (uint32_t)_ms;
+    else
+        _s_seconds = ((uint32_t)_hm * 60 * 60) + ((uint32_t)_ms * 60);
+
+    uint32_t minutes = _s_seconds / 60;
+    if (minutes > (10 * 60))
+        _s_hue_interval = 64;
+    else if (minutes > 60)
+        _s_hue_interval = 8;
+    else
+        _s_hue_interval = 1;
+
+    _led_timer->updateInterval((_s_seconds * _s_us_per_hue) / _s_hue_interval, false);
+
+    _last_second = _s_seconds;
+    _hm_toggle = true;
+
+    _s_hue_calls = 0;
+    _s_hue = _s_hue_max;
+    _last_hue = _s_hue;
+    _ui._lighting.state(Lighting::LS_OTHER);
+    _ui._lighting.setColor(CHSV(_last_hue, 255, 255));
+
+    _display_timer->start();
+    _led_timer->start();
+}
+
+void UI::Timer::reset(void)
+{
+    _ui._beeper.stop();
+    _ui._lighting.state(Lighting::LS_NIGHT_LIGHT);
+    _blink.reset();
+    displayTimer();
+}
+
+void UI::Timer::run(void)
+{
+    if (!_show_clock || (_s_seconds == 0))
+        timerUpdate();
+
+    hueUpdate();
+
+    if (_last_second == 0)
+    {
+        stop();
+        _show_clock = false;
+        _ui._beeper.start();
+        _state = TS_ALERT;
+        _alert_start = msecs();
+    }
+}
+
+void UI::Timer::timerUpdate(bool force)
+{
+    // Not critical that interrupts be disabled
+    uint32_t second = _s_seconds;
+
+    if (!force && (second == _last_second))
+        return;
+
+    _last_second = second;
+
+    df_t hm_flag;
+    uint8_t hm, ms;
+    uint32_t minute = second / 60;
+    if (minute < 60)
+    {
+        hm_flag = DF_NONE;
+        hm = (uint8_t)minute;
+        ms = (uint8_t)(second % 60);
+    }
+    else
+    {
+        _hm_toggle = !_hm_toggle;
+        hm_flag = _hm_toggle ? DF_HM : DF_NONE;
+        hm = (uint8_t)(minute / 60);
+        ms = (uint8_t)(minute % 60);
+    }
+
+    if (_ui._refresh_start == 0)
+        _ui._display.showTimer(hm, ms, DF_NO_LZ | hm_flag);
+}
+
+void UI::Timer::clockUpdate(bool force)
+{
+    if ((_ui._rtc.update() >= RU_MIN) || force)
+    {
+        _ui._display.showClock(
+                _ui._rtc.clockHour(),
+                _ui._rtc.clockMinute(),
+                _ui._rtc.clockIs12H() ? DF_12H : DF_24H);
+    }
+}
+
+void UI::Timer::hueUpdate(void)
+{
+    // Again, not critical that interrupts be disabled
+    uint8_t hue = _s_hue;
+
+    if (hue != _last_hue)
+    {
+        _last_hue = hue;
+        _ui._lighting.setColor(CHSV(hue, 255, 255));
+    }
+}
+
+void UI::Timer::pause(void)
+{
+    _display_timer->pause();
+    _led_timer->pause();
+}
+
+void UI::Timer::resume(void)
+{
+    _display_timer->resume();
+    _led_timer->resume();
+}
+
+void UI::Timer::stop(void)
+{
+    _display_timer->stop();
+    _led_timer->stop();
+}
+
+void UI::Timer::alert(void)
+{
+    if (_ui._set_touch.touched(_alert_start))
+    {
+        uisChange();
+        return;
+    }
+
+    if (!_ui._beeper.toggled())
+        return;
+
+    if (_ui._beeper.on())
+    {
+        if (_ui._refresh_start == 0)
+            _ui._display.showDone();
+
+        _ui._lighting.on();
+    }
+    else
+    {
+        if (_ui._refresh_start == 0)
+            _ui._display.blank();
+
+        _ui._lighting.off();
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Timer END ///////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+// SetTouch START //////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+constexpr char const * const UI::SetTouch::_s_topts[TOPT_CNT];
+
+bool UI::SetTouch::valid(void)
+{
+    return _tsi.valid();
+}
+
+bool UI::SetTouch::enabled(void) const
+{
+    return _touch_enabled;
+}
+
+bool UI::SetTouch::enable(void)
+{
+    if (_touch.threshold != 0)
+        _touch_enabled = true;
+
+    return _touch_enabled;
+}
+
+// Argument passed in is to guard against a touch threshold that is too low.
+// It should be the start time of some event for which a touch is expected.
+// If a touch event occurs within this amount of time, touch will be disabled
+// until re-enabled or re-configured.
+bool UI::SetTouch::touched(uint32_t stime)
+{
+    if (!_touch_enabled)
+        return false;
+
+    bool touched = _tsi_channel.touched();
+
+    if (touched && (stime != 0) && ((msecs() - stime) < _s_touch_disable_time))
+        _touch_enabled = false;
+
+    return _touch_enabled && touched;
+}
+
+bool UI::SetTouch::timedTouch(uint32_t ttime)
+{
+    static uint32_t touched_time = msecs();
+
+    if (!_touch_enabled)
+        return false;
+
+    uint16_t tval = _tsi_channel.read();
+    if (tval < _tsi.threshold())
+    {
+        if (tval != 0)
+            touched_time = msecs();
+
+        return false;
+    }
+
+    return (msecs() - touched_time) >= ttime;
+}
+
+void UI::SetTouch::uisBegin(void)
+{
+    _tsi.get(_touch);
+    _state = (_touch.threshold == 0) ? TS_DISABLED : TS_OPT;
+    _ui._player.stop();
+    reset();
+    _ui._lighting.state(Lighting::LS_OTHER);
+}
+
+void UI::SetTouch::uisWait(void)
+{
+    if (_wait_actions[_state] == nullptr)
+        return;
+
+    if ((_state == TS_CAL_UNTOUCHED) || (_state == TS_CAL_TOUCHED) || (_state == TS_READ))
+        MFC(_wait_actions[_state])(_blink.toggled());
+    else if (_state == TS_TEST)
+        MFC(_wait_actions[_state])(_ui._beeper.on());
+    else if (_blink.toggled())
+        MFC(_wait_actions[_state])(_blink.on());
+}
+
+void UI::SetTouch::uisUpdate(ev_e ev)
+{
+    if (_update_actions[_state] == nullptr)
+        return;
+
+    MFC(_update_actions[_state])(ev);
+    display();
+}
+
+void UI::SetTouch::uisChange(void)
+{
+    if (_state == TS_READ)
+    {
+        _touch.threshold = _read.hi;
+        _untouched.hi = _read.lo;
+        _ui._lighting.setColor(CHSV(_touch.threshold % 256, 255, 255));
+    }
+
+    if (_state == TS_DISABLED)
+    {
+        toggleEnabled();
+    }
+    else if (_state == TS_OPT)
+    {
+        switch (_topt)
+        {
+            case TOPT_CAL: _state = TS_CAL_START; break;
+            case TOPT_CONF: _state = TS_NSCN; break;
+            case TOPT_DEF: _tsi.defaults(_touch); _state = TS_DONE; _topt = TOPT_CONF; break;
+            case TOPT_DIS: toggleEnabled(); break;
+            case TOPT_READ: _state = TS_READ; break;
+            default: break;
+        }
+    }
+    else
+    {
+        _state = _next_states[_state];
+    }
+
+    if (_change_actions[_state] != nullptr)
+        MFC(_change_actions[_state])();
+
+    _blink.reset();
+    display();
+}
+
+void UI::SetTouch::uisReset(ps_e ps)
+{
+    if (_state != TS_OPT)
+    {
+        if ((_state == TS_CAL_START) || (_state == TS_NSCN) || (_state == TS_READ) || (_state == TS_DONE))
+            _state = TS_OPT;
+        else if (_state == TS_DISABLED)
+            toggleEnabled();
+        else if (_topt == TOPT_CAL)
+            _state = TS_CAL_START;
+        else if (_topt == TOPT_CONF)
+            _state = TS_NSCN;
+    }
+
+    _ui._lighting.setColor(CRGB::BLACK);
+    _ui._beeper.stop();
+    _amp.stop();
+
+    reset();
+}
+
+void UI::SetTouch::uisEnd(void)
+{
+    _ui._lighting.state(Lighting::LS_NIGHT_LIGHT);
+    _ui._display.blank();
+    _touch_enabled = (_touch.threshold != 0);
+}
+
+bool UI::SetTouch::uisSleep(void)
+{
+    return ((_state != TS_CAL_UNTOUCHED) && (_state != TS_CAL_TOUCHED));
+}
+
+void UI::SetTouch::uisRefresh(void)
+{
+    _blink.reset();
+    display();
+}
+
+void UI::SetTouch::reset(void)
+{
+    _readings = 0;
+    _untouched.reset();
+    _topt = TOPT_CAL;
+
+    _done = false;
+
+    _blink.reset();
+    display();
+}
+
+void UI::SetTouch::toggleEnabled(void)
+{
+    if (_touch.threshold == 0)
+        _tsi.defaults(_touch);
+    else
+        _touch.threshold = 0;
+    _state = (_touch.threshold == 0) ? TS_DISABLED : TS_OPT;
+    _topt = TOPT_CAL;
+    (void)_tsi.set(_touch);
+}
+
+void UI::SetTouch::waitOpt(bool on)
+{
+    display(on ? DF_NONE : DF_BL);
+}
+
+void UI::SetTouch::waitNscn(bool on)
+{
+    display(on ? DF_NONE : DF_BL_AC);
+}
+
+void UI::SetTouch::waitPs(bool on)
+{
+    display(on ? DF_NONE : DF_BL_AC);
+}
+
+void UI::SetTouch::waitRefChrg(bool on)
+{
+    display(on ? DF_NONE : DF_BL_AC);
+}
+
+void UI::SetTouch::waitExtChrg(bool on)
+{
+    display(on ? DF_NONE : DF_BL_AC);
+}
+
+void UI::SetTouch::waitCalStart(bool on)
+{
+    display(on ? DF_NONE : DF_BL);
+}
+
+void UI::SetTouch::waitCalUntouched(bool on)
+{
+    if (on) display();
+
+    uint16_t read = _tsi_channel.read();
+    if (read == 0)
+        return;
+
+    if (read > _untouched.hi)
+        _untouched.hi = read;
+
+    _readings++;
+
+    if (_readings == (_s_readings / 2))
+    {
+        _amp.start();
+    }
+    else if (_readings == _s_readings)
+    {
+        _amp.stop();
+        uisChange();
+    }
+    else if ((_readings % 256) == 0)
+    {
+        _ui._lighting.setColor(CHSV(_readings / 256, 255, 255));
+    }
+}
+
+void UI::SetTouch::waitCalThreshold(bool on)
+{
+    display(on ? DF_NONE : DF_BL);
+}
+
+void UI::SetTouch::waitCalTouched(bool on)
+{
+    if (on) display();
+
+    uint16_t read = _tsi_channel.read();
+    if (read == 0)
+        return;
+
+    if (read < _touched->lo)
+        _touched->lo = read;
+
+    if (read > _touched->hi)
+        _touched->hi = read;
+
+    _readings++;
+
+    if (_readings == (_s_readings / 2))
+    {
+        _amp.start();
+        _touched = &_touched_amp_on;
+    }
+    else if (_readings == _s_readings)
+    {
+        if (_touched_amp_off.lo < _untouched.hi)
+            _touched_amp_off.lo = _untouched.hi;
+
+        if (_touched_amp_on.lo < _untouched.hi)
+            _touched_amp_on.lo = _untouched.hi;
+
+        uint16_t amp_off_avg = _touched_amp_off.avg();
+        uint16_t amp_on_avg = _touched_amp_on.avg();
+
+        _touch.threshold = (amp_off_avg + amp_on_avg) / 2;
+
+        _ui._lighting.setColor(CHSV(_touch.threshold % 256, 255, 255));
+        _amp.stop();
+        uisChange();
+    }
+    else if ((_readings % 256) == 0)
+    {
+        _ui._lighting.setColor(CHSV(_readings / 256, 255, 255));
+    }
+}
+
+void UI::SetTouch::waitRead(bool on)
+{
+    uint16_t read = _tsi_channel.read();
+    if ((read != 0) && (read != _touch.threshold))
+    {
+        if (read > _read.hi)
+            _read.hi = read;
+
+        if (read < _read.lo)
+            _read.lo = read;
+
+        _touch.threshold = read;
+        _ui._lighting.setColor(CHSV(read % 256, 255, 255));
+        display();
+    }
+}
+
+void UI::SetTouch::waitTest(bool on)
+{
+    static uint32_t beep_start = 0;
+
+    uint16_t read = _tsi_channel.read();
+    if (read == 0)
+        return;
+
+    if ((msecs() - beep_start) < _s_beeper_wait)
+        return;
+
+    beep_start = msecs();
+
+    if (read >= _touch.threshold)
+    {
+        if (!on) _ui._beeper.start();
+    }
+    else
+    {
+        if (on) _ui._beeper.stop();
+    }
+}
+
+void UI::SetTouch::waitDone(bool on)
+{
+    display(on ? DF_NONE : DF_BL);
+}
+
+void UI::SetTouch::updateOpt(ev_e ev)
+{
+    evUpdate < topt_e > (_topt, ev, TOPT_CAL, (topt_e)(TOPT_CNT - 1));
+}
+
+void UI::SetTouch::updateNscn(ev_e ev)
+{
+    evUpdate < uint8_t > (_touch.nscn, ev, 0, Tsi::maxNscn());
+}
+
+void UI::SetTouch::updatePs(ev_e ev)
+{
+    evUpdate < uint8_t > (_touch.ps, ev, 0, Tsi::maxPs());
+}
+
+void UI::SetTouch::updateRefChrg(ev_e ev)
+{
+    evUpdate < uint8_t > (_touch.refchrg, ev, 0, Tsi::maxRefChrg());
+}
+
+void UI::SetTouch::updateExtChrg(ev_e ev)
+{
+    evUpdate < uint8_t > (_touch.extchrg, ev, 0, Tsi::maxExtChrg());
+}
+
+void UI::SetTouch::updateThreshold(ev_e ev)
+{
+    evUpdate < uint16_t > (_touch.threshold, ev, _untouched.hi, Tsi::maxThreshold(), false);
+    _ui._lighting.setColor(CHSV(_touch.threshold % 256, 255, 255));
+}
+
+void UI::SetTouch::changeCalStart(void)
+{
+    if (_topt == TOPT_CONF)
+        (void)_tsi.configure(_touch.nscn, _touch.ps, _touch.refchrg, _touch.extchrg);
+
+    _ui._lighting.setColor(CHSV(0, 255, 255));
+    _readings = 0;
+    _untouched.reset();
+    _ui._player.stop();
+}
+
+void UI::SetTouch::changeCalThreshold(void)
+{
+    _ui._lighting.setColor(CHSV(0, 255, 255));
+    _readings = 0;
+    _touched_amp_off.reset();
+    _touched_amp_on.reset();
+    _touched = &_touched_amp_off;
+}
+
+void UI::SetTouch::changeRead(void)
+{
+    _read.reset();
+    _untouched.reset();
+}
+
+void UI::SetTouch::changeDone(void)
+{
+    _ui._lighting.setColor(CRGB::BLACK);
+    _ui._beeper.stop();
+    (void)_tsi.set(_touch);
+    _done = true;
+}
+
+void UI::SetTouch::display(df_t flags)
+{
+    MFC(_display_actions[_state])(flags);
+}
+
+void UI::SetTouch::displayOpt(df_t flags)
+{
+    _ui._display.showString(_s_topts[_topt], flags);
+}
+
+void UI::SetTouch::displayNscn(df_t flags)
+{
+    _ui._display.showOption("nS", Tsi::valNscn(_touch.nscn), flags);
+}
+
+void UI::SetTouch::displayPs(df_t flags)
+{
+    _ui._display.showOption("PS", Tsi::valPs(_touch.ps), flags | DF_HEX);
+}
+
+void UI::SetTouch::displayRefChrg(df_t flags)
+{
+    _ui._display.showOption("rC", Tsi::valRefChrg(_touch.refchrg), flags);
+}
+
+void UI::SetTouch::displayExtChrg(df_t flags)
+{
+    _ui._display.showOption("EC", Tsi::valExtChrg(_touch.extchrg), flags);
+}
+
+void UI::SetTouch::displayCalStart(df_t flags)
+{
+    _ui._display.showString("bASE", flags);
+}
+
+void UI::SetTouch::displayCalThreshold(df_t flags)
+{
+    _ui._display.showString("tUCH", flags);
+}
+
+void UI::SetTouch::displayCalWait(df_t flags)
+{
+    _ui._display.showInteger(_readings, flags | DF_HEX);
+}
+
+void UI::SetTouch::displayThreshold(df_t flags)
+{
+    _ui._display.showInteger(_touch.threshold, flags | DF_HEX);
+}
+
+void UI::SetTouch::displayDone(df_t flags)
+{
+    static uint32_t i = 0;
+
+    if (_done) { i = 0; _done = false; }
+    else if (flags == DF_NONE) i++;
+    else return;
+
+    if (_topt == TOPT_CONF)
+    {
+        static constexpr uint8_t const nopts = 6;
+
+        switch (i % (nopts + 1))
+        {
+            case 0: displayNscn(); break;
+            case 1: displayPs(); break;
+            case 2: displayRefChrg(); break;
+            case 3: displayExtChrg(); break;
+            case 4: _ui._display.showString("thr."); break;
+            case 5: displayThreshold(); break;
+            default: _ui._display.showString("...."); break;
+        }
+    }
+    else
+    {
+        if ((i % 2) == 0)
+            _ui._display.showString("thr.");
+        else
+            displayThreshold();
+    }
+}
+
+void UI::SetTouch::displayDisabled(df_t flags)
+{
+    _ui._display.showOff(flags);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// SetTouch END ////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+// SetLeds START ///////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+constexpr CRGB::Color const UI::SetLeds::_s_colors[];
+
+void UI::SetLeds::uisBegin(void)
+{
+    _state = SLS_TYPE;
+    _blink.reset();
+    _updated = _done = false;
+    _ui._lighting.state(Lighting::LS_SET);
+    display();
+}
+
+void UI::SetLeds::uisWait(void)
+{
+    if ((_wait_actions[_state] != nullptr) && _blink.toggled())
+        MFC(_wait_actions[_state])(_blink.on());
+}
+
+void UI::SetLeds::uisUpdate(ev_e ev)
+{
+    if (_update_actions[_state] == nullptr)
+        return;
+
+    MFC(_update_actions[_state])(ev);
+
+    if (_state != SLS_TYPE)
+    {
+        _updated = true;
+        _ui._lighting.setColor(_color);
+    }
+
+    display();
+}
+
+void UI::SetLeds::uisChange(void)
+{
+    static uint32_t click = 0;
+    bool double_click = (msecs() - click) < 300;
+
+    click = msecs();
+
+    if (_state == SLS_TYPE)
+    {
+        _state = _next_type_states[_type];
+
+        if (_state == SLS_COLOR)
+        {
+            _color = _s_colors[_cindex];
+        }
+        else
+        {
+            _sub_state = 0;
+
+            if (_state == SLS_RGB)
+            {
+                _opt = _rgb_opts[_sub_state];
+                _val = &_rgb[_sub_state];
+                _color = _rgb;
+            }
+            else  // _state == SLS_HSV
+            {
+                _opt = _hsv_opts[_sub_state];
+                _val = &_hsv[_sub_state];
+                _color = _hsv;
+            }
+        }
+
+        _ui._lighting.setColor(_color);
+    }
+    else if ((_state == SLS_COLOR) || double_click)
+    {
+        _state = SLS_DONE;
+    }
+    else if (_state == SLS_DONE)
+    {
+        _state = SLS_TYPE;
+    }
+    else
+    {
+        _sub_state = (_sub_state == 2) ? 0 : _sub_state + 1;
+
+        if (_state == SLS_RGB)
+        {
+            _opt = _rgb_opts[_sub_state];
+            _val = &_rgb[_sub_state];
+        }
+        else  // _state == SLS_HSV
+        {
+            _opt = _hsv_opts[_sub_state];
+            _val = &_hsv[_sub_state];
+        }
+    }
+
+    if (_state == SLS_DONE)
+    {
+        _ui._lighting.setNL(_color);
+        _done = true;
+    }
+
+    _blink.reset();
+    display();
+}
+
+void UI::SetLeds::uisReset(ps_e ps)
+{
+    _state = SLS_TYPE;
+    _type = SLT_COLOR;
+    _sub_state = 0;
+    _rgb = _default_rgb;
+    _hsv = _default_hsv;
+    _cindex = 0;
+    _ui._lighting.setColor(CRGB::BLACK);
+    display();
+}
+
+void UI::SetLeds::uisEnd(void)
+{
+    if (_updated)
+        _ui._lighting.setNL(_color);
+
+    _ui._lighting.state(Lighting::LS_NIGHT_LIGHT);
+    if (_ui._lighting.isOn())
+        _ui._lighting.onNL();
+    _ui._display.blank();
+}
+
+bool UI::SetLeds::uisSleep(void)
+{
+    return true;
+}
+
+void UI::SetLeds::uisRefresh(void)
+{
+    _blink.reset();
+    display();
+}
+
+void UI::SetLeds::waitType(bool on)
+{
+    display(on ? DF_NONE : DF_BL);
+}
+
+void UI::SetLeds::waitColor(bool on)
+{
+    display(on ? DF_NONE : DF_BL);
+}
+
+void UI::SetLeds::waitRGB(bool on)
+{
+    display(on ? DF_NONE : DF_BL_AC);
+}
+
+void UI::SetLeds::waitHSV(bool on)
+{
+    display(on ? DF_NONE : DF_BL_AC);
+}
+
+void UI::SetLeds::waitDone(bool on)
+{
+    display(on ? DF_NONE : DF_BL);
+}
+
+void UI::SetLeds::updateType(ev_e ev)
+{
+    evUpdate < slt_e > (_type, ev, SLT_COLOR, SLT_HSV);
+}
+
+void UI::SetLeds::updateColor(ev_e ev)
+{
+    evUpdate < uint8_t > (_cindex, ev, 0, (sizeof(_s_colors) / sizeof(CRGB::Color)) - 1);
+    _color = _s_colors[_cindex];
+}
+
+void UI::SetLeds::updateRGB(ev_e ev)
+{
+    evUpdate < uint8_t > (*_val, ev, 0, 255);
+    _color = _rgb;
+}
+
+void UI::SetLeds::updateHSV(ev_e ev)
+{
+    evUpdate < uint8_t > (*_val, ev, 0, 255);
+    _color = _hsv;
+}
+
+void UI::SetLeds::display(df_t flags)
+{
+    if (_display_actions[_state] != nullptr)
+        MFC(_display_actions[_state])(flags);
+}
+
+void UI::SetLeds::displayType(df_t flags)
+{
+    switch (_type)
+    {
+        case SLT_COLOR:
+            _ui._display.showString("CoLr", flags);
+            break;
+        case SLT_RGB:
+            _ui._display.showString("RGB", flags);
+            break;
+        case SLT_HSV:  // Can't display 'V' so use 'B' for value/brightness
+            _ui._display.showString("HSB", flags);
+            break;
+    }
+}
+
+void UI::SetLeds::displayColor(df_t flags)
+{
+    _ui._display.showInteger(_cindex, flags);
+}
+
+void UI::SetLeds::displayRGB(df_t flags)
+{
+    _ui._display.showOption(_opt, *_val, flags | DF_HEX | DF_LZ);
+}
+
+void UI::SetLeds::displayHSV(df_t flags)
+{
+    _ui._display.showOption(_opt, *_val, flags | DF_HEX | DF_LZ);
+}
+
+void UI::SetLeds::displayDone(df_t flags)
+{
+    static uint32_t i = 0;
+
+    if (_done) { i = 0; _done = false; }
+    else if (flags == DF_NONE) i++;
+    else return;
+
+    switch (_type)
+    {
+        case SLT_COLOR:
+            if ((i % 2) == 0)
+                displayType();
+            else
+                displayColor();
+            break;
+
+        case SLT_RGB:
+            if ((i % 4) == 0)
+            {
+                displayType();
+            }
+            else
+            {
+                _opt = _rgb_opts[(i % 4) - 1];
+                _val = &_rgb[(i % 4) - 1];
+                displayRGB();
+            }
+            break;
+
+        case SLT_HSV:
+            if ((i % 4) == 0)
+            {
+                displayType();
+            }
+            else
+            {
+                _opt = _hsv_opts[(i % 4) - 1];
+                _val = &_hsv[(i % 4) - 1];
+                displayHSV();
+            }
+            break;
+    }
+}
+////////////////////////////////////////////////////////////////////////////////
+// SetLeds END /////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
