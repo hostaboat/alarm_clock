@@ -68,6 +68,30 @@ class Tsi : public Module
             return ch;
         }
 
+        // Enable Low Power Scan Pin
+        template < pin_t PIN >
+        void enableLPSP(void)
+        {
+            static_assert((PIN < sizeof(_s_pin_to_channel))
+                    && (_s_pin_to_channel[PIN] != 255), "Touch : Invalid Pin");
+
+            stop();
+            *_s_gencs &= ~TSI_GENCS_ESOR;
+            *_s_threshold = (uint32_t)_touch.threshold;
+            *_s_pen |= (uint32_t)_s_pin_to_channel[PIN] << 16;
+            start();
+        }
+
+        void disableLPSP(void)
+        {
+            stop();
+            *_s_gencs |= TSI_GENCS_ESOR;
+            *_s_pen &= ~(0x0F << 16);
+            start();
+        }
+
+        void clear(void);
+
         static Tsi & acquire(void) { static Tsi tsi; return tsi; }
 
         bool valid(void) { return !_s_error && !_s_overrun; }
@@ -118,6 +142,7 @@ class Tsi : public Module
         static bool volatile _s_error;
         static bool volatile _s_overrun;
         static bool volatile _s_eos;
+        static bool volatile _s_outrgf;
 
         // Software triggered scan
         bool _swts = false;
@@ -144,6 +169,7 @@ class Tsi : public Module
         static constexpr uint32_t const _s_gencs_flags =
             TSI_GENCS_ERIE | TSI_GENCS_TSIIE |  // Interrupt flags
             TSI_GENCS_ESOR |  // End of Scan Interrupt
+            TSI_GENCS_STPE |  // Continue running in low-power modes
             TSI_GENCS_EOSF | TSI_GENCS_OUTRGF | TSI_GENCS_EXTERF | TSI_GENCS_OVRF; // Clear w1c flags
 
         tTouch _touch{_s_default_touch};

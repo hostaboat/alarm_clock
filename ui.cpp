@@ -13,6 +13,9 @@ UI::UI(void)
     if (!valid())
         return;
 
+    _mcu_sleep_time = _set_sleep.getMcuTime();
+    _display_sleep_time = _set_sleep.getDisplayTime();
+
     _display.brightness(BR_MID);
 
     // Set initial state
@@ -26,8 +29,7 @@ UI::UI(void)
     else
         error();  // This shouldn't happen on startup.  It means the rotary switch is inbetween positions
 
-    if (!_states[_state]->uisBegin())
-        error(_state);
+    _states[_state]->uisBegin();
 }
 
 bool UI::valid(void)
@@ -87,8 +89,6 @@ void UI::error(uis_e state)
                     _display.showString("SE.AL.");
                 else if (state == UIS_SET_CLOCK)
                     _display.showString("SE.CL.");
-                else if (state == UIS_SET_TIMER)
-                    _display.showString("SE.tI");
                 else if (state == UIS_CLOCK)
                     _display.showString("CL.");
                 else if (state == UIS_TIMER)
@@ -158,7 +158,7 @@ void UI::process(void)
     uis_e slast = _state;
     _state = _next_states[slast][ps][ss];
 
-    if (resting(es, _state != slast, bev != EV_ZERO))
+    if (!_refresh_start && resting(es, _state != slast, bev != EV_ZERO))
         return;
 
     if (_state != slast)
@@ -167,9 +167,7 @@ void UI::process(void)
             es = ES_NONE;
 
         _states[slast]->uisEnd();
-
-        if (!_states[_state]->uisBegin())
-            error(_state);
+        _states[_state]->uisBegin();
 
         _refresh_start = 0;
     }
@@ -303,10 +301,15 @@ bool UI::pressing(es_e encoder_state, uint32_t depressed_time)
 
         case DS_STATE:
             if (_state == UIS_CLOCK)
+            {
                 _lighting.offNL();
+            }
+            else
+            {
+                t.reset();
+                display_type = DT_2;
+            }
 
-            t.reset();
-            display_type = DT_2;
             ds = DS_WAIT_ALT_STATE;
             break;
 
@@ -323,8 +326,6 @@ bool UI::pressing(es_e encoder_state, uint32_t depressed_time)
                 _lighting.setNL(_s_default_color);
                 _lighting.setColor(_s_default_color);
                 _lighting.onNL();
-                _display.blank();
-                t.disable();
             }
             else
             {
@@ -354,9 +355,13 @@ bool UI::pressing(es_e encoder_state, uint32_t depressed_time)
 bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_changed)
 {
     static uint32_t rstart = msecs();
+    static uint32_t tstart = msecs();
     static bool resting = false;
 
-    bool wake = (encoder_state != ES_NONE) || ui_state_changed || brightness_changed;
+    bool wake = (encoder_state != ES_NONE) || ui_state_changed || brightness_changed
+        || (resting && _touch.touched(tstart));
+    bool woke = false;
+    uint32_t m = msecs();
 
     if (wake || !_states[_state]->uisSleep())
     {
@@ -368,11 +373,12 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
                 _lighting.wake();
 
             resting = false;
+            woke = true;
         }
 
-        rstart = msecs();
+        rstart = m;
     }
-    else if (!resting && ((msecs() - rstart) >= _s_rest_time))
+    else if (!resting && (_display_sleep_time != 0) && ((m - rstart) >= _display_sleep_time))
     {
         _display.sleep(true);
 
@@ -380,12 +386,19 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
             _lighting.sleep();
 
         resting = true;
+        tstart = msecs();
     }
 
-    if (!resting || _player.running())
-        return resting;
+    bool sleep = false;
+    if ((_mcu_sleep_time != 0) && ((m - rstart) >= _mcu_sleep_time))
+        sleep = true;
 
-    // Resting is true and the player isn't running - can go to sleep
+    if (!sleep || _player.running())
+        return woke || resting;
+
+    _display.sleep(true);
+    _lighting.sleep();
+    resting = true;
 
     // Puts MCU in LLS (Low Leakage Stop) mode - a state retention power mode
     // where most peripherals are in state retention mode (with clocks stopped).
@@ -419,6 +432,8 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
         return resting;
     }
 
+    (void)_llwu.tsiEnable < PIN_TOUCH > ();
+
     // Tell the clock that it needs to read the TSR counter since NVIC is disabled
     _rtc.sleep();
 
@@ -439,8 +454,7 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
         // so don't redisplay data from state prior to sleeping.
         _display.wake(wakeup_pin != PIN_RS_M);
 
-        if (!_lighting.isOnNL())
-            _lighting.wake();
+        _lighting.wake();
 
         resting = false;
         rstart = msecs();
@@ -607,13 +621,16 @@ void UI::Lighting::state(ls_e state)
 ////////////////////////////////////////////////////////////////////////////////
 // Player START ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-UI::Player::Player(void)
+UI::Player::Player(UI & ui)
+    : _ui{ui}
 {
     if (!_prev.valid() || !_play.valid() || !_next.valid() || !_audio.valid() || !_fs.valid())
     {
         _error = ERR_INVALID;
         return;
     }
+
+    _auto_stop_time = _ui._set_sleep.getPlayerTime();
 
     int num_tracks = _fs.getFiles(_tracks, _s_max_tracks, _track_exts);
     if (num_tracks <= 0)
@@ -625,10 +642,10 @@ UI::Player::Player(void)
     // Max tracks is less than UINT16_MAX
     _num_tracks = (uint16_t)num_tracks;
 
-    if (!_eeprom.getTrack(_current_track) || (_current_track >= _num_tracks))
+    if (!_ui._eeprom.getTrack(_current_track) || (_current_track >= _num_tracks))
     {
         _current_track = 0;
-        (void)_eeprom.setTrack(_current_track);
+        (void)_ui._eeprom.setTrack(_current_track);
     }
 
     _next_track = _current_track;
@@ -706,10 +723,25 @@ bool UI::Player::pressing(void)
     return true;
 }
 
-void UI::Player::process(void)
+void UI::Player::autoStop(bool inactive)
 {
     static uint32_t sstart = msecs();
 
+    uint32_t m = msecs();
+
+    if (inactive)
+    {
+        if ((m - sstart) >= _auto_stop_time)
+            _audio.stop();
+
+        return;
+    }
+
+    sstart = m;
+}
+
+void UI::Player::process(void)
+{
     if (disabled() || pressing())
         return;
 
@@ -720,8 +752,6 @@ void UI::Player::process(void)
     uint32_t next_ctime = _next.closeDuration();
 
     __enable_irq();
-
-    uint32_t m = msecs();
 
     // XXX If the MCU is asleep only the play/pause pushbutton will wake it.
     if (!running() && (play_ctime != 0))
@@ -734,8 +764,6 @@ void UI::Player::process(void)
             stop();
         else
             _paused = !_paused;
-
-        sstart = m;
     }
     else if ((prev_ctime != 0) || (next_ctime != 0))
     {
@@ -743,14 +771,10 @@ void UI::Player::process(void)
             play();
     }
 
-    if (playing())
+    if (!playing())
     {
-        sstart = m;
-    }
-    else
-    {
-        if (paused() && ((m - sstart) >= _s_sleep_time))
-            _audio.stop();
+        if ((_auto_stop_time != 0) && running())
+            autoStop(!play_ctime && !prev_ctime && !next_ctime);
 
         return;
     }
@@ -760,7 +784,7 @@ void UI::Player::process(void)
         if (_track->eof())
         {
             // Only save file index to eeprom if track was played to completion
-            (void)_eeprom.setTrack(_current_track);
+            (void)_ui._eeprom.setTrack(_current_track);
             _next_track = skipTracks(1);
         }
         else
@@ -995,15 +1019,13 @@ void UI::Alarm::done(uint8_t hour, uint8_t minute)
 ////////////////////////////////////////////////////////////////////////////////
 // SetAlarm START //////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-bool UI::SetAlarm::uisBegin(void)
+void UI::SetAlarm::uisBegin(void)
 {
     _ui._rtc.getAlarm(_alarm);
     _state = _alarm.enabled ? SAS_HOUR : SAS_DISABLED;
     _blink.reset(_s_set_blink_time);
     _updated = _done = false;
     display();
-
-    return true;
 }
 
 void UI::SetAlarm::uisWait(void)
@@ -1192,7 +1214,7 @@ void UI::SetAlarm::displayDone(df_t flags)
         case 2: displaySnooze(); break;
         case 3: displayWake(); break;
         case 4: displayTime(); break;
-        default: _ui._display.showString("... "); break;
+        default: _ui._display.showString("...."); break;
     }
 }
 
@@ -1215,7 +1237,7 @@ void UI::SetAlarm::toggleEnabled(void)
 ////////////////////////////////////////////////////////////////////////////////
 // SetClock START //////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-bool UI::SetClock::uisBegin(void)
+void UI::SetClock::uisBegin(void)
 {
     (void)_ui._rtc.update();
     _ui._rtc.getClock(_clock);
@@ -1226,8 +1248,6 @@ bool UI::SetClock::uisBegin(void)
     _blink.reset(_s_set_blink_time);
     _updated = _done = false;
     display();
-
-    return true;
 }
 
 void UI::SetClock::uisWait(void)
@@ -1411,7 +1431,7 @@ void UI::SetClock::displayDone(df_t flags)
         case 2: displayDate(); break;
         case 3: displayYear(); break;
         case 4: displayDST(); break;
-        default: _ui._display.showString("... "); break;
+        default: _ui._display.showString("...."); break;
     }
 }
 
@@ -1420,119 +1440,15 @@ void UI::SetClock::displayDone(df_t flags)
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
-// SetTimer START //////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-bool UI::SetTimer::uisBegin(void)
-{
-    _ui._rtc.getTimer(_timer);
-
-    _state = STS_MINUTES;
-
-    _blink.reset();
-    _updated = _done = false;
-    display();
-
-    return true;
-}
-
-void UI::SetTimer::uisWait(void)
-{
-    if ((_wait_actions[_state] != nullptr) && _blink.toggled())
-        MFC(_wait_actions[_state])(_blink.on());
-}
-
-void UI::SetTimer::uisUpdate(ev_e ev)
-{
-    if (_update_actions[_state] == nullptr)
-        return;
-
-    _updated = true;
-    MFC(_update_actions[_state])(ev);
-    display();
-}
-
-void UI::SetTimer::uisChange(void)
-{
-    _state = _next_states[_state];
-
-    if ((_state == STS_SECONDS) && (_timer.minutes == 0) && (_timer.seconds == 0))
-        _timer.seconds = 1;
-
-    if (_state == STS_DONE)
-        (void)_ui._rtc.setTimer(_timer);
-
-    _blink.reset();
-    display();
-}
-
-void UI::SetTimer::uisReset(ps_e ps)
-{
-    uisBegin();
-}
-
-void UI::SetTimer::uisEnd(void)
-{
-    if (_updated)
-        (void)_ui._rtc.setTimer(_timer);
-
-    _ui._display.blank();
-}
-
-bool UI::SetTimer::uisSleep(void)
-{
-    return true;
-}
-
-void UI::SetTimer::uisRefresh(void)
-{
-    _blink.reset();
-    display();
-}
-
-void UI::SetTimer::waitMinutes(bool on)
-{
-    display(on ? DF_NONE : DF_BL_BC);
-}
-
-void UI::SetTimer::waitSeconds(bool on)
-{
-    display(on ? DF_NONE : DF_BL_AC);
-}
-
-void UI::SetTimer::updateMinutes(ev_e ev)
-{
-    evUpdate < uint8_t > (_timer.minutes, ev, 0, 99);
-}
-
-void UI::SetTimer::updateSeconds(ev_e ev)
-{
-    evUpdate < uint8_t > (_timer.seconds, ev, (_timer.minutes == 0) ? 1 : 0, 59);
-}
-
-void UI::SetTimer::display(df_t flags)
-{
-    MFC(_display_actions[_state])(flags);
-}
-
-void UI::SetTimer::displayTimer(df_t flags)
-{
-    _ui._display.showTimer(_timer.minutes, _timer.seconds,
-            (_timer.minutes == 0) ? (flags | DF_BL0) : (flags | DF_NO_LZ));
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// SetTimer END ////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////
 // Clock START /////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-bool UI::Clock::uisBegin(void)
+void UI::Clock::uisBegin(void)
 {
     _state = CS_TIME;
 
     _alt_display.reset(_s_flash_time);
 
+    (void)_ui._touch.enable();
     clockUpdate(true);
     _alarm.begin();
 
@@ -1540,8 +1456,6 @@ bool UI::Clock::uisBegin(void)
 
     _dflag = _ui._rtc.clockIs12H() ? DF_12H : DF_24H;
     display();
-
-    return true;
 }
 
 void UI::Clock::uisWait(void)
@@ -1561,7 +1475,7 @@ void UI::Clock::uisWait(void)
         {
             display();
         }
-        else if (_ui._touch.timedTouch(_s_touch_time))
+        else if (!_alarm.alerting() && _ui._touch.timedTouch(_s_touch_time))
         {
             _state = CS_TRACK;
             changeTrack();
@@ -1736,41 +1650,42 @@ void UI::Clock::displayTrack(void)
 ////////////////////////////////////////////////////////////////////////////////
 // Timer START /////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-uint32_t volatile UI::Timer::_s_timer_seconds = 0;
-uint8_t volatile UI::Timer::_s_timer_hue = UI::Timer::_s_timer_hue_max;
+uint32_t volatile UI::Timer::_s_seconds = 0;
+uint8_t volatile UI::Timer::_s_hue = UI::Timer::_s_hue_max;
+uint32_t volatile UI::Timer::_s_hue_calls = 0;
+uint8_t volatile UI::Timer::_s_hue_interval = 1;
 
 void UI::Timer::timerDisplay(void)
 {
-    if (_s_timer_seconds == 0)
+    if (_s_seconds == 0)
         return;
 
-    _s_timer_seconds--;
+    _s_seconds--;
 }
 
 void UI::Timer::timerLeds(void)
 {
-    if (_s_timer_hue == _s_timer_hue_min)
+    if (_s_hue == _s_hue_min)
         return;
 
-    _s_timer_hue--;
+    if ((++_s_hue_calls % _s_hue_interval) == 0)
+        _s_hue--;
 }
 
-bool UI::Timer::uisBegin(void)
+void UI::Timer::uisBegin(void)
 {
-    _state = TS_WAIT;
+    _state = TS_SET_HM;
     _show_clock = false;
-    _ui._rtc.getTimer(_timer);
-    _ui._display.showTimer(_timer.minutes, _timer.seconds, DF_NO_LZ);
     (void)_ui._touch.enable();
 
     _display_timer = Pit::acquire(timerDisplay, _s_seconds_interval);
-    _led_timer = Pit::acquire(timerLeds,
-            (((uint32_t)_timer.minutes * 60) + (uint32_t)_timer.seconds) * _s_hue_interval);
+    _led_timer = Pit::acquire(timerLeds, _s_seconds_interval);  // Will get updated
 
     if ((_display_timer == nullptr) || (_led_timer == nullptr))
-        return false;
+        _ui.error();
 
-    return true;
+    _blink.reset();
+    displaySetTimer();
 }
 
 void UI::Timer::uisWait(void)
@@ -1789,12 +1704,13 @@ void UI::Timer::uisUpdate(ev_e ev)
 
     if (_state <= TS_WAIT)
     {
-        // Allow user to update timer without going back to SetTimer.
         if (_state == TS_WAIT)
-            _state = TS_MINUTES;
+            _state = TS_SET_HM;
 
         MFC(_update_actions[_state])(ev);
-        displayTimer();
+
+        _blink.reset();
+        displaySetTimer();
 
         return;
     }
@@ -1818,7 +1734,7 @@ void UI::Timer::uisUpdate(ev_e ev)
         else if (_state != TS_WAIT)
             timerUpdate(true);
         else
-            _ui._display.showTimer(_timer.minutes, _timer.seconds, DF_NO_LZ);
+            displayTimer();
     }
 
     uisWait();
@@ -1826,32 +1742,10 @@ void UI::Timer::uisUpdate(ev_e ev)
 
 void UI::Timer::uisChange(void)
 {
-    if (_state < TS_WAIT)
-    {
-        _state = _next_states[_state];
-
-        if ((_state == TS_SECONDS) && (_timer.minutes == 0) && (_timer.seconds == 0))
-            _timer.seconds = 1;
-
-        if (_state != TS_WAIT)
-        {
-            _blink.reset();
-            displayTimer();
-        }
-        else
-        {
-            _ui._display.showTimer(_timer.minutes, _timer.seconds, DF_NO_LZ);
-            _led_timer->updateInterval(
-                    (((uint32_t)_timer.minutes * 60) + (uint32_t)_timer.seconds) * _s_hue_interval, false);
-        }
-
-        return;
-    }
-
-    if ((_timer.minutes == 0) && (_timer.seconds == 0))
+    if ((_state != TS_SET_HM) && (_hm == 0) && (_ms == 0))
         return;
 
-    // Action comes before changing state here
+    // Action comes before changing state
     MFC(_change_actions[_state])();
 
     _state = _next_states[_state];
@@ -1861,7 +1755,10 @@ void UI::Timer::uisReset(ps_e ps)
 {
     stop();
     reset();
-    _state = TS_WAIT;
+
+    _state = TS_SET_HM;
+    _show_clock = false;
+    (void)_ui._touch.enable();
 }
 
 void UI::Timer::uisEnd(void)
@@ -1883,52 +1780,102 @@ bool UI::Timer::uisSleep(void)
 void UI::Timer::uisRefresh(void)
 {
     if (_state < TS_WAIT)
-        displayTimer(DF_NONE);
+        displaySetTimer();
     else if (_show_clock)
         clockUpdate(true);
     else
         timerUpdate(true);
 }
 
-void UI::Timer::waitMinutes(void)
+void UI::Timer::waitHM(void)
 {
     if (!_blink.toggled())
         return;
 
-    displayTimer(_blink.on() ? DF_NONE : DF_BL_BC);
+    displaySetTimer(_blink.on() ? DF_NONE : DF_BL_BC);
 }
 
-void UI::Timer::waitSeconds(void)
+void UI::Timer::waitMS(void)
 {
     if (!_blink.toggled())
         return;
 
-    displayTimer(_blink.on() ? DF_NONE : DF_BL_AC);
+    displaySetTimer(_blink.on() ? DF_NONE : DF_BL_AC);
 }
 
-void UI::Timer::updateMinutes(ev_e ev)
+void UI::Timer::updateHM(ev_e ev)
 {
-    evUpdate < uint8_t > (_timer.minutes, ev, 0, 99);
+    if ((_hm_flag != DF_NONE) && (_hm == 1) && (ev == EV_NEG))
+    {
+        _hm_flag = DF_NONE;
+        _hm = 59;
+    }
+    else if ((_hm_flag == DF_NONE) && (_hm == 59) && (ev == EV_POS))
+    {
+        _hm_flag = DF_HM;
+        _hm = 1;
+    }
+    else
+    {
+        evUpdate < uint8_t > (_hm, ev, 0, 99, false);
+    }
 }
 
-void UI::Timer::updateSeconds(ev_e ev)
+void UI::Timer::updateMS(ev_e ev)
 {
-    evUpdate < uint8_t > (_timer.seconds, ev, (_timer.minutes == 0) ? 1 : 0, 59);
+    evUpdate < uint8_t > (_ms, ev, _min_ms, 59);
 }
 
-void UI::Timer::displayTimer(df_t flags)
+void UI::Timer::displaySetTimer(df_t flags)
 {
-    _ui._display.showTimer(_timer.minutes, _timer.seconds,
-            (_timer.minutes == 0) ? (flags | DF_BL0) : (flags | DF_NO_LZ));
+    flags |= _hm_flag;
+    _ui._display.showTimer(_hm, _ms, (_hm == 0) ? (flags | DF_BL0) : (flags | DF_NO_LZ));
+}
+
+void UI::Timer::displayTimer(void)
+{
+    _ui._display.showTimer(_hm, _ms, DF_NO_LZ | _hm_flag);
+}
+
+void UI::Timer::changeHM(void)
+{
+    if (_hm == 0)
+        _min_ms = 1;
+    else
+        _min_ms = 0;
+
+    if (_ms < _min_ms)
+        _ms = _min_ms;
+
+    _blink.reset();
+    displaySetTimer();
 }
 
 void UI::Timer::start(void)
 {
-    _s_timer_seconds = ((uint32_t)_timer.minutes * 60) + (uint32_t)_timer.seconds;
-    _last_second = _s_timer_seconds;
+    displayTimer();
 
-    _s_timer_hue = _s_timer_hue_max;
-    _last_hue = _s_timer_hue;
+    if (_hm_flag == DF_NONE)
+        _s_seconds = ((uint32_t)_hm * 60) + (uint32_t)_ms;
+    else
+        _s_seconds = ((uint32_t)_hm * 60 * 60) + ((uint32_t)_ms * 60);
+
+    uint32_t minutes = _s_seconds / 60;
+    if (minutes > (10 * 60))
+        _s_hue_interval = 64;
+    else if (minutes > 60)
+        _s_hue_interval = 8;
+    else
+        _s_hue_interval = 1;
+
+    _led_timer->updateInterval((_s_seconds * _s_us_per_hue) / _s_hue_interval, false);
+
+    _last_second = _s_seconds;
+    _hm_toggle = true;
+
+    _s_hue_calls = 0;
+    _s_hue = _s_hue_max;
+    _last_hue = _s_hue;
     _ui._lighting.state(Lighting::LS_OTHER);
     _ui._lighting.setColor(CHSV(_last_hue, 255, 255));
 
@@ -1940,12 +1887,13 @@ void UI::Timer::reset(void)
 {
     _ui._beeper.stop();
     _ui._lighting.state(Lighting::LS_NIGHT_LIGHT);
-    _ui._display.showTimer(_timer.minutes, _timer.seconds, DF_NO_LZ);
+    _blink.reset();
+    displayTimer();
 }
 
 void UI::Timer::run(void)
 {
-    if (!_show_clock || (_s_timer_seconds == 0))
+    if (!_show_clock || (_s_seconds == 0))
         timerUpdate();
 
     hueUpdate();
@@ -1956,29 +1904,39 @@ void UI::Timer::run(void)
         _show_clock = false;
         _ui._beeper.start();
         _state = TS_ALERT;
-        _alarm_start = msecs();
+        _alert_start = msecs();
     }
 }
 
 void UI::Timer::timerUpdate(bool force)
 {
     // Not critical that interrupts be disabled
-    _second = _s_timer_seconds;
+    uint32_t second = _s_seconds;
 
-    if ((_second == _last_second) && !force)
+    if (!force && (second == _last_second))
         return;
 
-    _last_second = _second;
+    _last_second = second;
 
-    _minute = 0;
-    if (_second >= 60)
+    df_t hm_flag;
+    uint8_t hm, ms;
+    uint32_t minute = second / 60;
+    if (minute < 60)
     {
-        _minute = (uint8_t)(_second / 60);
-        _second %= 60;
+        hm_flag = DF_NONE;
+        hm = (uint8_t)minute;
+        ms = (uint8_t)(second % 60);
+    }
+    else
+    {
+        _hm_toggle = !_hm_toggle;
+        hm_flag = _hm_toggle ? DF_HM : DF_NONE;
+        hm = (uint8_t)(minute / 60);
+        ms = (uint8_t)(minute % 60);
     }
 
     if (_ui._refresh_start == 0)
-        _ui._display.showTimer(_minute, (uint8_t)_second, DF_NO_LZ);
+        _ui._display.showTimer(hm, ms, DF_NO_LZ | hm_flag);
 }
 
 void UI::Timer::clockUpdate(bool force)
@@ -1995,7 +1953,7 @@ void UI::Timer::clockUpdate(bool force)
 void UI::Timer::hueUpdate(void)
 {
     // Again, not critical that interrupts be disabled
-    uint8_t hue = _s_timer_hue;
+    uint8_t hue = _s_hue;
 
     if (hue != _last_hue)
     {
@@ -2024,7 +1982,7 @@ void UI::Timer::stop(void)
 
 void UI::Timer::alert(void)
 {
-    if (_ui._touch.touched(_alarm_start))
+    if (_ui._touch.touched(_alert_start))
     {
         uisChange();
         return;
@@ -2112,14 +2070,13 @@ bool UI::Touch::timedTouch(uint32_t ttime)
     return (msecs() - touched_time) >= ttime;
 }
 
-bool UI::Touch::uisBegin(void)
+void UI::Touch::uisBegin(void)
 {
     _tsi.get(_touch);
     _state = (_touch.threshold == 0) ? TS_DISABLED : TS_OPT;
     _ui._player.stop();
     reset();
     _ui._lighting.state(Lighting::LS_OTHER);
-    return true;
 }
 
 void UI::Touch::uisWait(void)
@@ -2530,7 +2487,7 @@ void UI::Touch::displayDone(df_t flags)
             case 3: displayExtChrg(); break;
             case 4: _ui._display.showString("thr."); break;
             case 5: displayThreshold(); break;
-            default: _ui._display.showString("... "); break;
+            default: _ui._display.showString("...."); break;
         }
     }
     else
@@ -2556,15 +2513,13 @@ void UI::Touch::displayDisabled(df_t flags)
 ////////////////////////////////////////////////////////////////////////////////
 constexpr CRGB::Color const UI::SetLeds::_s_colors[];
 
-bool UI::SetLeds::uisBegin(void)
+void UI::SetLeds::uisBegin(void)
 {
     _state = SLS_TYPE;
     _blink.reset();
     _updated = _done = false;
     _ui._lighting.state(Lighting::LS_SET);
     display();
-
-    return true;
 }
 
 void UI::SetLeds::uisWait(void)
@@ -2823,5 +2778,300 @@ void UI::SetLeds::displayDone(df_t flags)
 }
 ////////////////////////////////////////////////////////////////////////////////
 // SetLeds END /////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+// SetSleep START //////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+constexpr char const * const UI::SetSleep::_s_opts[SOPT_CNT];
+
+void UI::SetSleep::uisBegin(void)
+{
+    init();
+
+    _state = SSS_MCU;
+    changeMcu();
+
+    _blink.reset(_s_set_blink_time);
+    _updated = _done = false;
+    display();
+}
+
+void UI::SetSleep::uisWait(void)
+{
+    if ((_wait_actions[_state] != nullptr) && _blink.toggled())
+        MFC(_wait_actions[_state])(_blink.on());
+}
+
+void UI::SetSleep::uisUpdate(ev_e ev)
+{
+    if (_update_actions[_state] == nullptr)
+        return;
+
+    _updated = true;
+    MFC(_update_actions[_state])(ev);
+    display();
+}
+
+void UI::SetSleep::uisChange(void)
+{
+    _state = _next_states[_state];
+
+    if (_change_actions[_state] != nullptr)
+        MFC(_change_actions[_state])();
+
+    if (_state == SSS_DONE)
+        _blink.reset(_s_done_blink_time);
+    else
+        _blink.reset(_s_set_blink_time);
+
+    display();
+}
+
+void UI::SetSleep::uisReset(ps_e ps)
+{
+    uisBegin();
+}
+
+void UI::SetSleep::uisEnd(void)
+{
+    if (_updated) set();
+    _ui._display.blank();
+}
+
+bool UI::SetSleep::uisSleep(void)
+{
+    return true;
+}
+
+void UI::SetSleep::uisRefresh(void)
+{
+    _blink.reset();
+    display();
+}
+
+uint32_t UI::SetSleep::getMcuTime(void)
+{
+    return _sleep.mcu_secs * 1000;
+}
+
+uint32_t UI::SetSleep::getDisplayTime(void)
+{
+    return _sleep.display_secs * 1000;
+}
+
+uint32_t UI::SetSleep::getPlayerTime(void)
+{
+    return _sleep.player_secs * 1000;
+}
+
+void UI::SetSleep::init(void)
+{
+    if (!_ui._eeprom.getSleep(_sleep))
+    {
+        _sleep.mcu_secs = 0;
+        _sleep.display_secs = 0;
+        _sleep.player_secs = 0;
+    }
+
+    initTime(_sleep.mcu_secs, _mcu_hm, _mcu_ms, _mcu_hm_flag);
+    initTime(_sleep.display_secs, _display_hm, _display_ms, _display_hm_flag);
+    initTime(_sleep.player_secs, _player_hm, _player_ms, _player_hm_flag);
+}
+
+void UI::SetSleep::initTime(uint32_t secs, uint8_t & hm, uint8_t & ms, df_t & hm_flag)
+{
+    uint32_t mins = secs / 60;
+
+    if (mins < 60)
+    {
+        hm_flag = DF_NONE;
+        hm = (uint8_t)mins;
+        ms = (uint8_t)(secs % 60);
+
+        if ((hm == 0) && (ms != 0) && (ms < _min_ms))
+            ms = 0;
+    }
+    else
+    {
+        hm_flag = DF_HM;
+        hm = (uint8_t)(mins / 60);
+        ms = (uint8_t)(mins % 60);
+    }
+}
+
+void UI::SetSleep::set(void)
+{
+    if (_mcu_hm_flag == DF_NONE)
+        _sleep.mcu_secs = (_mcu_hm * 60) + _mcu_ms;
+    else
+        _sleep.mcu_secs = (_mcu_hm * 60 * 60) + (_mcu_ms * 60);
+
+    if (_display_hm_flag == DF_NONE)
+        _sleep.display_secs = (_display_hm * 60) + _display_ms;
+    else
+        _sleep.display_secs = (_display_hm * 60 * 60) + (_display_ms * 60);
+
+    if (_player_hm_flag == DF_NONE)
+        _sleep.player_secs = (_player_hm * 60) + _player_ms;
+    else
+        _sleep.player_secs = (_player_hm * 60 * 60) + (_player_ms * 60);
+
+    (void)_ui._eeprom.setSleep(_sleep);
+
+    _ui.setMcuSleep(_sleep.mcu_secs * 1000);
+    _ui.setDisplaySleep(_sleep.display_secs * 1000);
+    _ui._player.setAutoStop(_sleep.player_secs * 1000);
+}
+
+void UI::SetSleep::waitOpt(bool on)
+{
+    display(on ? DF_NONE : DF_BL);
+}
+
+void UI::SetSleep::waitHM(bool on)
+{
+    display(on ? DF_NONE : DF_BL_BC);
+}
+
+void UI::SetSleep::waitMS(bool on)
+{
+    display(on ? DF_NONE : DF_BL_AC);
+}
+
+void UI::SetSleep::waitDone(bool on)
+{
+    display(on ? DF_NONE : DF_BL);
+}
+
+void UI::SetSleep::updateMcu(ev_e ev)
+{
+    _state = SSS_MCU_HM;
+}
+
+void UI::SetSleep::updateDisplay(ev_e ev)
+{
+    _state = SSS_DISPLAY_HM;
+}
+
+void UI::SetSleep::updatePlayer(ev_e ev)
+{
+    _state = SSS_PLAYER_HM;
+}
+
+void UI::SetSleep::updateHM(ev_e ev)
+{
+    if ((*_hm_flag != DF_NONE) && (*_hm == 1) && (ev == EV_NEG))
+    {
+        *_hm_flag = DF_NONE;
+        *_hm = 59;
+    }
+    else if ((*_hm_flag == DF_NONE) && (*_hm == 59) && (ev == EV_POS))
+    {
+        *_hm_flag = DF_HM;
+        *_hm = 1;
+    }
+    else
+    {
+        evUpdate < uint8_t > (*_hm, ev, 0, 99, false);
+    }
+}
+
+void UI::SetSleep::updateMS(ev_e ev)
+{
+    evUpdate < uint8_t > (*_ms, ev, 0, 59);
+
+    if ((*_ms > 0) && (*_ms < _min_ms))
+    {
+        if (ev == EV_NEG)
+            *_ms = 0;
+        else
+            *_ms = _min_ms;
+    }
+}
+
+void UI::SetSleep::changeMcu(void)
+{
+    _sopt = SOPT_MCU;
+    _hm = &_mcu_hm;
+    _ms = &_mcu_ms;
+    _hm_flag = &_mcu_hm_flag;
+}
+
+void UI::SetSleep::changeDisplay(void)
+{
+    _sopt = SOPT_DISPLAY;
+    _hm = &_display_hm;
+    _ms = &_display_ms;
+    _hm_flag = &_display_hm_flag;
+}
+
+void UI::SetSleep::changePlayer(void)
+{
+    _sopt = SOPT_PLAYER;
+    _hm = &_player_hm;
+    _ms = &_player_ms;
+    _hm_flag = &_player_hm_flag;
+}
+
+void UI::SetSleep::changeMS(void)
+{
+    if ((*_hm == 0) && (*_hm_flag == DF_NONE))
+        _min_ms = _s_min_secs;
+    else
+        _min_ms = 0;
+
+    if ((*_ms != 0) && (*_ms < _min_ms))
+        *_ms = _min_ms;
+}
+
+void UI::SetSleep::changeDone(void)
+{
+    set();
+    _done = true;
+    _updated = false;
+}
+
+void UI::SetSleep::display(df_t flags)
+{
+    MFC(_display_actions[_state])(flags);
+}
+
+void UI::SetSleep::displayOpt(df_t flags)
+{
+    _ui._display.showString(_s_opts[_sopt], flags);
+}
+
+void UI::SetSleep::displayTime(df_t flags)
+{
+    flags |= *_hm_flag;
+    _ui._display.showTimer(*_hm, *_ms, (*_hm == 0) ? (flags | DF_BL0) : (flags | DF_NO_LZ));
+}
+
+void UI::SetSleep::displayDone(df_t flags)
+{
+    static constexpr uint8_t const nopts = 6;
+    static uint32_t i = 0;
+
+    if (_done) { i = 0; _done = false; }
+    else if (flags == DF_NONE) i++;
+    else return;
+
+    uint8_t sw = i % (nopts + 1);
+
+    if (sw == 0)      changeMcu();
+    else if (sw == 2) changeDisplay();
+    else if (sw == 4) changePlayer();
+
+    switch (sw)
+    {
+        case 0: case 2: case 4: displayOpt(); break;
+        case 1: case 3: case 5: ((*_hm == 0) && (*_ms == 0)) ? _ui._display.showOff() : displayTime(); break;
+        default: _ui._display.showString("...."); break;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// SetSleep END ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 

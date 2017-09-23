@@ -6,35 +6,44 @@
 
 enum eei_e : uint8_t
 {
-    EEI_ALARM_HOUR,
-    EEI_ALARM_MINUTE,
-    EEI_ALARM_TYPE,
-    EEI_ALARM_SNOOZE,
-    EEI_ALARM_WAKE,
-    EEI_ALARM_TIME,
-    EEI_ALARM_STATE,
-    EEI_CLOCK_SECOND,
-    EEI_CLOCK_MINUTE,
-    EEI_CLOCK_HOUR,
-    EEI_CLOCK_DAY,
-    EEI_CLOCK_MONTH,
-    EEI_CLOCK_YEAR,
-    EEI_CLOCK_TYPE,
-    EEI_CLOCK_DST,
-    EEI_CLOCK_MIN_YEAR,
-    EEI_TIMER_SECONDS,
-    EEI_TIMER_MINUTES,
+    // 1-4
+    EEI_ALARM_HOUR_MINUTE,  // Hour & Minute
+    EEI_ALARM_SNOOZE_WAKE,  // Snooze & Wake times
+    EEI_ALARM_TOTAL_TIME,   // Total Alarm time
+    EEI_ALARM_TYPE_STATE,   // Alarm Type and State
+
+    // 5-9
+    EEI_CLOCK_SECOND,       // Second
+    EEI_CLOCK_HOUR_MINUTE,  // Hour & Minute
+    EEI_CLOCK_MONTH_DAY,    // Month & Day
+    EEI_CLOCK_YEAR,         // Year
+    EEI_CLOCK_TYPE_DST,     // Type & DST
+
+    // 10
+    EEI_CLOCK_MIN_YEAR,     // Minumum clock year
+
+    // 11
     EEI_TRACK,
+
+    // 12-13
     EEI_LEDS_COLOR_LOW,
     EEI_LEDS_COLOR_HIGH,
-    EEI_TOUCH_NSCN,
-    EEI_TOUCH_PS,
-    EEI_TOUCH_REFCHRG,
-    EEI_TOUCH_EXTCHRG,
+
+    // 14-16
+    EEI_TOUCH_NSCN_PS,          // NSCN & PS
+    EEI_TOUCH_REFCHRG_EXTCHRG,  // REFCHRG & EXTCHRG
     EEI_TOUCH_THRESHOLD,
-    // Num entries : 26
+
+    // 17-22
+    EEI_SLEEP_MCU_SECS_HIGH,     // MCU Sleep Time
+    EEI_SLEEP_MCU_SECS_LOW,      // MCU Sleep Time
+    EEI_SLEEP_DISPLAY_SECS_HIGH, // Display Sleep Time
+    EEI_SLEEP_DISPLAY_SECS_LOW,  // Display Sleep Time
+    EEI_SLEEP_PLAYER_SECS_HIGH,  // Player Stop/Sleep Time
+    EEI_SLEEP_PLAYER_SECS_LOW,   // Player Stop/Sleep Time
+    // Num entries : 22
 // Used to determine the EEPROM size
-#define EEI_CNT  26
+#define EEI_CNT  22
 };
 
 #define EE_ALARM_TYPE_BEEP   0x00
@@ -76,12 +85,6 @@ struct eClock
     bool dst;  // Daylight Saving Time
 };
 
-struct eTimer
-{
-    uint8_t minutes;
-    uint8_t seconds;
-};
-
 struct eTouch
 {
     uint8_t nscn;
@@ -89,6 +92,13 @@ struct eTouch
     uint8_t refchrg;
     uint8_t extchrg;
     uint16_t threshold;
+};
+
+struct eSleep
+{
+    uint32_t mcu_secs;
+    uint32_t display_secs;
+    uint32_t player_secs;
 };
 
 class Eeprom : public Module
@@ -117,9 +127,6 @@ class Eeprom : public Module
         bool setClockMinYear(uint16_t year);
         bool getClockMinYear(uint16_t & year) const;
 
-        bool setTimer(eTimer const & timer);
-        bool getTimer(eTimer & timer) const;
-
         bool setTrack(uint16_t track);
         bool getTrack(uint16_t & track) const;
 
@@ -128,6 +135,9 @@ class Eeprom : public Module
 
         bool setLedsColor(uint32_t color_code);
         bool getLedsColor(uint32_t & color_code) const;
+
+        bool setSleep(eSleep const & sleep);
+        bool getSleep(eSleep & sleep) const;
 
         Eeprom(Eeprom const &) = delete;
         Eeprom & operator=(Eeprom const &) = delete;

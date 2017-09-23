@@ -65,21 +65,16 @@ void rtc_seconds_isr(void)
 Rtc::Rtc(void)
 {
     tAlarm alarm;
-    tTimer timer;
     tClock clock;
     uint16_t clock_min_year;
 
 #ifdef RTC_INIT
     (void)defaultAlarm(alarm);
-    (void)defaultTimer(timer);
     (void)defaultClock(clock);
     (void)defaultClockMinYear(clock_min_year);
 #else
     if (!_eeprom.getAlarm(alarm) || !isValidAlarm(alarm))
         (void)defaultAlarm(alarm);
-
-    if (!_eeprom.getTimer(timer) || !isValidTimer(timer))
-        (void)defaultTimer(timer);
 
     if (!_eeprom.getClock(clock) || !isValidClock(clock))
         (void)defaultClock(clock);
@@ -91,7 +86,6 @@ Rtc::Rtc(void)
     _tsr = RTC_TSR_INVALID;
 
     _alarm = alarm;
-    _timer = timer;
 
     _clock_dst = clock.dst;
     _clock_type = clock.type;
@@ -570,29 +564,3 @@ bool Rtc::defaultAlarm(tAlarm & alarm)
 
     return _eeprom.setAlarm(alarm);
 }
-
-bool Rtc::isValidTimer(tTimer const & timer)
-{
-    return timer.seconds < 60;
-}
-
-bool Rtc::setTimer(tTimer const & timer)
-{
-    if (!isValidTimer(timer))
-        return false;
-
-    _timer = timer;
-
-    (void)_eeprom.setTimer(timer);
-
-    return true;
-}
-
-bool Rtc::defaultTimer(tTimer & timer)
-{
-    timer.minutes = 0;
-    timer.seconds = 0;
-
-    return _eeprom.setTimer(timer);
-}
-

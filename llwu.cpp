@@ -17,6 +17,7 @@ wus_e volatile Llwu::_s_wakeup_source = WUS_NONE;
 wums_e volatile Llwu::_s_wakeup_module = WUMS_NOT;
 int8_t volatile Llwu::_s_wakeup_pin = -1;
 Lptmr * Llwu::_s_lptmr = nullptr;
+Tsi * Llwu::_s_tsi = nullptr;
 constexpr int8_t const Llwu::_s_wups_to_pin[16];
 
 reg8 Llwu::_s_base = (reg8)0x4007C000;
@@ -70,6 +71,9 @@ void Llwu::disable(void)
 
     if (_s_lptmr != nullptr)
         timerDisable();
+
+    if (_s_tsi != nullptr)
+        tsiDisable();
 
     stopMode();
     SCB::clearSleepDeep();
@@ -175,6 +179,9 @@ void wakeup_isr(void)
         // generated since the LPTMR_CSR_TCF flag hasn't been cleared yet.
         if (Llwu::_s_lptmr != nullptr)
             Llwu::_s_lptmr->clear();
+
+        if (Llwu::_s_tsi != nullptr)
+            Llwu::_s_tsi->clear();
     }
     else if (wufp != 0)
     {

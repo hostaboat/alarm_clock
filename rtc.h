@@ -8,7 +8,6 @@
 
 using tClock = eClock;
 using tAlarm = eAlarm;
-using tTimer = eTimer;
 
 extern "C" void rtc_seconds_isr(void);
 //extern "C" void rtc_alarm_isr(void);
@@ -120,16 +119,6 @@ class Rtc : public Module
         static bool alarmIsMusic(uint8_t type) { return type == alarmMusic(); }
         static bool alarmIsBeep(uint8_t type) { return type == alarmBeep(); }
 
-        ////////////////////////////////////////////////////////////////////////
-        // Timer ///////////////////////////////////////////////////////////////
-        ////////////////////////////////////////////////////////////////////////
-        bool setTimer(tTimer const & timer);
-        void getTimer(tTimer & timer) const { timer = _timer; }
-        uint8_t timerMinutes(void) const { return _timer.minutes; }
-        uint8_t timerSeconds(void) const { return _timer.seconds; }
-
-        static bool isValidTimer(tTimer const & timer);
-
     private:
         Rtc(void);
 
@@ -142,7 +131,6 @@ class Rtc : public Module
         bool defaultClock(tClock & clock);
         bool defaultClockMinYear(uint16_t & clock_min_year);
         bool defaultAlarm(tAlarm & alarm);
-        bool defaultTimer(tTimer & timer);
 
         // Daylight Saving Time routines
         void dstInit(void);
@@ -163,7 +151,6 @@ class Rtc : public Module
         bool _clock_dst = false;
 
         tAlarm _alarm{};
-        tTimer _timer{};
 
         Eeprom & _eeprom = Eeprom::acquire();
 

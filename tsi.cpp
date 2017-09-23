@@ -23,19 +23,26 @@ constexpr tTouch const Tsi::_s_default_touch;
 bool volatile Tsi::_s_error = false;
 bool volatile Tsi::_s_overrun = false;
 bool volatile Tsi::_s_eos = false;
+bool volatile Tsi::_s_outrgf = false;
 
 void tsi0_isr(void)
 {
+    if (*Tsi::_s_gencs & TSI_GENCS_OVRF)
+    {
+        Tsi::_s_overrun = true;
+        *Tsi::_s_gencs |= TSI_GENCS_OVRF;
+    }
+
     if (*Tsi::_s_gencs & TSI_GENCS_EXTERF)
     {
         Tsi::_s_error = true;
         *Tsi::_s_gencs |= TSI_GENCS_EXTERF;
     }
 
-    if (*Tsi::_s_gencs & TSI_GENCS_OVRF)
+    if (*Tsi::_s_gencs & TSI_GENCS_OUTRGF)
     {
-        Tsi::_s_overrun = true;
-        *Tsi::_s_gencs |= TSI_GENCS_OVRF;
+        Tsi::_s_outrgf = true;
+        *Tsi::_s_gencs |= TSI_GENCS_OUTRGF;
     }
 
     if (*Tsi::_s_gencs & TSI_GENCS_EOSF)
@@ -43,6 +50,13 @@ void tsi0_isr(void)
         Tsi::_s_eos = true;
         *Tsi::_s_gencs |= TSI_GENCS_EOSF;
     }
+}
+
+void Tsi::clear(void)
+{
+    *_s_gencs |= TSI_GENCS_OVRF | TSI_GENCS_EXTERF | TSI_GENCS_OUTRGF | TSI_GENCS_EOSF;
+    _s_overrun = _s_error = _s_outrgf = _s_eos = false;
+    NVIC::clearPending(IRQ_TSI);
 }
 
 Tsi::Tsi(void)

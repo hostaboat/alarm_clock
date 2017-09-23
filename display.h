@@ -61,6 +61,7 @@ class Display
 #define DF_DP_MASK   (DF_DP0 | DF_DP1 | DF_DP2 | DF_DP3)
 #define DF_NEG       DF_DP3  // Display negative - just puts a decimal at end
 #define DF_PM        DF_DP3  // Display time as PM
+#define DF_HM        DF_DP3  // Display timer as HH:MM
 #define DF_OCT       0x1000  // Display number as octal
 #define DF_HEX       0x2000  // Display number as hexidecimal
 #define DF_12H       0x4000  // Display time in 12 hour format
@@ -122,6 +123,8 @@ class Seg7Display : public Display
         void showOption(char const * opt, uint8_t val, df_t flags = DF_NONE);
         void setOption(char const * opt, char val, df_t flags = DF_NONE);
         void showOption(char const * opt, char val, df_t flags = DF_NONE);
+        void setOption(char const * opt, char const * val, df_t flags = DF_NONE);
+        void showOption(char const * opt, char const * val, df_t flags = DF_NONE);
 
         void setString(char const * str, df_t flags = DF_NONE);
         void showString(char const * str, df_t flags = DF_NONE);
@@ -484,7 +487,7 @@ void DevHT16K33 < ADDR, I2C, SDA, SCL >::display(void)
     this->_i2c.tx8(0x00);  // Command code
 
     uint8_t i = 0;
-    for (; i < 5; i++)
+    for (; i < sizeof(_positions); i++)
     {
         this->_i2c.tx8(_positions[i]);
         this->_i2c.tx8(0x00);

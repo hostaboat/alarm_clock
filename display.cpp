@@ -331,6 +331,20 @@ void Seg7Display::showOption(char const * opt, char val, df_t flags)
     show();
 }
 
+void Seg7Display::setOption(char const * opt, char const * val, df_t flags)
+{
+    setString(opt, DP_0, ND_2, flags);
+    setDigit(0, DP_2, flags);
+    setString(val, DP_2, ND_2, flags);
+    setColon(DF_COLON);
+}
+
+void Seg7Display::showOption(char const * opt, char const * val, df_t flags)
+{
+    setOption(opt, val, flags);
+    show();
+}
+
 void Seg7Display::setString(char const * str, dp_e dp, nd_e nd, df_t flags)
 {
     if (((flags & DF_BL) == DF_BL) || (str == nullptr) || (str[0] == 0))
@@ -390,9 +404,9 @@ void Seg7Display::setString(char const * str, dp_e dp, nd_e nd, df_t flags)
         setChar(0x00, (dp_e)pos, flags);
 
     // Characters plus decimal
-    for (uint8_t i = 0; i < j; i++, pos++)
+    for (uint8_t i = dp; i < j; i++, pos++)
     {
-        if (buf[i] & 0x80)
+        if ((buf[i] & 0x80) && !(digitFlags((dp_e)pos, flags) & DF_BL_MASK))
             setDPFlag((dp_e)pos, flags);
 
         setChar(buf[i] & 0x7F, (dp_e)pos, flags);

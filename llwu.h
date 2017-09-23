@@ -4,6 +4,7 @@
 #include "pin.h"
 #include "armv7m.h"
 #include "lptmr.h"
+#include "tsi.h"
 #include "types.h"
 
 // WakeUp Pin Enable detection
@@ -114,6 +115,33 @@ class Llwu
         bool timerEnable(uint16_t msecs);
         bool timerDisable(void);
 
+        template < pin_t PIN >
+        bool tsiEnable(void)
+        {
+            if (_s_tsi != nullptr)
+                return false;
+
+            _s_tsi = &Tsi::acquire();
+            _s_tsi->enableLPSP < PIN > ();
+
+            *_s_me |= (1 << WUMS_TSI);
+
+            return true;
+        }
+
+        bool tsiDisable(void)
+        {
+            if (_s_tsi == nullptr)
+                return false;
+
+            *_s_me &= ~(1 << WUMS_TSI);
+
+            _s_tsi->disableLPSP();
+            _s_tsi = nullptr;
+
+            return true;
+        }
+
         Llwu(const Llwu &) = delete;
         Llwu & operator=(const Llwu &) = delete;
 
@@ -130,6 +158,7 @@ class Llwu
         static wums_e volatile _s_wakeup_module;
         static int8_t volatile _s_wakeup_pin;
         static Lptmr * _s_lptmr;
+        static Tsi * _s_tsi;
 
         static reg8 _s_base;
         static reg8 _s_pe1;
