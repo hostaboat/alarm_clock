@@ -1756,7 +1756,11 @@ void UI::Timer::uisReset(ps_e ps)
     stop();
     reset();
 
-    _state = TS_SET_HM;
+    if (_state <= TS_WAIT)
+        _state = TS_SET_HM;
+    else
+        _state = TS_WAIT;
+
     _show_clock = false;
     (void)_ui._touch.enable();
 }
