@@ -254,7 +254,7 @@ class UI
                 void update(uint8_t hour, uint8_t minute);
                 bool snooze(bool force = false);
                 bool snoozing(void) { return _state == AS_SNOOZE; }
-                bool alerting(void) { return _state == AS_ON; }
+                bool alerting(void) { return _state == AS_WAKE; }
                 void stop(void);
                 bool enabled(void);
                 bool inProgress(void);
@@ -267,7 +267,7 @@ class UI
                 enum as_e : uint8_t
                 {
                     AS_OFF,
-                    AS_ON,
+                    AS_WAKE,
                     AS_SNOOZE,
                     AS_DONE
                 };

@@ -777,34 +777,38 @@ void UI::Alarm::update(uint8_t hour, uint8_t minute)
     if (!_alarm.enabled)
         return;
 
-    if (_state == AS_OFF)
+    switch (_state)
     {
-        check(hour, minute);
-    }
-    else if (_state == AS_ON)
-    {
-        // Stop alarm after it's been in progress for some time or if it's been
-        // actively on for more than some time. If user's been snoozing it for
-        // a while they're not getting up.  And if it's beeping or playing for
-        // more than a reasonable amount of time, it's likely that one forgot
-        // to turn it off.
-        if (((_alarm_time != 0) && ((msecs() - _alarm_start) > _alarm_time))
-                || ((_wake_time != 0) && ((msecs() - _wake_start) > _wake_time)))
-        {
-            stop();
-            return;
-        }
+        case AS_OFF:
+            check(hour, minute);
+            break;
 
-        if (!snooze() && !_alarm_music)
-            (void)_ui._beeper.toggled();
-    }
-    else if (_state == AS_SNOOZE)
-    {
-        wake();
-    }
-    else if (_state == AS_DONE)
-    {
-        done(hour, minute);
+        case AS_WAKE:
+        case AS_SNOOZE:
+            // Stop alarm after it's been in progress for more than the
+            // configured total alarm time.
+            if ((_alarm_time != 0) && ((msecs() - _alarm_start) > _alarm_time))
+            {
+                stop();
+            }
+            else if (_state == AS_WAKE)
+            {
+                // Stop alarm if it's been actively on for more than the
+                // configured wake time.
+                if ((_wake_time != 0) && ((msecs() - _wake_start) > _wake_time))
+                    stop();
+                else if (!snooze() && !_alarm_music)
+                    (void)_ui._beeper.toggled();
+            }
+            else // _state == AS_SNOOZE
+            {
+                wake();
+            }
+            break;
+
+        case AS_DONE:
+            done(hour, minute);
+            break;
     }
 }
 
@@ -815,7 +819,7 @@ bool UI::Alarm::enabled(void)
 
 bool UI::Alarm::inProgress(void)
 {
-    return (_alarm.enabled && ((_state == AS_ON) || (_state == AS_SNOOZE)));
+    return (_alarm.enabled && ((_state == AS_WAKE) || (_state == AS_SNOOZE)));
 }
 
 void UI::Alarm::check(uint8_t hour, uint8_t minute)
@@ -836,7 +840,7 @@ void UI::Alarm::check(uint8_t hour, uint8_t minute)
     }
 
     _alarm_start = _wake_start = msecs();
-    _state = AS_ON;
+    _state = AS_WAKE;
 }
 
 bool UI::Alarm::snooze(bool force)
@@ -869,7 +873,7 @@ void UI::Alarm::wake(void)
         _ui._beeper.start();
 
     _wake_start = msecs();
-    _state = AS_ON;
+    _state = AS_WAKE;
 }
 
 void UI::Alarm::stop(void)
