@@ -2372,9 +2372,9 @@ void UI::SetTouch::uisBegin(void)
 {
     _tsi.get(_touch);
     _state = (_touch.threshold == 0) ? TS_DISABLED : TS_OPT;
-    _ui._player.stop();
-    reset();
+    _topt = TOPT_CAL;
     _ui._lighting.state(Lighting::LS_OTHER);
+    reset();
 }
 
 void UI::SetTouch::uisWait(void)
@@ -2440,7 +2440,8 @@ void UI::SetTouch::uisReset(ps_e ps)
 {
     if (_state != TS_OPT)
     {
-        if ((_state == TS_CAL_START) || (_state == TS_NSCN) || (_state == TS_READ) || (_state == TS_DONE))
+        if ((_state == TS_DONE) || (_state == TS_NSCN) || (_state == TS_READ)
+                || ((_state == TS_CAL_START) && (_topt == TOPT_CAL)))
             _state = TS_OPT;
         else if (_state == TS_DISABLED)
             toggleEnabled();
@@ -2448,11 +2449,17 @@ void UI::SetTouch::uisReset(ps_e ps)
             _state = TS_CAL_START;
         else if (_topt == TOPT_CONF)
             _state = TS_NSCN;
+        else if (_topt == TOPT_READ)
+            _state = TS_READ;
     }
 
-    _ui._lighting.setColor(CRGB::BLACK);
-    _ui._beeper.stop();
-    _amp.stop();
+    if (_state == TS_OPT)
+        _topt = TOPT_CAL;
+
+    if (_state == TS_CAL_START)
+        _ui._lighting.setColor(CHSV(0, 255, 255));
+    else
+        _ui._lighting.setColor(CRGB::BLACK);
 
     reset();
 }
@@ -2479,7 +2486,8 @@ void UI::SetTouch::reset(void)
 {
     _readings = 0;
     _untouched.reset();
-    _topt = TOPT_CAL;
+    _ui._beeper.stop();
+    _ui._player.stop();
 
     _done = false;
 
