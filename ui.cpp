@@ -21,7 +21,11 @@ UI::UI(void)
 
     // Set initial state
     if (_controls.rsPos() == RSP_NONE)
-        error();
+    {
+        _errno = ERR_HW_RS;
+        return;
+    }
+
     _state = _next_states[UIS_CLOCK][PS_NONE][_controls.rsPos()];
 
     _alarm.begin();
@@ -30,76 +34,77 @@ UI::UI(void)
 
 bool UI::valid(void)
 {
-    return _controls.valid() && _display.valid() && _lighting.valid()
-        && _beeper.valid() && _touch.valid()
-        && _player._fs.valid() && _player._audio.valid() && !_player.disabled();
+    if (_controls.valid() &&
+            _display.valid() &&
+            _lighting.valid() &&
+            _beeper.valid() &&
+            _touch.valid() &&
+            !_player.disabled() &&
+            (_errno == ERR_NONE))
+    {
+        return true;
+    }
+
+    if (_errno != ERR_NONE)
+        return false;
+
+    if (!_controls.rsValid())
+        _errno = ERR_HW_RS;
+    else if (!_controls.encValid())
+        _errno = ERR_HW_ENC_SWI;
+    else if (!_controls.brValid())
+        _errno = ERR_HW_BR_ENC;
+    else if (!_controls.swiValid(Controls::SWI_PLAY))
+        _errno = ERR_HW_PLAY;
+    else if (!_controls.swiValid(Controls::SWI_NEXT))
+        _errno = ERR_HW_NEXT;
+    else if (!_controls.swiValid(Controls::SWI_PREV))
+        _errno = ERR_HW_PREV;
+    else if (!_display.valid())
+        _errno = ERR_HW_DISPLAY;
+    else if (!_lighting.valid())
+        _errno = ERR_HW_LIGHTING;
+    else if (!_beeper.valid())
+        _errno = ERR_HW_BEEPER;
+    else if (!_touch.valid())
+        _errno = ERR_HW_TOUCH;
+    else if (!_player._fs.valid())
+        _errno = ERR_HW_DISK;
+    else if (!_player._audio.valid())
+        _errno = ERR_HW_AUDIO;
+    else if (_player.disabled())
+        _errno = ERR_PLAYER;
+
+    return false;
 }
 
-void UI::error(uis_e state)
+void UI::error(void)
 {
     _player.stop();
     _beeper.stop();
 
-    if (_display.valid())
-    {
-        Toggle err(500);
-        _display.showString("Err");
+    Toggle err(1000);
+    bool error_str = true;
+    _display.showString("Err");
 
-        while (true)
+    while (true)
+    {
+        _controls.process();
+        if (_controls.interaction())
+            break;
+
+        if (err.toggled())
         {
-            if (err.toggled())
-            {
-                if (err.on())
-                    _display.showString("Err");
-                else if (_player.error() == Player::ERR_INVALID)
-                    _display.showString("P.PLA");
-                else if (_player.error() == Player::ERR_GET_FILES)
-                    _display.showString("P.FIL");
-                else if (_player.error() == Player::ERR_OPEN_FILE)
-                    _display.showString("P.OPE");
-                else if (_player.error() == Player::ERR_AUDIO)
-                    _display.showString("P.AUd");
-                else if (!_controls.swiValid(Controls::SWI_PLAY))
-                    _display.showString("PlA");
-                else if (!_controls.swiValid(Controls::SWI_PREV))
-                    _display.showString("PrE");
-                else if (!_controls.swiValid(Controls::SWI_NEXT))
-                    _display.showString("nE");
-                else if (!_player._audio.valid())
-                    _display.showString("Au");
-                else if (!_player._fs.valid())
-                    _display.showString("FS");
-                else if (!_controls.rsValid())
-                    _display.showString("SELE.");
-                else if (!_controls.brValid())
-                    _display.showString("br.Ad.");
-                else if (!_controls.encValid())
-                    _display.showString("EncS.");
-                else if (!_beeper.valid())
-                    _display.showString("BEEP");
-                else if (!_lighting.valid())
-                    _display.showString("LEdS");
-                else if (state == UIS_SET_ALARM)
-                    _display.showString("SE.AL.");
-                else if (state == UIS_SET_CLOCK)
-                    _display.showString("SE.CL.");
-                else if (state == UIS_CLOCK)
-                    _display.showString("CL.");
-                else if (state == UIS_TIMER)
-                    _display.showString("tI.");
-                else if (state == UIS_SET_TOUCH)
-                    _display.showString("SE.tU.");
-                else if (state == UIS_SET_LEDS)
-                    _display.showString("SE.LE.");
-                else if (state == UIS_CNT)
-                    _display.showString("Init");
-                else if (!_touch.valid())
-                    _display.showString("tSI");
-            }
+            if (err.on())
+                _display.showString("Err");
+            else if ((error_str = !error_str))
+                _display.showString(_err_strs[_errno]);
+            else
+                _display.showInteger(_errno);
         }
     }
 
-    while (true);
+    _errno = ERR_NONE;
 }
 
 void UI::process(void)
@@ -428,10 +433,16 @@ UI::sl_e UI::sleep(bool wake, bool redisplay)
             _display.brightness(BR_LOW);
     };
 
-    auto clock = [&](void) -> void
+    auto clock_update = [&](void) -> void
     {
+        if (sl_state == SL_SLEEPING)
+            _rtc.wake();
+
         if ((_rtc.update() >= RU_MIN) && (_state == UIS_CLOCK))
             _display.showClock(_rtc.clockHour(), _rtc.clockMinute(), _rtc.clockIs12H() ? DF_12H : DF_24H);
+
+        if (sl_state == SL_SLEEPING)
+            _rtc.sleep();
     };
 
     uint32_t m = msecs();
@@ -473,7 +484,9 @@ UI::sl_e UI::sleep(bool wake, bool redisplay)
 
     if (!sleep || _player.running())
     {
-        clock();
+        if (sl_state == SL_RESTING)
+            clock_update();
+
         return sl_state;
     }
 
@@ -509,6 +522,8 @@ UI::sl_e UI::sleep(bool wake, bool redisplay)
         return sl_state;
     }
 
+    sl_state = SL_SLEEPING;
+
     // Sleep for about a minute and wake up to check time
     (void)_rtc.update();
     (void)_llwu.timerEnable(60000 - (_rtc.clockSecond() * 1000));
@@ -526,10 +541,8 @@ UI::sl_e UI::sleep(bool wake, bool redisplay)
         if ((_llwu.sleep() != WUS_MODULE) || (_llwu.wakeupModule() != WUMS_LPTMR))
             break;
 
-        _rtc.wake();
-        clock();
+        clock_update();
         (void)_llwu.timerUpdate(60000 - (_rtc.clockSecond() * 1000));
-        _rtc.sleep();
     }
 
     _llwu.disable();
@@ -592,9 +605,6 @@ UI::Controls::Controls(UI & ui)
     : _ui{ui}
 {
     setRsPos();
-    if (_rs_pos == RSP_NONE)
-        _ui.error();
-
     _rs_pos_last = _rs_pos;
 }
 
@@ -702,10 +712,20 @@ void UI::Controls::setRsPos(void)
     else if (pos == 2) _rs_pos = RSP_MIDDLE;
 }
 
+void UI::Controls::reset(void)
+{
+    _br_turn = _enc_turn = EV_ZERO;
+    _rs_pos = _rs_pos_last = RSP_NONE;
+    _enc_swi.reset();
+    _play.reset();
+    _next.reset();
+    _prev.reset();
+}
+
 bool UI::Controls::valid(void) const
 {
     return rsValid() && brValid() && encValid()
-        && playValid() && nextValid() && prevValid();
+        && _play.valid() && _next.valid() && _prev.valid();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -720,7 +740,7 @@ UI::Player::Player(UI & ui)
 {
     if (!_audio.valid() || !_fs.valid())
     {
-        _error = ERR_INVALID;
+        _disabled = true;
         return;
     }
 
@@ -729,7 +749,8 @@ UI::Player::Player(UI & ui)
     int num_tracks = _fs.getFiles(_tracks, _s_max_tracks, _track_exts);
     if (num_tracks <= 0)
     {
-        _error = ERR_GET_FILES;
+        _ui._errno = ERR_PLAYER_GET_FILES;
+        _disabled = true;
         return;
     }
 
@@ -747,7 +768,8 @@ UI::Player::Player(UI & ui)
     _track = _fs.open(_tracks[_current_track]);
     if (_track == nullptr)
     {
-        _error = ERR_OPEN_FILE;
+        _ui._errno = ERR_PLAYER_OPEN_FILE;
+        _disabled = true;
         return;
     }
 }
@@ -759,7 +781,8 @@ void UI::Player::play(void)
 
     if (!running() && !_track->rewind())
     {
-        _error = ERR_OPEN_FILE;
+        _ui._errno = ERR_PLAYER_OPEN_FILE;
+        _disabled = true;
         return;
     }
 
@@ -894,7 +917,10 @@ void UI::Player::process(void)
     }
 
     if (_audio.ready() && !_audio.send(_track, 32) && !_track->valid())
-        _error = ERR_AUDIO;
+    {
+        _ui._errno = ERR_PLAYER_AUDIO;
+        _disabled = true;
+    }
 }
 
 bool UI::Player::rewind(void)
@@ -950,7 +976,9 @@ bool UI::Player::newTrack(void)
             return true;
     }
 
-    _error = ERR_OPEN_FILE;
+    _ui._errno = ERR_PLAYER_OPEN_FILE;
+    _disabled = true;
+
     return false;
 }
 
@@ -2215,7 +2243,10 @@ void UI::Timer::uisBegin(void)
     _led_timer = Pit::acquire(timerLeds, _s_seconds_interval);  // Will get updated
 
     if ((_display_timer == nullptr) || (_led_timer == nullptr))
-        _ui.error();
+    {
+        _ui._errno = ERR_TIMER;
+        return;
+    }
 
     _blink.reset();
     displaySetTimer();

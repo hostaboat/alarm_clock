@@ -28,12 +28,58 @@ class UI
     private:
         UI(void);
 
+        enum err_e
+        {
+            ERR_NONE,
+            ERR_HW_RS,
+            ERR_HW_ENC_SWI,
+            ERR_HW_BR_ENC,
+            ERR_HW_PLAY,
+            ERR_HW_NEXT,
+            ERR_HW_PREV,
+            ERR_HW_BEEPER,
+            ERR_HW_DISPLAY,
+            ERR_HW_LIGHTING,
+            ERR_HW_TOUCH,
+            ERR_HW_DISK,
+            ERR_HW_AUDIO,
+            ERR_PLAYER,
+            ERR_PLAYER_GET_FILES,
+            ERR_PLAYER_OPEN_FILE,
+            ERR_PLAYER_AUDIO,
+            ERR_TIMER,
+            ERR_CNT  // 18
+        };
+
+        char const * const _err_strs[ERR_CNT] =
+        {
+            "nonE"     // ERR_NONE
+            "C.SEL.",  // ERR_HW_RS
+            "C.SEt.",  // ERR_HW_ENC_SWI
+            "C.br.",   // ERR_HW_BR_ENC
+            "C.PLA.",  // ERR_HW_PLAY
+            "C.nE.",   // ERR_HW_NEXT
+            "C.PrE.",  // ERR_HW_PREV
+            "BEEP",    // ERR_HW_BEEPER
+            "dISP.",   // ERR_HW_DISPLAY
+            "LEdS",    // ERR_HW_LIGHTING
+            "tUCH",    // ERR_HW_TOUCH
+            "FILE",    // ERR_HW_DISK
+            "Aud.",    // ERR_HW_AUDIO
+            "PLAY",    // ERR_PLAYER
+            "P.FIL.",  // ERR_PLAYER_GET_FILES
+            "P.OPE.",  // ERR_PLAYER_OPEN_FILE
+            "P.Aud.",  // ERR_PLAYER_AUDIO
+            "T.PIt.",  // ERR_TIMER
+        };
+
         // Rest / Sleep states
         enum sl_e : uint8_t
         {
             SL_NO,
             SL_RESTING,
             SL_RESTED,
+            SL_SLEEPING,
             SL_SLEPT,
         };
 
@@ -143,12 +189,13 @@ class UI
         };
 
         uis_e _state;
+        err_e _errno = ERR_NONE;
 
         ps_e pressState(uint32_t msecs);
         bool pressing(es_e encoder_state, uint32_t depressed_time);
         sl_e sleep(bool wake, bool redisplay);
         void updateBrightness(ev_e ev);
-        void error(uis_e state = UIS_CNT);
+        void error(void);
 
         static constexpr uint32_t const _s_reset_blink_time = 300;
 
@@ -219,6 +266,7 @@ class UI
                         uint32_t cd(void) const { return _cd; }
                         void skip(void) { _skip = true; }
                         bool valid(void) const { return _swi.valid(); }
+                        void reset(void) { _cs = _cd = _cs_tmp = 0; _skip = false; }
 
                     private:
                         DSW & _swi;
@@ -247,10 +295,9 @@ class UI
                 bool valid(void) const;
                 bool brValid(void) const { return _br_adjust.valid(); }
                 bool encValid(void) const { return _enc.valid(); }
-                bool playValid(void) const { return _play.valid(); }
-                bool nextValid(void) const { return _next.valid(); }
-                bool prevValid(void) const { return _prev.valid(); }
                 bool rsValid(void) const { return _rs.valid(); }
+
+                void reset(void);
 
             private:
                 void setRsPos(void);
@@ -278,15 +325,6 @@ class UI
             friend class UI;
 
             public:
-                enum err_e
-                {
-                    ERR_NONE,
-                    ERR_INVALID,
-                    ERR_GET_FILES,
-                    ERR_OPEN_FILE,
-                    ERR_AUDIO,
-                };
-
                 Player(UI & ui);
 
                 void process(void);
@@ -299,8 +337,7 @@ class UI
                 bool stopping(void) { return _stopping; }
                 bool skipping(void) { return _next_track != _current_track; }
                 bool occupied(void) const;
-                bool disabled(void) const { return _error != ERR_NONE; }
-                err_e error(void) const { return _error; }
+                bool disabled(void) const { return _disabled; }
                 uint16_t numTracks(void) const { return _num_tracks; }
                 uint16_t currentTrack(void) const { return _current_track; }
                 uint16_t nextTrack(void) const { return _next_track; }
@@ -338,7 +375,6 @@ class UI
                 uint16_t _num_tracks = 0;
                 uint16_t _current_track = 0;
                 uint16_t _next_track = 0;
-                err_e _error = ERR_NONE;
         };
 
         class Alarm
