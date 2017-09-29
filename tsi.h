@@ -90,7 +90,7 @@ class Tsi : public Module
             start();
         }
 
-        void clear(void);
+        void clearIntr(void);
 
         static Tsi & acquire(void) { static Tsi tsi; return tsi; }
 
@@ -100,18 +100,14 @@ class Tsi : public Module
         void stop(void);
         bool running(void);
 
-        bool scanning(void);
-        bool eos(void); // End Of Scan
-
         static bool isValid(tTouch const & touch);
 
-        bool set(tTouch const & config);
-        void get(tTouch & config) const;
+        bool setConfig(tTouch const & config);
+        void getConfig(tTouch & config) const;
         void defaults(tTouch & config);
+        bool configure(uint8_t nscn, uint8_t ps, uint8_t refchrg, uint8_t extchrg);
 
         uint16_t threshold(void) const { return _touch.threshold; }
-
-        bool configure(uint8_t nscn, uint8_t ps, uint8_t refchrg, uint8_t extchrg);
 
         // Max values - these are the values written to and retrieved
         // from the TSI registers.
@@ -133,6 +129,9 @@ class Tsi : public Module
 
     private:
         Tsi(void);
+
+        bool scanning(void);
+        bool eos(void); // End Of Scan
 
         bool touched(uint8_t channel);
         uint16_t read(uint8_t channel);

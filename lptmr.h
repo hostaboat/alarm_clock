@@ -22,8 +22,8 @@ class Lptmr : public Module
         void stop(void);
         bool running(void);
 
-        void setTime(uint16_t msecs) { _msecs = msecs; }
-        void clear(void);
+        void setTime(uint16_t msecs);
+        void clearIntr(void);
 
         Lptmr(const Lptmr &) = delete;
         Lptmr & operator=(const Lptmr &) = delete;

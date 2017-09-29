@@ -17,28 +17,22 @@ UI::UI(void)
     _display_sleep_time = _set_sleep.getDisplayTime();
 
     _display.brightness(BR_MID);
+    _display_brightness = _display.brightness();
 
     // Set initial state
-    int8_t rs_pos = _select.position();
-    if (rs_pos == 0)
-        _state = UIS_SET_CLOCK;
-    else if (rs_pos == 1)
-        _state = UIS_CLOCK;
-    else if (rs_pos == 2)
-        _state = UIS_SET_ALARM;
-    else
-        error();  // This shouldn't happen on startup.  It means the rotary switch is inbetween positions
+    if (_controls.rsPos() == RSP_NONE)
+        error();
+    _state = _next_states[UIS_CLOCK][PS_NONE][_controls.rsPos()];
 
+    _alarm.begin();
     _states[_state]->uisBegin();
 }
 
 bool UI::valid(void)
 {
-    return _select.valid() && _br_adjust.valid() && _enc_swi.valid() &&
-        _display.valid() && _lighting.valid() && _beeper.valid() &&
-        _player._prev.valid() && _player._next.valid() && _player._play.valid() &&
-        _player._fs.valid() && _player._audio.valid() && !_player.disabled() &&
-        _set_touch.valid();
+    return _controls.valid() && _display.valid() && _lighting.valid()
+        && _beeper.valid() && _touch.valid()
+        && _player._fs.valid() && _player._audio.valid() && !_player.disabled();
 }
 
 void UI::error(uis_e state)
@@ -65,21 +59,21 @@ void UI::error(uis_e state)
                     _display.showString("P.OPE");
                 else if (_player.error() == Player::ERR_AUDIO)
                     _display.showString("P.AUd");
-                else if (!_player._play.valid())
+                else if (!_controls.swiValid(Controls::SWI_PLAY))
                     _display.showString("PlA");
-                else if (!_player._prev.valid())
+                else if (!_controls.swiValid(Controls::SWI_PREV))
                     _display.showString("PrE");
-                else if (!_player._next.valid())
+                else if (!_controls.swiValid(Controls::SWI_NEXT))
                     _display.showString("nE");
                 else if (!_player._audio.valid())
                     _display.showString("Au");
                 else if (!_player._fs.valid())
                     _display.showString("FS");
-                else if (!_select.valid())
+                else if (!_controls.rsValid())
                     _display.showString("SELE.");
-                else if (!_br_adjust.valid())
+                else if (!_controls.brValid())
                     _display.showString("br.Ad.");
-                else if (!_enc_swi.valid())
+                else if (!_controls.encValid())
                     _display.showString("EncS.");
                 else if (!_beeper.valid())
                     _display.showString("BEEP");
@@ -99,7 +93,7 @@ void UI::error(uis_e state)
                     _display.showString("SE.LE.");
                 else if (state == UIS_CNT)
                     _display.showString("Init");
-                else if (!_set_touch.valid())
+                else if (!_touch.valid())
                     _display.showString("tSI");
             }
         }
@@ -110,28 +104,26 @@ void UI::error(uis_e state)
 
 void UI::process(void)
 {
-    if (!valid())
-        error();
+    if (!valid()) error();
 
-    _player.process();
+    ////////////////////////////////////////////////////////////////////////////
+    // Controls
+    _controls.process();
 
-    __disable_irq();
+    ev_e bev = _controls.brTurn();
+    ev_e sev = _controls.encTurn();
+    uint32_t scs = _controls.swiCS(Controls::SWI_ENC);
+    uint32_t scd = _controls.swiCD(Controls::SWI_ENC);
+    rsp_e rsp = _controls.rsPos();
 
-    ev_e bev = _br_adjust.turn();
-    ev_e sev = _enc_swi.turn();
-    uint32_t scs = _enc_swi.closeStart(); 
-    uint32_t scd = _enc_swi.closeDuration(); 
-
-    __enable_irq();
-
-    uint32_t sct = 0;
+    uint32_t enc_pressed_time = 0;
     es_e es = ES_NONE;
     ps_e ps = PS_NONE;
 
     if (scs != 0)
     {
         es = ES_DEPRESSED;
-        sct = msecs() - scs;
+        enc_pressed_time = msecs() - scs;
     }
     else if (scd != 0)
     {
@@ -142,24 +134,81 @@ void UI::process(void)
     {
         es = ES_TURNED;
     }
+    ////////////////////////////////////////////////////////////////////////////
 
+    ////////////////////////////////////////////////////////////////////////////
+    // Player
+    _player.process();
+    ////////////////////////////////////////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Brightness and Lighting
     updateBrightness(bev);
     _lighting.paletteNL();
+    ////////////////////////////////////////////////////////////////////////////
 
-    if (pressing(es, sct))
+    ////////////////////////////////////////////////////////////////////////////
+    // Alarm
+    Alarm::as_e las = _alarm.state();
+    Alarm::as_e as = _alarm.process(sev != EV_ZERO, es == ES_DEPRESSED);
+
+    if ((las != Alarm::AS_OFF) && (as == Alarm::AS_OFF))
+    {
+        _display.showString("OFF");
+        _refresh_start = msecs();
+
+        if (es == ES_DEPRESSED)
+            _controls.swiSkip(Controls::SWI_ENC);
+    }
+    else if ((las != Alarm::AS_SNOOZE) && (as == Alarm::AS_SNOOZE))
+    {
+        _display.showString("Snoo");
+        _refresh_start = msecs();
+    }
+
+    if ((las != as) && ((sev != EV_ZERO) || (es == ES_DEPRESSED)))
         return;
+    ////////////////////////////////////////////////////////////////////////////
 
-    int8_t rs_pos = _select.position();
-    ss_e ss = SS_NONE;
-    if      (rs_pos == 0) ss = SS_RIGHT;
-    else if (rs_pos == 1) ss = SS_LEFT;
-    else if (rs_pos == 2) ss = SS_MIDDLE;
+    ////////////////////////////////////////////////////////////////////////////
+    // Pressing - PS_RESET or longer
+    if (pressing(es, enc_pressed_time))
+        return;
+    ////////////////////////////////////////////////////////////////////////////
 
+    ////////////////////////////////////////////////////////////////////////////
+    // UI State
     uis_e slast = _state;
-    _state = _next_states[slast][ps][ss];
+    _state = _next_states[slast][ps][rsp];
+    ////////////////////////////////////////////////////////////////////////////
 
-    if (!_refresh_start && resting(es, _state != slast, bev != EV_ZERO))
+    ////////////////////////////////////////////////////////////////////////////
+    // Sleep
+    bool wake = (_refresh_start != 0) || _alarm.alerting() || !_states[_state]->uisSleep()
+        || _controls.interaction() || (_state != slast);
+
+    sl_e sl = sleep(wake, _state == slast);
+    if (sl == SL_RESTING)
         return;
+
+    if (sl == SL_SLEPT)
+    {
+        if (_controls.swiClosed(Controls::SWI_ENC))
+            _controls.swiSkip(Controls::SWI_ENC);
+
+        if (_controls.swiClosed(Controls::SWI_PLAY))
+            _controls.swiSkip(Controls::SWI_PLAY);
+
+        return;
+    }
+
+    if ((sl == SL_RESTED) && (_state == slast))
+    {
+        if (es == ES_DEPRESSED)
+            _controls.swiSkip(Controls::SWI_ENC);
+        return;
+    }
+    ////////////////////////////////////////////////////////////////////////////
 
     if (_state != slast)
     {
@@ -221,9 +270,9 @@ bool UI::pressing(es_e encoder_state, uint32_t depressed_time)
 {
     if (_player.stopping() || _player.skipping())
     {
-        // Forcibly wake from resting
+        // Forcibly wake if only resting
         if (!_display.isAwake())
-            (void)resting(ES_NONE, true, false);
+            (void)sleep(true, false);
 
         if (_player.stopping())
             _display.showString("STOP");
@@ -352,53 +401,84 @@ bool UI::pressing(es_e encoder_state, uint32_t depressed_time)
     return (ds != DS_WAIT_RESET);
 }
 
-bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_changed)
+UI::sl_e UI::sleep(bool wake, bool redisplay)
 {
-    static uint32_t rstart = msecs();
-    static uint32_t tstart = msecs();
-    static bool resting = false;
+    static uint32_t rstart = msecs();  // Rest and sleep start
+    static uint32_t tstart = msecs();  // Touch time
+    static sl_e sl_state = SL_NO;
 
-    bool wake = (encoder_state != ES_NONE) || ui_state_changed || brightness_changed
-        || (resting && _set_touch.touched(tstart));
-    bool woke = false;
+    auto display_wake = [&](bool rd) -> void
+    {
+        if (!_display.isAwake())
+        {
+            _display.wake(rd);
+            if (rd) _states[_state]->uisRefresh();
+        }
+        else
+        {
+            _display.brightness(_display_brightness);
+        }
+    };
+
+    auto display_sleep = [&](void) -> void
+    {
+        if (_state != UIS_CLOCK)
+            _display.sleep(true);
+        else if (_display.isOn())
+            _display.brightness(BR_LOW);
+    };
+
+    auto clock = [&](void) -> void
+    {
+        if ((_rtc.update() >= RU_MIN) && (_state == UIS_CLOCK))
+            _display.showClock(_rtc.clockHour(), _rtc.clockMinute(), _rtc.clockIs12H() ? DF_12H : DF_24H);
+    };
+
     uint32_t m = msecs();
 
-    if (wake || !_states[_state]->uisSleep())
+    if ((sl_state == SL_RESTED) || (sl_state == SL_SLEPT))
+        sl_state = SL_NO;
+
+    if ((sl_state == SL_RESTING) && _touch.touched(tstart))
+        wake = true; 
+
+    if (wake)
     {
-        if (resting)
+        if (sl_state == SL_RESTING)
         {
-            _display.wake(!ui_state_changed);
+            display_wake(redisplay);
 
             if (!_lighting.isOnNL())
                 _lighting.wake();
 
-            resting = false;
-            woke = true;
+            sl_state = SL_RESTED;
         }
 
         rstart = m;
     }
-    else if (!resting && (_display_sleep_time != 0) && ((m - rstart) >= _display_sleep_time))
+    else if ((sl_state == SL_NO)
+            && (_display_sleep_time != 0) && ((m - rstart) >= _display_sleep_time))
     {
-        _display.sleep(true);
+        display_sleep();
 
         if (!_lighting.isOnNL())
             _lighting.sleep();
 
-        resting = true;
+        sl_state = SL_RESTING;
         tstart = msecs();
     }
 
-    bool sleep = false;
-    if ((_mcu_sleep_time != 0) && ((m - rstart) >= _mcu_sleep_time))
-        sleep = true;
+    bool sleep = (sl_state != SL_RESTED)
+        && ((_mcu_sleep_time != 0) && ((m - rstart) >= _mcu_sleep_time));
 
     if (!sleep || _player.running())
-        return woke || resting;
+    {
+        clock();
+        return sl_state;
+    }
 
-    _display.sleep(true);
+    display_sleep();
     _lighting.sleep();
-    resting = true;
 
     // Puts MCU in LLS (Low Leakage Stop) mode - a state retention power mode
     // where most peripherals are in state retention mode (with clocks stopped).
@@ -415,52 +495,60 @@ bool UI::resting(es_e encoder_state, bool ui_state_changed, bool brightness_chan
     static PinInPU < PIN_EN_BR_A > & br_enc = PinInPU < PIN_EN_BR_A >::acquire();
     static PinIn < PIN_PLAY > & play = PinIn < PIN_PLAY >::acquire();
 
-    if (!_lighting.isOnNL())
-        _lighting.sleep();
-
     _llwu.enable();
 
     if (!_llwu.pinsEnable(
-                ui_swi, IRQC_INTR_FALLING,
+                ui_swi, IRQC_INTR_RISING,
                 ui_enc, IRQC_INTR_CHANGE,
                 ui_rs, IRQC_INTR_CHANGE,
                 br_enc, IRQC_INTR_CHANGE,
-                play, IRQC_INTR_FALLING
+                play, IRQC_INTR_RISING
                 ))
     {
         _llwu.disable();
-        return resting;
+        return sl_state;
     }
 
-    (void)_llwu.tsiEnable < PIN_TOUCH > ();
+    // Sleep for about a minute and wake up to check time
+    (void)_rtc.update();
+    (void)_llwu.timerEnable(60000 - (_rtc.clockSecond() * 1000));
+
+    if (_touch.enabled())
+        (void)_llwu.tsiEnable < PIN_TOUCH > ();
+
+    (void)_llwu.alarmEnable();
 
     // Tell the clock that it needs to read the TSR counter since NVIC is disabled
     _rtc.sleep();
 
-    (void)_llwu.sleep();
-    int8_t wakeup_pin = _llwu.wakeupPin();
+    while (true)
+    {
+        if ((_llwu.sleep() != WUS_MODULE) || (_llwu.wakeupModule() != WUMS_LPTMR))
+            break;
+
+        _rtc.wake();
+        clock();
+        (void)_llwu.timerUpdate(60000 - (_rtc.clockSecond() * 1000));
+        _rtc.sleep();
+    }
 
     _llwu.disable();
-
     _rtc.wake();
 
+    sl_state = SL_SLEPT;
+
+    int8_t wakeup_pin = _llwu.wakeupPin();
     if (wakeup_pin == PIN_PLAY)
-    {
         _player.play();
-    }
-    else
-    {
-        // If the rotary switch is the wakeup source, state is going to change
-        // so don't redisplay data from state prior to sleeping.
-        _display.wake(wakeup_pin != PIN_RS_M);
 
-        _lighting.wake();
+    // If the rotary switch is the wakeup source, state is going to change
+    // so don't redisplay data from state prior to sleeping.
+    display_wake(wakeup_pin != PIN_RS_M);
+    _lighting.wake();
 
-        resting = false;
-        rstart = msecs();
-    }
+    rstart = msecs();
 
-    return resting;
+    return sl_state;
 }
 
 void UI::updateBrightness(ev_e bev)
@@ -470,6 +558,9 @@ void UI::updateBrightness(ev_e bev)
 
     if (brightness == _brightness)
         return;
+
+    if (_display.brightness() != _display_brightness)
+        _display.brightness(_display_brightness);
 
     if (brightness > _brightness)
     {
@@ -487,10 +578,138 @@ void UI::updateBrightness(ev_e bev)
     }
 
     _brightness = brightness;
+    _display_brightness = _display.brightness();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // UI END //////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+// Controls START //////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+UI::Controls::Controls(UI & ui)
+    : _ui{ui}
+{
+    setRsPos();
+    if (_rs_pos == RSP_NONE)
+        _ui.error();
+
+    _rs_pos_last = _rs_pos;
+}
+
+void UI::Controls::process(void)
+{
+    setRsPos();
+
+    __disable_irq();
+
+    _br_turn = _br_adjust.turn();
+    _enc_turn = _enc.turn();
+
+    _enc_swi.process();
+    _play.process();
+    _next.process();
+    _prev.process();
+
+    __enable_irq();
+
+    _enc_swi.postProcess();
+    _play.postProcess();
+    _next.postProcess();
+    _prev.postProcess();
+
+    _interaction = ((_rs_pos != RSP_NONE) && (_rs_pos != _rs_pos_last))
+        || (_br_turn != EV_ZERO) || (_enc_turn != EV_ZERO)
+        || _enc_swi.closed() || (_enc_swi.cd() != 0)
+        || _play.closed() || (_play.cd() != 0)
+        || _next.closed() || (_next.cd() != 0)
+        || _prev.closed() || (_prev.cd() != 0);
+}
+
+bool UI::Controls::swiClosed(swi_e swi)
+{
+    switch (swi)
+    {
+        case SWI_ENC: return _enc_swi.closed();
+        case SWI_PLAY: return _play.closed();
+        case SWI_NEXT: return _next.closed();
+        case SWI_PREV: return _prev.closed();
+    }
+
+    return false;
+}
+
+uint32_t UI::Controls::swiCS(swi_e swi)
+{
+    switch (swi)
+    {
+        case SWI_ENC: return _enc_swi.cs();
+        case SWI_PLAY: return _play.cs();
+        case SWI_NEXT: return _next.cs();
+        case SWI_PREV: return _prev.cs();
+    }
+
+    return 0;
+}
+
+uint32_t UI::Controls::swiCD(swi_e swi)
+{
+    switch (swi)
+    {
+        case SWI_ENC: return _enc_swi.cd();
+        case SWI_PLAY: return _play.cd();
+        case SWI_NEXT: return _next.cd();
+        case SWI_PREV: return _prev.cd();
+    }
+
+    return 0;
+}
+
+void UI::Controls::swiSkip(swi_e swi)
+{
+    switch (swi)
+    {
+        case SWI_ENC: _enc_swi.skip(); break;
+        case SWI_PLAY: _play.skip(); break;
+        case SWI_NEXT: _next.skip(); break;
+        case SWI_PREV: _prev.skip(); break;
+    }
+}
+
+bool UI::Controls::swiValid(swi_e swi)
+{
+    switch (swi)
+    {
+        case SWI_ENC: return _enc_swi.valid();
+        case SWI_PLAY: return _play.valid();
+        case SWI_NEXT: return _next.valid();
+        case SWI_PREV: return _prev.valid();
+    }
+
+    return false;
+}
+
+void UI::Controls::setRsPos(void)
+{
+    if (_rs_pos != RSP_NONE)
+        _rs_pos_last = _rs_pos;
+
+    int8_t pos = _rs.position();
+    _rs_pos = RSP_NONE;
+    if      (pos == 0) _rs_pos = RSP_RIGHT;
+    else if (pos == 1) _rs_pos = RSP_LEFT;
+    else if (pos == 2) _rs_pos = RSP_MIDDLE;
+}
+
+bool UI::Controls::valid(void) const
+{
+    return rsValid() && brValid() && encValid()
+        && playValid() && nextValid() && prevValid();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Controls END ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -499,7 +718,7 @@ void UI::updateBrightness(ev_e bev)
 UI::Player::Player(UI & ui)
     : _ui{ui}
 {
-    if (!_prev.valid() || !_play.valid() || !_next.valid() || !_audio.valid() || !_fs.valid())
+    if (!_audio.valid() || !_fs.valid())
     {
         _error = ERR_INVALID;
         return;
@@ -549,21 +768,22 @@ void UI::Player::play(void)
 
 bool UI::Player::occupied(void) const
 {
-    return playing() || _play.closed() || _prev.closed() || _next.closed();
+    return playing()
+        || _ui._controls.swiClosed(Controls::SWI_PLAY)
+        || _ui._controls.swiClosed(Controls::SWI_NEXT)
+        || _ui._controls.swiClosed(Controls::SWI_PREV);
 }
 
 bool UI::Player::pressing(void)
 {
-    if (!_play.closed() && !_prev.closed() && !_next.closed())
+    if (!_ui._controls.swiClosed(Controls::SWI_PLAY)
+            && !_ui._controls.swiClosed(Controls::SWI_NEXT)
+            && !_ui._controls.swiClosed(Controls::SWI_PREV))
         return false;
 
-    __disable_irq();
-
-    uint32_t play_cs = _play.closeStart();
-    uint32_t prev_cs = _prev.closeStart();
-    uint32_t next_cs = _next.closeStart();
-
-    __enable_irq();
+    uint32_t play_cs = _ui._controls.swiCS(Controls::SWI_PLAY);
+    uint32_t next_cs = _ui._controls.swiCS(Controls::SWI_NEXT);
+    uint32_t prev_cs = _ui._controls.swiCS(Controls::SWI_PREV);
 
     if ((play_cs == 0) && (prev_cs == 0) && (next_cs == 0))
         return false;
@@ -620,27 +840,23 @@ void UI::Player::process(void)
     if (disabled() || pressing())
         return;
 
-    __disable_irq();
-
-    uint32_t play_ctime = _play.closeDuration();
-    uint32_t prev_ctime = _prev.closeDuration();
-    uint32_t next_ctime = _next.closeDuration();
-
-    __enable_irq();
+    uint32_t play_cd = _ui._controls.swiCD(Controls::SWI_PLAY);
+    uint32_t next_cd = _ui._controls.swiCD(Controls::SWI_NEXT);
+    uint32_t prev_cd = _ui._controls.swiCD(Controls::SWI_PREV);
 
     // XXX If the MCU is asleep only the play/pause pushbutton will wake it.
-    if (!running() && (play_ctime != 0))
+    if (!running() && (play_cd != 0))
     {
         play();
     }
-    else if (play_ctime != 0)
+    else if (play_cd != 0)
     {
-        if (play_ctime >= _s_stop_time)
+        if (play_cd >= _s_stop_time)
             stop();
         else
             _paused = !_paused;
     }
-    else if ((prev_ctime != 0) || (next_ctime != 0))
+    else if ((prev_cd != 0) || (next_cd != 0))
     {
         if (!running() || paused())
             play();
@@ -649,12 +865,12 @@ void UI::Player::process(void)
     if (!playing())
     {
         if ((_auto_stop_time != 0) && running())
-            autoStop(!play_ctime && !prev_ctime && !next_ctime);
+            autoStop(!play_cd && !prev_cd && !next_cd);
 
         return;
     }
 
-    if (_track->eof() || (prev_ctime != 0) || (next_ctime != 0))
+    if (_track->eof() || (prev_cd != 0) || (next_cd != 0))
     {
         if (_track->eof())
         {
@@ -667,7 +883,7 @@ void UI::Player::process(void)
             _audio.cancel(_track);
             if (!skipping())
             {
-                int32_t s = skip(next_ctime) - skip(prev_ctime);
+                int32_t s = skip(next_cd) - skip(prev_cd);
                 if ((s < 0) && rewind()) s++;  // Increment so as not to count it
                 _next_track = skipTracks(s);
             }
@@ -765,69 +981,48 @@ bool UI::Player::setTrack(uint16_t track)
 void UI::Alarm::begin(void)
 {
     _state = AS_OFF;
-    _ui._rtc.getAlarm(_alarm);
-    _alarm_time = _alarm.time * 60 * 60 * 1000;
-    _snooze_time = _alarm.snooze * 60 * 1000;
-    _wake_time = _alarm.wake * 60 * 1000;
-    (void)_ui._set_touch.enable();
+    (void)_ui._touch.enable();
+
+    if (!_ui._rtc.alarmIsSet())
+        _ui._rtc.alarmStart();
 }
 
-void UI::Alarm::update(uint8_t hour, uint8_t minute)
+UI::Alarm::as_e UI::Alarm::process(bool snooze, bool stop)
 {
-    if (!_alarm.enabled)
-        return;
-
-    switch (_state)
+    if (!_ui._rtc.alarmInProgress())
     {
-        case AS_OFF:
-            check(hour, minute);
-            break;
-
-        case AS_WAKE:
-        case AS_SNOOZE:
-            // Stop alarm after it's been in progress for more than the
-            // configured total alarm time.
-            if ((_alarm_time != 0) && ((msecs() - _alarm_start) > _alarm_time))
-            {
-                stop();
-            }
-            else if (_state == AS_WAKE)
-            {
-                // Stop alarm if it's been actively on for more than the
-                // configured wake time.
-                if ((_wake_time != 0) && ((msecs() - _wake_start) > _wake_time))
-                    stop();
-                else if (!snooze() && !_alarm_music)
-                    (void)_ui._beeper.toggled();
-            }
-            else // _state == AS_SNOOZE
-            {
-                wake();
-            }
-            break;
-
-        case AS_DONE:
-            done(hour, minute);
-            break;
+        if (_state != AS_OFF)
+            this->stop();
     }
+    else if (stop)
+    {
+        this->stop();
+    }
+    else if (_state == AS_OFF)
+    {
+        check();
+    }
+    else if (_state == AS_WAKE)
+    {
+        if (!_ui._rtc.alarmIsAwake())
+            this->stop();
+        else if (!this->snooze(snooze) && !_alarm_music)
+            (void)_ui._beeper.toggled();
+    }
+    else // (_state == AS_SNOOZE)
+    {
+        wake();
+    }
+
+    return _state;
 }
 
-bool UI::Alarm::enabled(void)
+void UI::Alarm::check(void)
 {
-    return _alarm.enabled;
-}
-
-bool UI::Alarm::inProgress(void)
-{
-    return (_alarm.enabled && ((_state == AS_WAKE) || (_state == AS_SNOOZE)));
-}
-
-void UI::Alarm::check(uint8_t hour, uint8_t minute)
-{
-    if ((hour != _alarm.hour) || (minute != _alarm.minute))
+    if (!_ui._rtc.alarmIsAwake())
         return;
 
-    if (Rtc::alarmIsMusic(_alarm.type)
+    if (_ui._rtc.alarmIsMusic()
             && !_ui._player.disabled() && !_ui._player.occupied())
     {
         _ui._player.play();
@@ -839,16 +1034,13 @@ void UI::Alarm::check(uint8_t hour, uint8_t minute)
         _alarm_music = false;
     }
 
-    _alarm_start = _wake_start = msecs();
+    _wake_start = msecs();
     _state = AS_WAKE;
 }
 
 bool UI::Alarm::snooze(bool force)
 {
-    if (!inProgress())
-        return false;
-
-    if (!force && !_ui._set_touch.touched(_wake_start))
+    if (!force && !_ui._touch.touched(_wake_start))
         return false;
 
     if (_alarm_music)
@@ -856,15 +1048,16 @@ bool UI::Alarm::snooze(bool force)
     else
         _ui._beeper.stop();
 
-    _snooze_start = msecs();
-    _state = AS_SNOOZE;
+    if (!_ui._rtc.alarmSnooze())
+        return false;
 
+    _state = AS_SNOOZE;
     return true;
 }
 
 void UI::Alarm::wake(void)
 {
-    if ((msecs() - _snooze_start) < _snooze_time)
+    if (!_ui._rtc.alarmIsAwake())
         return;
 
     if (_alarm_music)
@@ -883,17 +1076,86 @@ void UI::Alarm::stop(void)
     else
         _ui._beeper.stop();
 
-    _state = AS_DONE;
+    _ui._rtc.alarmStop();
+    _ui._rtc.alarmStart();
+    _state = AS_OFF;
 }
 
-void UI::Alarm::done(uint8_t hour, uint8_t minute)
-{
-    if ((hour != _alarm.hour) || (minute != _alarm.minute))
-        _state = AS_OFF;
-}
 ////////////////////////////////////////////////////////////////////////////////
 // Alarm END ///////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+// Touch START /////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+UI::Touch::Touch(UI & ui)
+    : _ui{ui}
+{
+    _ui._tsi.getConfig(_touch);
+    _touch_enabled = _touch.threshold != 0;
+}
+
+bool UI::Touch::valid(void)
+{
+    return _ui._tsi.valid();
+}
+
+bool UI::Touch::enabled(void) const
+{
+    return _touch_enabled;
+}
+
+bool UI::Touch::enable(void)
+{
+    if (_touch.threshold != 0)
+        _touch_enabled = true;
+
+    return _touch_enabled;
+}
+
+// Argument passed in is to guard against a touch threshold that is too low.
+// It should be the start time of some event for which a touch is expected.
+// If a touch event occurs within this amount of time, touch will be disabled
+// until re-enabled or re-configured.
+bool UI::Touch::touched(uint32_t stime)
+{
+    if (!_touch_enabled)
+        return false;
+
+    //return _ui._tsi_channel.touched();
+
+    bool touched = _ui._tsi_channel.touched();
+
+    if (touched && (stime != 0) && ((msecs() - stime) < _s_touch_disable_time))
+        _touch_enabled = false;
+
+    return _touch_enabled && touched;
+}
+
+bool UI::Touch::timedTouch(uint32_t ttime)
+{
+    static uint32_t touched_time = msecs();
+
+    if (!_touch_enabled)
+        return false;
+
+    uint16_t tval = _ui._tsi_channel.read();
+    if (tval < _ui._tsi.threshold())
+    {
+        if (tval != 0)
+            touched_time = msecs();
+
+        return false;
+    }
+
+    return (msecs() - touched_time) >= ttime;
+}
+
+void UI::Touch::update(tTouch const & t)
+{
+    _touch = t;
+    _touch_enabled = _touch.threshold != 0;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Lighting START //////////////////////////////////////////////////////////////
@@ -1746,9 +2008,10 @@ void UI::Clock::uisBegin(void)
 
     _alt_display.reset(_s_flash_time);
 
-    (void)_ui._set_touch.enable();
+    if (!_ui._alarm.alerting())
+        (void)_ui._touch.enable();
+
     clockUpdate(true);
-    _alarm.begin();
 
     _track_updated = false;
 
@@ -1773,35 +2036,20 @@ void UI::Clock::uisWait(void)
         {
             display();
         }
-        else if (!_alarm.alerting() && _ui._set_touch.timedTouch(_s_touch_time))
+        else if (!_ui._alarm.alerting() && _ui._touch.timedTouch(_s_touch_time))
         {
             _state = CS_TRACK;
             changeTrack();
             display();
         }
     }
-
-    if (_alarm.enabled())
-        _alarm.update(_clock.hour, _clock.minute);
 }
 
 void UI::Clock::uisUpdate(ev_e ev)
 {
-    static uint32_t turn_wait = 0;
-
-    // Snooze on encoder turn just in case touch isn't working when
-    // battery powered or touch threshold is set too high.
-    if (_alarm.inProgress() && !_alarm.snoozing())
+    if (_state != CS_TRACK)
     {
-        (void)_alarm.snooze(true);
-        turn_wait = msecs();
-    }
-    else if (_state != CS_TRACK)
-    {
-        // Don't process turns for a second after turn to snooze
-        if ((msecs() - turn_wait) > _s_snooze_wait)
-            _ui._lighting.cycleNL(ev);
-
+        _ui._lighting.cycleNL(ev);
         uisWait();
     }
     else
@@ -1813,15 +2061,8 @@ void UI::Clock::uisUpdate(ev_e ev)
 
 void UI::Clock::uisChange(void)
 {
-    if (_alarm.inProgress())
-    {
-        _alarm.stop();
-        _state = CS_ALARM;
-    }
-    else if ((_state != CS_TRACK) || !_track_updated)
-    {
+    if ((_state != CS_TRACK) || !_track_updated)
         _state = _next_states[_state];
-    }
 
     if (_state == CS_TRACK)
         changeTrack();
@@ -1841,15 +2082,12 @@ void UI::Clock::uisReset(ps_e ps)
 
 void UI::Clock::uisEnd(void)
 {
-    if (_alarm.inProgress())
-        _alarm.stop();
-
     _ui._display.blank();
 }
 
 bool UI::Clock::uisSleep(void)
 {
-    return false;
+    return true;
 }
 
 void UI::Clock::uisRefresh(void)
@@ -1931,11 +2169,6 @@ void UI::Clock::displayYear(void)
     _ui._display.showInteger(_clock.year);
 }
 
-void UI::Clock::displayAlarm(void)
-{
-    _ui._display.showOff();
-}
-
 void UI::Clock::displayTrack(void)
 {
     _ui._display.showInteger(_track + 1);
@@ -1974,7 +2207,9 @@ void UI::Timer::uisBegin(void)
 {
     _state = TS_SET_HM;
     _show_clock = false;
-    (void)_ui._set_touch.enable();
+
+    if (!_ui._alarm.alerting())
+        (void)_ui._touch.enable();
 
     _display_timer = Pit::acquire(timerDisplay, _s_seconds_interval);
     _led_timer = Pit::acquire(timerLeds, _s_seconds_interval);  // Will get updated
@@ -2060,7 +2295,9 @@ void UI::Timer::uisReset(ps_e ps)
         _state = TS_WAIT;
 
     _show_clock = false;
-    (void)_ui._set_touch.enable();
+
+    if (!_ui._alarm.alerting())
+        (void)_ui._touch.enable();
 }
 
 void UI::Timer::uisEnd(void)
@@ -2284,7 +2521,7 @@ void UI::Timer::stop(void)
 
 void UI::Timer::alert(void)
 {
-    if (_ui._set_touch.touched(_alert_start))
+    if (_ui._touch.touched(_alert_start))
     {
         uisChange();
         return;
@@ -2318,63 +2555,9 @@ void UI::Timer::alert(void)
 ////////////////////////////////////////////////////////////////////////////////
 constexpr char const * const UI::SetTouch::_s_topts[TOPT_CNT];
 
-bool UI::SetTouch::valid(void)
-{
-    return _tsi.valid();
-}
-
-bool UI::SetTouch::enabled(void) const
-{
-    return _touch_enabled;
-}
-
-bool UI::SetTouch::enable(void)
-{
-    if (_touch.threshold != 0)
-        _touch_enabled = true;
-
-    return _touch_enabled;
-}
-
-// Argument passed in is to guard against a touch threshold that is too low.
-// It should be the start time of some event for which a touch is expected.
-// If a touch event occurs within this amount of time, touch will be disabled
-// until re-enabled or re-configured.
-bool UI::SetTouch::touched(uint32_t stime)
-{
-    if (!_touch_enabled)
-        return false;
-
-    bool touched = _tsi_channel.touched();
-
-    if (touched && (stime != 0) && ((msecs() - stime) < _s_touch_disable_time))
-        _touch_enabled = false;
-
-    return _touch_enabled && touched;
-}
-
-bool UI::SetTouch::timedTouch(uint32_t ttime)
-{
-    static uint32_t touched_time = msecs();
-
-    if (!_touch_enabled)
-        return false;
-
-    uint16_t tval = _tsi_channel.read();
-    if (tval < _tsi.threshold())
-    {
-        if (tval != 0)
-            touched_time = msecs();
-
-        return false;
-    }
-
-    return (msecs() - touched_time) >= ttime;
-}
-
 void UI::SetTouch::uisBegin(void)
 {
-    _tsi.get(_touch);
+    _ui._tsi.getConfig(_touch);
     _state = (_touch.threshold == 0) ? TS_DISABLED : TS_OPT;
     _topt = TOPT_CAL;
     _ui._lighting.state(Lighting::LS_OTHER);
@@ -2422,7 +2605,7 @@ void UI::SetTouch::uisChange(void)
         {
             case TOPT_CAL: _state = TS_CAL_START; break;
             case TOPT_CONF: _state = TS_NSCN; break;
-            case TOPT_DEF: _tsi.defaults(_touch); _state = TS_DONE; _topt = TOPT_CONF; break;
+            case TOPT_DEF: _ui._tsi.defaults(_touch); _state = TS_DONE; _topt = TOPT_CONF; break;
             case TOPT_DIS: toggleEnabled(); break;
             case TOPT_READ: _state = TS_READ; break;
             default: break;
@@ -2472,7 +2655,7 @@ void UI::SetTouch::uisEnd(void)
 {
     _ui._lighting.state(Lighting::LS_NIGHT_LIGHT);
     _ui._display.blank();
-    _touch_enabled = (_touch.threshold != 0);
+    _ui._touch.update(_touch);
 }
 
 bool UI::SetTouch::uisSleep(void)
@@ -2502,12 +2685,12 @@ void UI::SetTouch::reset(void)
 void UI::SetTouch::toggleEnabled(void)
 {
     if (_touch.threshold == 0)
-        _tsi.defaults(_touch);
+        _ui._tsi.defaults(_touch);
     else
         _touch.threshold = 0;
     _state = (_touch.threshold == 0) ? TS_DISABLED : TS_OPT;
     _topt = TOPT_CAL;
-    (void)_tsi.set(_touch);
+    (void)_ui._tsi.setConfig(_touch);
 }
 
 void UI::SetTouch::waitOpt(bool on)
@@ -2544,7 +2727,7 @@ void UI::SetTouch::waitCalUntouched(bool on)
 {
     if (on) display();
 
-    uint16_t read = _tsi_channel.read();
+    uint16_t read = _ui._tsi_channel.read();
     if (read == 0)
         return;
 
@@ -2577,7 +2760,7 @@ void UI::SetTouch::waitCalTouched(bool on)
 {
     if (on) display();
 
-    uint16_t read = _tsi_channel.read();
+    uint16_t read = _ui._tsi_channel.read();
     if (read == 0)
         return;
 
@@ -2619,7 +2802,7 @@ void UI::SetTouch::waitCalTouched(bool on)
 
 void UI::SetTouch::waitRead(bool on)
 {
-    uint16_t read = _tsi_channel.read();
+    uint16_t read = _ui._tsi_channel.read();
     if ((read != 0) && (read != _touch.threshold))
     {
         if (read > _read.hi)
@@ -2638,7 +2821,7 @@ void UI::SetTouch::waitTest(bool on)
 {
     static uint32_t beep_start = 0;
 
-    uint16_t read = _tsi_channel.read();
+    uint16_t read = _ui._tsi_channel.read();
     if (read == 0)
         return;
 
@@ -2696,7 +2879,7 @@ void UI::SetTouch::updateThreshold(ev_e ev)
 void UI::SetTouch::changeCalStart(void)
 {
     if (_topt == TOPT_CONF)
-        (void)_tsi.configure(_touch.nscn, _touch.ps, _touch.refchrg, _touch.extchrg);
+        (void)_ui._tsi.configure(_touch.nscn, _touch.ps, _touch.refchrg, _touch.extchrg);
 
     _ui._lighting.setColor(CHSV(0, 255, 255));
     _readings = 0;
@@ -2723,7 +2906,7 @@ void UI::SetTouch::changeDone(void)
 {
     _ui._lighting.setColor(CRGB::BLACK);
     _ui._beeper.stop();
-    (void)_tsi.set(_touch);
+    (void)_ui._tsi.setConfig(_touch);
     _done = true;
 }
 

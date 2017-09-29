@@ -387,10 +387,17 @@ void DevVS1053B < CS, DCS, DREQ, RST, SPI, MOSI, MISO, SCK >::send(uint8_t byte,
     TData::_spi.end(TData::_pin);
 }
 
+// Use this since finish seems to take longer than a reset since it often
+// ends up calling softReset() anyway
+//#define VS_FINISH_SOFT_RESET
+
 template < pin_t CS, pin_t DCS, pin_t DREQ, pin_t RST,
     template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
 void DevVS1053B < CS, DCS, DREQ, RST, SPI, MOSI, MISO, SCK >::finish(void)
 {
+#ifdef VS_FINISH_SOFT_RESET
+    softReset();
+#else
     // Get endFillByte
     uint8_t efb = getEFB();
 
@@ -419,6 +426,7 @@ void DevVS1053B < CS, DCS, DREQ, RST, SPI, MOSI, MISO, SCK >::finish(void)
     //delayUsecs(1);
     if ((sends == 64) || !finished())
         softReset();
+#endif
 }
 
 // Use this since cancel doesn't seem to work reliably

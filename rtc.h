@@ -10,7 +10,7 @@ using tClock = eClock;
 using tAlarm = eAlarm;
 
 extern "C" void rtc_seconds_isr(void);
-//extern "C" void rtc_alarm_isr(void);
+extern "C" void rtc_alarm_isr(void);
 
 // RTC Update
 // Returned when update() is called indicating what was updated
@@ -40,36 +40,25 @@ enum dow_e  // Day Of Week
 class Rtc : public Module
 {
     friend void rtc_seconds_isr(void);
-    //friend void rtc_alarm_isr(void);
+    friend void rtc_alarm_isr(void);
 
     public:
         static Rtc & acquire(void) { static Rtc rtc; return rtc; }
 
-        void enable(void) { if (Module::enabled(MOD_RTC)) return; Module::enable(MOD_RTC); }
-        bool enabled(void) { return Module::enabled(MOD_RTC) && enabledIrq(); }
-        void disable(void) { if (!enabled()) return; stop(); disableIrq(); Module::disable(MOD_RTC); }
+        void enable(void);
+        bool enabled(void);
+        void disable(void);
 
         void start(void);
-        void stop(void) { if (!running()) return; *_s_cr = 0; }
+        void stop(void) { if (!running()) return; clearIntr(); *_s_cr = 0; }
         bool running(void);
-
-        // Tell the clock that the MCU is going to sleep since interrupts will be
-        // disabled.  Since the RTC_TSR counter will continue incrementing sleep
-        // saves off the current value so a diff can be done with RTC_TSR when
-        // waking/resuming.  Call sleep() before putting the MCU to sleep and
-        // wake() after MCU wakes up.
-        void sleep(void);
-        void wake(void);
-
-        // Updates the clock utilizing the RTC on the Teensy
-        ru_e update(void);
-
-        static bool isLeapYear(uint16_t year)
-        { return ((((year % 4) == 0) && ((year % 100) != 0)) || ((year % 400) == 0)); }
 
         ////////////////////////////////////////////////////////////////////////
         // Clock ///////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////
+        static bool isLeapYear(uint16_t year)
+        { return ((((year % 4) == 0) && ((year % 100) != 0)) || ((year % 400) == 0)); }
+
         bool setClock(tClock const & clock);
         void getClock(tClock & clock) const;
         uint8_t clockSecond(void) const { return (uint8_t)_clock_second; }
@@ -97,6 +86,16 @@ class Rtc : public Module
         }
         static dow_e clockDOW(uint8_t day, uint8_t month, uint16_t year);  // Day Of Week
 
+        ru_e update(void);  // Updates the clock utilizing the RTC on the Teensy
+
+        // Tell the clock that the MCU is going to sleep since interrupts will be
+        // disabled.  Since the RTC_TSR counter will continue incrementing sleep
+        // saves off the current value so a diff can be done with RTC_TSR when
+        // waking/resuming.  Call sleep() before putting the MCU to sleep and
+        // wake() after MCU wakes up.
+        void sleep(void);
+        void wake(void);
+
         ////////////////////////////////////////////////////////////////////////
         // Alarm ///////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////
@@ -119,14 +118,20 @@ class Rtc : public Module
         static bool alarmIsMusic(uint8_t type) { return type == alarmMusic(); }
         static bool alarmIsBeep(uint8_t type) { return type == alarmBeep(); }
 
+        void alarmStart(void);
+        bool alarmIsSet(void);
+        bool alarmInProgress(void);
+        bool alarmIsAwake(void);
+        bool alarmSnooze(void);
+        void alarmStop(void);
+
+        // For Llwu to call if alarm was wakeup source
+        void clearIntr(void);
+
     private:
         Rtc(void);
 
         void reset(void);
-
-        void enableIrq(void);
-        void disableIrq(void);
-        bool enabledIrq(void) { return NVIC::isEnabled(IRQ_RTC_SECOND); /* && NVIC::isEnabled(IRQ_RTC_ALARM); */ }
 
         bool defaultClock(tClock & clock);
         bool defaultClockMinYear(uint16_t & clock_min_year);
@@ -137,6 +142,7 @@ class Rtc : public Module
         int8_t dstUpdate(uint32_t hours);
 
         static uint32_t volatile _s_isr_seconds;
+        static uint32_t volatile _s_alarm_start;
         static uint16_t _s_clock_min_year;
         static constexpr uint16_t _s_clock_max_years = 300;
 

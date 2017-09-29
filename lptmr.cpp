@@ -79,13 +79,34 @@ void Lptmr::stop(void)
     if (!running())
         return;
 
-    clear();
+    clearIntr();
     *_s_csr = 0;
 }
 
 bool Lptmr::running(void)
 {
     return enabled() && (*_s_csr & LPTMR_CSR_TEN);
+}
+
+void Lptmr::setTime(uint16_t msecs)
+{
+    if (_msecs == msecs)
+        return;
+
+    if (!enabled())
+        enable();
+
+    bool restart = false;
+    if (running())
+    {
+        stop();
+        restart = true;
+    }
+
+    _msecs = msecs;
+
+    if (restart)
+        start();
 }
 
 void Lptmr::osc32ClockSelect(void)
@@ -96,7 +117,7 @@ void Lptmr::osc32ClockSelect(void)
     *_s_sim_sopt1 |= osc;
 }
 
-void Lptmr::clear(void)
+void Lptmr::clearIntr(void)
 {
     *_s_csr |= LPTMR_CSR_TCF;
     NVIC::clearPending(IRQ_LPTMR);

@@ -28,14 +28,23 @@ class UI
     private:
         UI(void);
 
-        // Switch states
-        enum ss_e : uint8_t
+        // Rest / Sleep states
+        enum sl_e : uint8_t
         {
-            SS_NONE,
-            SS_LEFT,
-            SS_MIDDLE,
-            SS_RIGHT,
-            SS_CNT
+            SL_NO,
+            SL_RESTING,
+            SL_RESTED,
+            SL_SLEPT,
+        };
+
+        // Rotary Switch Positions
+        enum rsp_e : uint8_t
+        {
+            RSP_NONE,
+            RSP_LEFT,
+            RSP_MIDDLE,
+            RSP_RIGHT,
+            RSP_CNT
         };
 
         // Encoder states
@@ -71,9 +80,9 @@ class UI
             UIS_CNT
         };
 
-        uis_e const _next_states[UIS_CNT][PS_CNT][SS_CNT] =
+        uis_e const _next_states[UIS_CNT][PS_CNT][RSP_CNT] =
         {
-            //       SS_NONE        SS_LEFT     SS_MIDDLE      SS_RIGHT
+            //      RSP_NONE       RSP_LEFT     RSP_MIDDLE    RSP_RIGHT
             //
             //                          UIS_SET_ALARM
             {
@@ -137,7 +146,7 @@ class UI
 
         ps_e pressState(uint32_t msecs);
         bool pressing(es_e encoder_state, uint32_t depressed_time);
-        bool resting(es_e encoder_state, bool ui_state_changed, bool brightness_changed);
+        sl_e sleep(bool wake, bool redisplay);
         void updateBrightness(ev_e ev);
         void error(uis_e state = UIS_CNT);
 
@@ -154,25 +163,115 @@ class UI
         void setMcuSleep(uint32_t msecs) { _mcu_sleep_time = msecs; }
         void setDisplaySleep(uint32_t msecs) { _display_sleep_time = msecs; }
 
-        TRsw & _select = TRsw::acquire();
-        TBrEnc & _br_adjust = TBrEnc::acquire(IRQC_INTR_CHANGE);
-        TUiEncSw & _enc_swi = TUiEncSw::acquire(IRQC_INTR_CHANGE, IRQC_INTR_CHANGE);
-
         TDisplay & _display = TDisplay::acquire();
         TBeep & _beeper = TBeep::acquire();
         Rtc & _rtc = Rtc::acquire();
         Eeprom & _eeprom = Eeprom::acquire();
         Llwu & _llwu = Llwu::acquire();
+        Tsi & _tsi = Tsi::acquire();
+        Tsi::Channel & _tsi_channel = _tsi.acquire < PIN_TOUCH > ();
 
         // Want to have display and night light brightness synced.
         // The display levels are about 1/16 of the night light levels
         // off by one - 17 display levels and 256 night light levels.
         // The value 120 is midway between 112 and 128. See updateBrightness().
         uint8_t _brightness = 120;
+        uint8_t _display_brightness;
         static constexpr CRGB::Color const _s_default_color = CRGB::WHITE;
 
         uint32_t _refresh_start = 0;
         static constexpr uint32_t const _s_refresh_wait = 1000;
+
+        class Controls
+        {
+            public:
+                enum swi_e : uint8_t
+                {
+                    SWI_ENC,
+                    SWI_PLAY,
+                    SWI_NEXT,
+                    SWI_PREV,
+                };
+
+                template < class DSW >
+                class ConSwitch
+                {
+                    public:
+                        ConSwitch(DSW & swi) : _swi(swi) {}
+                        void process(void) { _cs = _swi.closeStart(); _cd = _swi.closeDuration(); }
+                        void postProcess(void)
+                        {
+                            if (_swi.closed())
+                            {
+                                if ((_cs == 0) && (_cs_tmp == 0))
+                                    _cs_tmp = msecs();
+                            }
+                            else
+                            {
+                                if (_skip) { _cd = 0; _skip = false; }
+                                else if (_cs_tmp != 0) { _cd = msecs() - _cs_tmp; }
+                                _cs_tmp = 0;
+                            }
+                        }
+
+                        bool closed(void) const { return _swi.closed(); }
+                        uint32_t cs(void) const { if (_cs_tmp != 0) return _cs_tmp; return _cs; }
+                        uint32_t cd(void) const { return _cd; }
+                        void skip(void) { _skip = true; }
+                        bool valid(void) const { return _swi.valid(); }
+
+                    private:
+                        DSW & _swi;
+                        uint32_t _cs = 0;
+                        uint32_t _cd = 0;
+                        uint32_t _cs_tmp = 0;
+                        bool _skip = false;
+                };
+
+                Controls(UI & ui);
+
+                void process(void);
+                bool interaction(void) const { return _interaction; }
+
+                rsp_e rsPos(void) const { return _rs_pos; }
+
+                ev_e brTurn(void) const { return _br_turn; }
+                ev_e encTurn(void) const { return _enc_turn; }
+
+                bool swiClosed(swi_e swi);
+                uint32_t swiCS(swi_e swi);  // CS -> Closed Start
+                uint32_t swiCD(swi_e swi);  // CD -> Closed Duration
+                void swiSkip(swi_e swi);
+                bool swiValid(swi_e swi);
+
+                bool valid(void) const;
+                bool brValid(void) const { return _br_adjust.valid(); }
+                bool encValid(void) const { return _enc.valid(); }
+                bool playValid(void) const { return _play.valid(); }
+                bool nextValid(void) const { return _next.valid(); }
+                bool prevValid(void) const { return _prev.valid(); }
+                bool rsValid(void) const { return _rs.valid(); }
+
+            private:
+                void setRsPos(void);
+
+                TRsw & _rs = TRsw::acquire();
+                TBrEnc & _br_adjust = TBrEnc::acquire(IRQC_INTR_CHANGE);
+                TUiEncSw & _enc = TUiEncSw::acquire(IRQC_INTR_CHANGE, IRQC_INTR_CHANGE);
+
+                ConSwitch < TUiEncSw > _enc_swi{_enc};
+                ConSwitch < TSwPlay > _play{TSwPlay::acquire(IRQC_INTR_CHANGE)};
+                ConSwitch < TSwNext > _next{TSwNext::acquire(IRQC_INTR_CHANGE)};
+                ConSwitch < TSwPrev > _prev{TSwPrev::acquire(IRQC_INTR_CHANGE)};
+
+                ev_e _br_turn = EV_ZERO;
+                ev_e _enc_turn = EV_ZERO;
+                rsp_e _rs_pos = RSP_NONE;
+                rsp_e _rs_pos_last = RSP_NONE;
+                bool _interaction = false;
+
+                UI & _ui;
+        };
 
         class Player
         {
@@ -219,9 +318,6 @@ class UI
 
                 TAudio & _audio = TAudio::acquire();
                 TFs & _fs = TFs::acquire();
-                TSwPrev & _prev = TSwPrev::acquire(IRQC_INTR_CHANGE);
-                TSwPlay & _play = TSwPlay::acquire(IRQC_INTR_CHANGE);
-                TSwNext & _next = TSwNext::acquire(IRQC_INTR_CHANGE);
 
                 UI & _ui;
 
@@ -248,37 +344,52 @@ class UI
         class Alarm
         {
             public:
-                Alarm(UI & ui) : _ui{ui} {}
-
-                void begin(void);
-                void update(uint8_t hour, uint8_t minute);
-                bool snooze(bool force = false);
-                bool snoozing(void) { return _state == AS_SNOOZE; }
-                bool alerting(void) { return _state == AS_WAKE; }
-                void stop(void);
-                bool enabled(void);
-                bool inProgress(void);
-
-            private:
-                void check(uint8_t hour, uint8_t minute);
-                void wake(void);
-                void done(uint8_t hour, uint8_t minute);
-
                 enum as_e : uint8_t
                 {
                     AS_OFF,
                     AS_WAKE,
                     AS_SNOOZE,
-                    AS_DONE
                 };
+
+                Alarm(UI & ui) : _ui{ui} {}
+
+                void begin(void);
+                as_e process(bool snooze, bool stop);
+                as_e state(void) const { return _state; }
+                bool snoozing(void) const { return _state == AS_SNOOZE; }
+                bool alerting(void) const { return _state == AS_WAKE; }
+                bool inProgress(void) const { return snoozing() || alerting(); }
+
+            private:
+                void check(void);
+                bool snooze(bool force = false);
+                void wake(void);
+                void stop(void);
 
                 UI & _ui;
                 as_e _state = AS_OFF;
-                tAlarm _alarm = {};
-                uint32_t _alarm_start = 0, _alarm_time = 0;
-                uint32_t _wake_start = 0, _wake_time = 0;
-                uint32_t _snooze_start = 0, _snooze_time = 600000;
                 bool _alarm_music = false;
+                uint32_t _wake_start = 0;
+        };
+
+        class Touch
+        {
+            public:
+                Touch(UI & ui);
+
+                bool valid(void);
+                bool enabled(void) const;
+                bool enable(void);
+                bool touched(uint32_t stime);
+                bool timedTouch(uint32_t ttime);
+                void update(tTouch const & t);
+
+            private:
+                tTouch _touch = {};
+                static constexpr uint32_t const _s_touch_disable_time = 20; // milliseconds
+                bool _touch_enabled = true;
+
+                UI & _ui;
         };
 
         class UIState
@@ -732,7 +843,6 @@ class UI
                 void displayTime(void);
                 void displayDate(void);
                 void displayYear(void);
-                void displayAlarm(void);
                 void displayTrack(void);
 
                 enum cs_e : uint8_t
@@ -740,7 +850,6 @@ class UI
                     CS_TIME,
                     CS_DATE,
                     CS_YEAR,
-                    CS_ALARM,
                     CS_TRACK,
                     CS_CNT
                 };
@@ -751,7 +860,6 @@ class UI
                     CS_YEAR,
                     CS_TRACK,
                     CS_TIME,
-                    CS_TIME,
                 };
 
                 using cs_display_action_t = void (Clock::*)(void);
@@ -760,18 +868,12 @@ class UI
                     &Clock::displayTime,
                     &Clock::displayDate,
                     &Clock::displayYear,
-                    &Clock::displayAlarm,
                     &Clock::displayTrack,
                 };
 
                 cs_e _state = CS_TIME;
                 tClock _clock = {};
-                Alarm _alarm{_ui};
                 df_t _dflag = DF_12H;
-
-                // Amount of time to wait after snoozing via encoder turn
-                // before cycling through lighting.
-                static constexpr uint32_t const _s_snooze_wait = 1000;
 
                 // Show date / year / alarm off / track selection time
                 static constexpr uint32_t const _s_flash_time = 3000;
@@ -930,12 +1032,6 @@ class UI
                 virtual void uisEnd(void);
                 virtual bool uisSleep(void);
                 virtual void uisRefresh(void);
-
-                bool valid(void);
-                bool enabled(void) const;
-                bool enable(void);
-                bool touched(uint32_t stime = 0);
-                bool timedTouch(uint32_t ttime);
 
             private:
                 struct TouchCal
@@ -1108,9 +1204,6 @@ class UI
                     &SetTouch::displayDisabled,
                 };
 
-                Tsi & _tsi = Tsi::acquire();
-                Tsi::Channel & _tsi_channel = _tsi.acquire < PIN_TOUCH > ();
-
                 ts_e _state = TS_CAL_START;
                 topt_e _topt = TOPT_CAL;
                 tTouch _touch = {};
@@ -1128,9 +1221,6 @@ class UI
                 // To prevent beeper from switching on/off too quickly
                 static constexpr uint32_t const _s_beeper_wait = 30;
                 static constexpr uint32_t const _s_readings = UINT16_MAX;
-
-                static constexpr uint32_t const _s_touch_disable_time = 20; // milliseconds
-                bool _touch_enabled = true;
         };
 
         class SetLeds : public UISetState
@@ -1335,6 +1425,13 @@ class UI
                 bool _was_on = false;
         };
 
+        Controls _controls{*this};
+        Lighting _lighting{_brightness};
+
+        Player _player{*this};
+        Touch _touch{*this};
+        Alarm _alarm{*this};
+
         SetAlarm _set_alarm{*this};
         SetClock _set_clock{*this};
         SetSleep _set_sleep{*this};
@@ -1342,10 +1439,6 @@ class UI
         Timer _timer{*this};
         SetTouch _set_touch{*this};
         SetLeds _set_leds{*this};
-
-        Player _player{*this};
-
-        Lighting _lighting{_brightness};
 
         UIState * const _states[UIS_CNT] =
         {

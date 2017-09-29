@@ -49,7 +49,7 @@ void DevSwitch < PIN, N, NH >::isrChange(void)
         _close_start = msecs();
         _close_duration = 0;
     }
-    else
+    else if (_close_start != 0)
     {
         _close_duration = msecs() - _close_start;
         _close_start = 0;

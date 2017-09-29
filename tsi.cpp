@@ -1,4 +1,5 @@
 #include "tsi.h"
+#include "eeprom.h"
 #include "types.h"
 
 reg32 Tsi::_s_conf_base = (reg32)0x40045000;
@@ -52,7 +53,7 @@ void tsi0_isr(void)
     }
 }
 
-void Tsi::clear(void)
+void Tsi::clearIntr(void)
 {
     *_s_gencs |= TSI_GENCS_OVRF | TSI_GENCS_EXTERF | TSI_GENCS_OUTRGF | TSI_GENCS_EOSF;
     _s_overrun = _s_error = _s_outrgf = _s_eos = false;
@@ -75,7 +76,8 @@ Tsi::Tsi(void)
 
 void Tsi::start(void)
 {
-    _s_error = _s_overrun = _s_eos = _swts = false;
+    clearIntr();
+    _swts = false;
     *_s_gencs |= TSI_GENCS_TSIEN;
     NVIC::enable(IRQ_TSI);
 }
@@ -140,7 +142,7 @@ bool Tsi::isValid(tTouch const & touch)
         (touch.threshold <= _s_max_touch.threshold);
 }
 
-bool Tsi::set(tTouch const & touch)
+bool Tsi::setConfig(tTouch const & touch)
 {
     if (!isValid(touch))
         return false;
@@ -153,7 +155,7 @@ bool Tsi::set(tTouch const & touch)
     return true;
 }
 
-void Tsi::get(tTouch & touch) const
+void Tsi::getConfig(tTouch & touch) const
 {
     touch = _touch;
 }

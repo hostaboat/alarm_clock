@@ -3,6 +3,7 @@
 #include "types.h"
 #include "pin.h"
 #include "lptmr.h"
+#include "rtc.h"
 
 #define MCG_C1_CLKS(val) (((val) & 0x03) << 6)
 #define MCG_C2_LP        (1 << 1)
@@ -18,6 +19,7 @@ wums_e volatile Llwu::_s_wakeup_module = WUMS_NOT;
 int8_t volatile Llwu::_s_wakeup_pin = -1;
 Lptmr * Llwu::_s_lptmr = nullptr;
 Tsi * Llwu::_s_tsi = nullptr;
+Rtc * Llwu::_s_rtc = nullptr;
 constexpr int8_t const Llwu::_s_wups_to_pin[16];
 
 reg8 Llwu::_s_base = (reg8)0x4007C000;
@@ -75,6 +77,9 @@ void Llwu::disable(void)
     if (_s_tsi != nullptr)
         tsiDisable();
 
+    if (_s_rtc != nullptr)
+        alarmDisable();
+
     stopMode();
     SCB::clearSleepDeep();
     NVIC::disable(IRQ_LLWU);
@@ -111,6 +116,16 @@ bool Llwu::timerEnable(uint16_t msecs)
     return true;
 }
 
+bool Llwu::timerUpdate(uint16_t msecs)
+{
+    if (_s_lptmr == nullptr)
+        return false;
+
+    _s_lptmr->setTime(msecs);
+
+    return true;
+}
+
 bool Llwu::timerDisable(void)
 {
     if (_s_lptmr == nullptr)
@@ -121,6 +136,33 @@ bool Llwu::timerDisable(void)
     _s_lptmr->disable();
     _s_lptmr = nullptr;
 
+    return true;
+}
+
+bool Llwu::alarmEnable(void)
+{
+    if (_s_rtc != nullptr)
+        return false;
+
+    _s_rtc = &Rtc::acquire();
+    if (_s_rtc->alarmDisabled())
+    {
+        _s_rtc = nullptr;
+        return false;
+    }
+
+    *_s_me |= (1 << WUMS_RTC_ALARM);
+
+    return true;
+}
+
+bool Llwu::alarmDisable(void)
+{
+    if (_s_rtc == nullptr)
+        return false;
+
+    *_s_me &= ~(1 << WUMS_RTC_ALARM);
+    _s_rtc = nullptr;
     return true;
 }
 
@@ -173,15 +215,16 @@ void wakeup_isr(void)
         Llwu::_s_wakeup_source = WUS_MODULE;
         Llwu::_s_wakeup_module = (wums_e)__builtin_ctz(wufm);
 
-        // If there is a pending interrupt with the LPTMR then clear the flag
-        // and pending interrupt in that order.  If the order is reversed then
-        // after clearing the pending interrupt, another interrupt is immediately
-        // generated since the LPTMR_CSR_TCF flag hasn't been cleared yet.
-        if (Llwu::_s_lptmr != nullptr)
-            Llwu::_s_lptmr->clear();
-
-        if (Llwu::_s_tsi != nullptr)
-            Llwu::_s_tsi->clear();
+        // If there is a pending interrupt then clear the flag and pending
+        // interrupt in that order.  If the order is reversed then after
+        // clearing the pending interrupt, another interrupt is immediately
+        // generated since the flag hasn't been cleared yet.
+        if (Llwu::_s_wakeup_module == WUMS_LPTMR)
+            Llwu::_s_lptmr->clearIntr();
+        else if (Llwu::_s_wakeup_module == WUMS_TSI)
+            Llwu::_s_tsi->clearIntr();
+        else if (Llwu::_s_wakeup_module == WUMS_RTC_ALARM)
+            Llwu::_s_rtc->clearIntr();
     }
     else if (wufp != 0)
     {

@@ -8,14 +8,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Generic Display /////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-enum br_e : uint8_t
-{
-    BR_OFF,
-    BR_LOW,
-    BR_MID,
-    BR_MAX,
-};
-
 class Display
 {
     public:
@@ -27,8 +19,6 @@ class Display
         virtual void off(void) = 0;
         virtual bool isOn(void) = 0;
 
-        virtual br_e brightness(void) = 0;
-        virtual void brightness(br_e level) = 0;
         virtual void up(void) = 0;
         virtual void down(void) = 0;
 
@@ -85,8 +75,6 @@ class Seg7Display : public Display
         virtual void on(void) = 0;
         virtual void off(void) = 0;
         virtual bool isOn(void) = 0;
-        virtual br_e brightness(void) = 0;
-        virtual void brightness(br_e level) = 0;
         virtual void up(void) = 0;
         virtual void down(void) = 0;
         virtual void show(void) = 0;
@@ -270,6 +258,14 @@ class Seg7Display : public Display
 #define HT16K33_COLON    0x02
 #define HT16K33_DECIMAL  0x80
 
+enum br_e
+{
+    BR_OFF,
+    BR_LOW,
+    BR_MID,
+    BR_MAX,
+};
+
 template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >
 class DevHT16K33 : public DevI2C < ADDR, I2C, SDA, SCL > , public Seg7Display
 {
@@ -287,11 +283,13 @@ class DevHT16K33 : public DevI2C < ADDR, I2C, SDA, SCL > , public Seg7Display
         virtual void on(void);
         virtual void off(void);
         virtual bool isOn(void) { return _on; }
-        virtual br_e brightness(void) { return (br_e)_brightness; }
-        virtual void brightness(br_e level);
         virtual void up(void);
         virtual void down(void);
         virtual void show(void);
+
+        uint8_t brightness(void) { return _brightness; }
+        void brightness(br_e level);
+        void brightness(uint8_t level);
 
         DevHT16K33(DevHT16K33 const &) = delete;
         DevHT16K33 & operator=(DevHT16K33 const &) = delete;
@@ -310,7 +308,7 @@ class DevHT16K33 : public DevI2C < ADDR, I2C, SDA, SCL > , public Seg7Display
 
         bool _awake = false;
         bool _on = false;
-        uint8_t _brightness = BR_MID;
+        uint8_t _brightness = HT16K33_MID_BRIGHTNESS;
         uint8_t _last_positions[5] = {};
 };
 
@@ -324,7 +322,7 @@ DevHT16K33 < ADDR, I2C, SDA, SCL >::DevHT16K33(void)
     _awake = true;
     on();
     blank();
-    brightness(BR_MID);
+    brightness(_brightness);
 }
 
 template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >
@@ -359,7 +357,7 @@ void DevHT16K33 < ADDR, I2C, SDA, SCL >::sleep(bool clear)
     if (!isAwake())
         return;
 
-    // Clear display if requested.
+    // Clear display and cache if requested.
     if (clear)
     {
         this->_i2c.begin(ADDR, this->_frequency);
@@ -369,6 +367,9 @@ void DevHT16K33 < ADDR, I2C, SDA, SCL >::sleep(bool clear)
             this->_i2c.tx16(0x0000);
 
         this->_i2c.end();
+
+        for (uint8_t i = 0; i < sizeof(_positions); i++)
+            _last_positions[i] = 0;
     }
 
     send(HT16K33_STANDBY);
@@ -434,6 +435,21 @@ void DevHT16K33 < ADDR, I2C, SDA, SCL >::down(void)
         _brightness--;
         send(HT16K33_BRIGHTNESS_REG | _brightness);
     }
+}
+
+template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >
+void DevHT16K33 < ADDR, I2C, SDA, SCL >::brightness(uint8_t level)
+{
+    if (!isAwake())
+        return;
+
+    if (level > HT16K33_MAX_BRIGHTNESS)
+        level = HT16K33_MAX_BRIGHTNESS;
+
+    _brightness = level;
+
+    send(HT16K33_BRIGHTNESS_REG | _brightness);
+    on();
 }
 
 template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >

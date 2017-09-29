@@ -54,13 +54,30 @@ reg32 Rtc::_s_rar = _s_base + 9;
 reg32 Rtc::_s_vbat = (reg32)0x4003E000;
 
 uint32_t volatile Rtc::_s_isr_seconds = 0;
+uint32_t volatile Rtc::_s_alarm_start = 0;
 
 void rtc_seconds_isr(void)
 {
     Rtc::_s_isr_seconds++;
 }
 
-//void rtc_alarm_isr(void) {}
+void rtc_alarm_isr(void)
+{
+    uint32_t tsr = *Rtc::_s_tsr;
+
+    if (Rtc::_s_alarm_start == 0)
+        Rtc::_s_alarm_start = tsr;
+
+    *Rtc::_s_tar = tsr - 1;
+}
+
+void Rtc::clearIntr(void)
+{
+    // Need to call ISR manually after wake from LLS to make sure alarm is
+    // started and to not infinitely loop in Llwu wakeup_isr().
+    rtc_alarm_isr();
+    NVIC::clearPending(IRQ_RTC_ALARM);
+}
 
 Rtc::Rtc(void)
 {
@@ -98,7 +115,7 @@ Rtc::Rtc(void)
     _clock_month = clock.month;
     _clock_year = clock.year;
 
-    enable();
+    Module::enable(MOD_RTC);
     start();
 
 #ifdef RTC_VBAT
@@ -111,29 +128,41 @@ Rtc::Rtc(void)
     if (_clock_dst)
         dstInit();
 
-    enableIrq();
-
     (void)update();
-}
-
-void Rtc::enableIrq(void)
-{
-    if (enabledIrq())
-        return;
+    alarmStart();
 
     //NVIC::setPriority(IRQ_RTC_SECOND, 64);
-    NVIC::enable(IRQ_RTC_SECOND);
     //NVIC::setPriority(IRQ_RTC_ALARM, 64);
-    //NVIC::enable(IRQ_RTC_ALARM);
+    NVIC::enable(IRQ_RTC_SECOND);
+    NVIC::enable(IRQ_RTC_ALARM);
 }
 
-void Rtc::disableIrq(void)
+void Rtc::enable(void)
 {
-    if (!enabledIrq())
+    if (enabled())
         return;
 
+    Module::enable(MOD_RTC);
+
+    NVIC::enable(IRQ_RTC_SECOND);
+    NVIC::enable(IRQ_RTC_ALARM);
+}
+
+bool Rtc::enabled(void)
+{
+    return Module::enabled(MOD_RTC)
+        && NVIC::isEnabled(IRQ_RTC_SECOND) && NVIC::isEnabled(IRQ_RTC_ALARM);
+}
+
+void Rtc::disable(void)
+{
+    if (!enabled())
+        return;
+
+    stop();
     NVIC::disable(IRQ_RTC_SECOND);
-    //NVIC::disable(IRQ_RTC_ALARM);
+    NVIC::disable(IRQ_RTC_ALARM);
+    Module::disable(MOD_RTC);
 }
 
 void Rtc::start(void)
@@ -164,20 +193,19 @@ bool Rtc::running(void)
 
 void Rtc::reset(void)
 {
-    disableIrq();
-    _s_isr_seconds = _clock_second;
-    enableIrq();
-
     *_s_sr = 0;  // TCE must be clear to write to TSR and TPR
     *_s_tpr = 0;
-    *_s_tsr = _clock_second;
-    //*_s_tar = RTC_TSR_INVALID;  // Not using alarm function
-    *_s_ier = RTC_IER_TSIE;  // | RTC_IER_TAIE; // No alarm interrupt
+    *_s_tsr = _s_isr_seconds = _clock_second;
+    *_s_tar = 0;
+    *_s_ier = RTC_IER_TSIE | RTC_IER_TAIE;
     *_s_sr = RTC_SR_TCE;
 }
 
 ru_e Rtc::update(void)
 {
+    if (_tsr != RTC_TSR_INVALID)
+        wake();
+
     // Don't want to disable the IRQ unless there is a seconds update.
     // An interrupt happening here while checking _s_isr_seconds against
     // _clock_second will get caught up on the next call.
@@ -186,7 +214,7 @@ ru_e Rtc::update(void)
 
     ru_e ru = RU_SEC;
 
-    disableIrq();
+    NVIC::disable(IRQ_RTC_SECOND);
 
     if (_s_isr_seconds >= 60)
     {
@@ -198,13 +226,38 @@ ru_e Rtc::update(void)
 
     _clock_second = _s_isr_seconds;
 
-    enableIrq();
+    NVIC::enable(IRQ_RTC_SECOND);
 
     if (_clock_minute < 60)
         return ru;
 
     if (_clock_dst)
-        _clock_hour += dstUpdate(_clock_minute / 60);
+    {
+        int8_t hour_adjust = dstUpdate(_clock_minute / 60);
+        _clock_hour += hour_adjust;
+
+        if ((hour_adjust != 0) && _alarm.enabled)
+        {
+            NVIC::disable(IRQ_RTC_ALARM);
+
+            if (hour_adjust == -1)
+            {
+                *_s_tar += 3600;
+            }
+            else  // (hour_adjust == 1)
+            {
+                // Only update if alarm doesn't fall between 2:00 and 2:59
+                uint32_t tsr = *_s_tsr;
+
+                if ((tsr + 3600) >= *_s_tar)
+                    *_s_tar = tsr + 1;  // Add an extra second just to be safe
+                else
+                    *_s_tar -= 3600;
+            }
+
+            NVIC::enable(IRQ_RTC_ALARM);
+        }
+    }
 
     _clock_hour += _clock_minute / 60;
     _clock_minute %= 60;
@@ -444,6 +497,7 @@ int8_t Rtc::dstUpdate(uint32_t hours)
 // off the current value so a diff can be done when resuming.
 void Rtc::sleep(void)
 {
+    NVIC::disable(IRQ_RTC_SECOND);
     _tsr = *_s_tsr;
 }
 
@@ -452,9 +506,12 @@ void Rtc::wake(void)
     if (_tsr == RTC_TSR_INVALID)
         return;
 
-    disableIrq();
-    _s_isr_seconds += *_s_tsr - _tsr;
-    enableIrq();
+    NVIC::disable(IRQ_RTC_SECOND);
+
+    _s_isr_seconds += (*_s_tsr - _tsr);
+
+    NVIC::clearPending(IRQ_RTC_SECOND);
+    NVIC::enable(IRQ_RTC_SECOND);
 
     _tsr = RTC_TSR_INVALID;
 }
@@ -499,6 +556,7 @@ bool Rtc::setClock(tClock const & clock)
         dstInit();
 
     reset();
+    alarmStart();
 
     return true;
 }
@@ -549,6 +607,8 @@ bool Rtc::setAlarm(tAlarm const & alarm)
     _alarm = alarm;
     (void)_eeprom.setAlarm(alarm);
 
+    alarmStart();
+
     return true;
 }
 
@@ -564,3 +624,87 @@ bool Rtc::defaultAlarm(tAlarm & alarm)
 
     return _eeprom.setAlarm(alarm);
 }
+
+void Rtc::alarmStart(void)
+{
+    if (!_alarm.enabled)
+        return;
+
+    (void)update();
+
+    // Won't overflow since after update these will be well below a UINT8_MAX.
+    int minutes = (int)((_clock_hour * 60) + _clock_minute);
+    int alarm_minutes = (int)((_alarm.hour * 60) + _alarm.minute);
+
+    minutes = alarm_minutes - minutes;
+
+    // Add a day if current time is later than or equal to alarm time.
+    // minutes will be positive after this adjustment
+    if (minutes <= 0)
+        minutes += (24 * 60);
+
+    uint32_t alarm_seconds = ((uint32_t)minutes * 60) - _clock_second;
+
+    NVIC::disable(IRQ_RTC_ALARM);
+    *_s_tar = *_s_tsr + alarm_seconds;
+    _s_alarm_start = 0;
+    NVIC::enable(IRQ_RTC_ALARM);
+}
+
+bool Rtc::alarmIsSet(void)
+{
+    return *_s_tar != 0;
+}
+
+bool Rtc::alarmIsAwake(void)
+{
+    if (!_alarm.enabled || !alarmInProgress())
+        return false;
+
+    uint32_t tsr = *_s_tsr;
+
+    NVIC::disable(IRQ_RTC_ALARM);
+    uint32_t tar = *_s_tar;
+    NVIC::enable(IRQ_RTC_ALARM);
+
+    if ((_alarm.wake != 0) && (tar < tsr) && ((tsr - tar) > (_alarm.wake * 60)))
+        return false;
+
+    return tar < tsr;
+}
+
+bool Rtc::alarmSnooze(void)
+{
+    if (!_alarm.enabled || !alarmInProgress())
+        return false;
+
+    NVIC::disable(IRQ_RTC_ALARM);
+    *_s_tar = *_s_tsr + (_alarm.snooze * 60);
+    NVIC::enable(IRQ_RTC_ALARM);
+
+    return true;
+}
+
+bool Rtc::alarmInProgress(void)
+{
+    NVIC::disable(IRQ_RTC_ALARM);
+    uint32_t alarm_start = _s_alarm_start;
+    NVIC::enable(IRQ_RTC_ALARM);
+
+    if (!_alarm.enabled || (alarm_start == 0))
+        return false;
+
+    if ((_alarm.time != 0) && ((*_s_tsr - alarm_start) > (_alarm.time * 60 * 60)))
+        return false;
+
+    return true;
+}
+
+void Rtc::alarmStop(void)
+{
+    NVIC::disable(IRQ_RTC_ALARM);
+    *_s_tar = 0;
+    _s_alarm_start = 0;
+    NVIC::enable(IRQ_RTC_ALARM);
+}
+

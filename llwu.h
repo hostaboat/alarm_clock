@@ -5,6 +5,7 @@
 #include "armv7m.h"
 #include "lptmr.h"
 #include "tsi.h"
+#include "rtc.h"
 #include "types.h"
 
 // WakeUp Pin Enable detection
@@ -113,7 +114,11 @@ class Llwu
         }
 
         bool timerEnable(uint16_t msecs);
+        bool timerUpdate(uint16_t msecs);
         bool timerDisable(void);
+
+        bool alarmEnable(void);
+        bool alarmDisable(void);
 
         template < pin_t PIN >
         bool tsiEnable(void)
@@ -159,6 +164,7 @@ class Llwu
         static int8_t volatile _s_wakeup_pin;
         static Lptmr * _s_lptmr;
         static Tsi * _s_tsi;
+        static Rtc * _s_rtc;
 
         static reg8 _s_base;
         static reg8 _s_pe1;
