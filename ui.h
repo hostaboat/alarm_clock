@@ -253,10 +253,9 @@ class UI
                                 if ((_cs == 0) && (_cs_tmp == 0))
                                     _cs_tmp = msecs();
                             }
-                            else
+                            else if (_cs_tmp != 0)
                             {
-                                if (_skip) { _cd = 0; _skip = false; }
-                                else if (_cs_tmp != 0) { _cd = msecs() - _cs_tmp; }
+                                _cd = msecs() - _cs_tmp;
                                 _cs_tmp = 0;
                             }
                         }
@@ -264,16 +263,14 @@ class UI
                         bool closed(void) const { return _swi.closed(); }
                         uint32_t cs(void) const { if (_cs_tmp != 0) return _cs_tmp; return _cs; }
                         uint32_t cd(void) const { return _cd; }
-                        void skip(void) { _skip = true; }
                         bool valid(void) const { return _swi.valid(); }
-                        void reset(void) { _cs = _cd = _cs_tmp = 0; _skip = false; }
+                        void reset(void) { _cs = _cd = _cs_tmp = 0; }
 
                     private:
                         DSW & _swi;
                         uint32_t _cs = 0;
                         uint32_t _cd = 0;
                         uint32_t _cs_tmp = 0;
-                        bool _skip = false;
                 };
 
                 Controls(UI & ui);
@@ -289,8 +286,10 @@ class UI
                 bool swiClosed(swi_e swi);
                 uint32_t swiCS(swi_e swi);  // CS -> Closed Start
                 uint32_t swiCD(swi_e swi);  // CD -> Closed Duration
-                void swiSkip(swi_e swi);
                 bool swiValid(swi_e swi);
+
+                bool touched(void) { return (_touch_mark != 0) && ((msecs() - _touch_mark) > _s_touch_time); }
+                uint32_t touchTime(void) { return (_touch_mark == 0) ? 0 : msecs() - _touch_mark; }
 
                 bool valid(void) const;
                 bool brValid(void) const { return _br_adjust.valid(); }
@@ -301,6 +300,7 @@ class UI
 
             private:
                 void setRsPos(void);
+                void setTouch(void);
 
                 TRsw & _rs = TRsw::acquire();
                 TBrEnc & _br_adjust = TBrEnc::acquire(IRQC_INTR_CHANGE);
@@ -315,6 +315,10 @@ class UI
                 ev_e _enc_turn = EV_ZERO;
                 rsp_e _rs_pos = RSP_NONE;
                 rsp_e _rs_pos_last = RSP_NONE;
+
+                uint32_t _touch_mark = 0;
+                static constexpr uint32_t const _s_touch_time = 50;
+
                 bool _interaction = false;
 
                 UI & _ui;
@@ -405,27 +409,6 @@ class UI
                 UI & _ui;
                 as_e _state = AS_OFF;
                 bool _alarm_music = false;
-                uint32_t _wake_start = 0;
-        };
-
-        class Touch
-        {
-            public:
-                Touch(UI & ui);
-
-                bool valid(void);
-                bool enabled(void) const;
-                bool enable(void);
-                bool touched(uint32_t stime);
-                bool timedTouch(uint32_t ttime);
-                void update(tTouch const & t);
-
-            private:
-                tTouch _touch = {};
-                static constexpr uint32_t const _s_touch_disable_time = 20; // milliseconds
-                bool _touch_enabled = true;
-
-                UI & _ui;
         };
 
         class UIState
@@ -1029,7 +1012,6 @@ class UI
                 uint32_t _last_second = 0;
                 Pit * _display_timer = nullptr;
                 Pit * _led_timer = nullptr;
-                uint32_t _alert_start = 0;
 
                 // For showing the clock while in timer state
                 bool _show_clock = false;
@@ -1465,7 +1447,6 @@ class UI
         Lighting _lighting{_brightness};
 
         Player _player{*this};
-        Touch _touch{*this};
         Alarm _alarm{*this};
 
         SetAlarm _set_alarm{*this};
