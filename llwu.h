@@ -127,6 +127,13 @@ class Llwu
                 return false;
 
             _s_tsi = &Tsi::acquire();
+
+            if (_s_tsi->threshold() == 0)
+            {
+                _s_tsi = nullptr;
+                return false;
+            }
+
             _s_tsi->enableLPSP < PIN > ();
 
             *_s_me |= (1 << WUMS_TSI);

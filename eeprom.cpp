@@ -160,6 +160,16 @@ bool Eeprom::write(eei_e index, uint16_t value)
     return true;
 }
 
+bool Eeprom::read(eei_e index, uint16_t & value) const
+{
+    if (!ready(index))
+        return false;
+
+    value = _eeprom[index];
+
+    return true;
+}
+
 bool Eeprom::setAlarm(eAlarm const & alarm)
 {
     uint16_t hm = ((uint16_t)alarm.hour << 8) | alarm.minute;
@@ -177,10 +187,10 @@ bool Eeprom::setAlarm(eAlarm const & alarm)
 bool Eeprom::getAlarm(eAlarm & alarm) const
 {
     uint16_t hm, sw, at, ts;
-    if (!read < uint16_t > (EEI_ALARM_HOUR_MINUTE, hm)
-            || !read < uint16_t > (EEI_ALARM_SNOOZE_WAKE, sw)
-            || !read < uint16_t > (EEI_ALARM_TOTAL_TIME, at)
-            || !read < uint16_t > (EEI_ALARM_TYPE_STATE, ts))
+    if (!read(EEI_ALARM_HOUR_MINUTE, hm)
+            || !read(EEI_ALARM_SNOOZE_WAKE, sw)
+            || !read(EEI_ALARM_TOTAL_TIME, at)
+            || !read(EEI_ALARM_TYPE_STATE, ts))
         return false;
 
     alarm.hour = (uint8_t)(hm >> 8);
@@ -213,11 +223,11 @@ bool Eeprom::setClock(eClock const & clock)
 bool Eeprom::getClock(eClock & clock) const
 {
     uint16_t s, hm, md, y, td;
-    if (!read < uint16_t > (EEI_CLOCK_SECOND, s)
-            || !read < uint16_t > (EEI_CLOCK_HOUR_MINUTE, hm)
-            || !read < uint16_t > (EEI_CLOCK_MONTH_DAY, md)
-            || !read < uint16_t > (EEI_CLOCK_YEAR, y)
-            || !read < uint16_t > (EEI_CLOCK_TYPE_DST, td))
+    if (!read(EEI_CLOCK_SECOND, s)
+            || !read(EEI_CLOCK_HOUR_MINUTE, hm)
+            || !read(EEI_CLOCK_MONTH_DAY, md)
+            || !read(EEI_CLOCK_YEAR, y)
+            || !read(EEI_CLOCK_TYPE_DST, td))
         return false;
 
     clock.second = (uint8_t)(s & 0xFF);
@@ -238,7 +248,7 @@ bool Eeprom::setClockMinYear(uint16_t year)
 
 bool Eeprom::getClockMinYear(uint16_t & year) const
 {
-    return read < uint16_t > (EEI_CLOCK_MIN_YEAR, year);
+    return read(EEI_CLOCK_MIN_YEAR, year);
 }
 
 bool Eeprom::setTrack(uint16_t track)
@@ -248,7 +258,7 @@ bool Eeprom::setTrack(uint16_t track)
 
 bool Eeprom::getTrack(uint16_t & track) const
 {
-    return read < uint16_t > (EEI_TRACK, track);
+    return read(EEI_TRACK, track);
 }
 
 bool Eeprom::setTouch(eTouch const & touch)
@@ -265,9 +275,9 @@ bool Eeprom::setTouch(eTouch const & touch)
 bool Eeprom::getTouch(eTouch & touch) const
 {
     uint16_t np, re, t;
-    if (!read < uint16_t > (EEI_TOUCH_NSCN_PS, np)
-            || !read < uint16_t > (EEI_TOUCH_REFCHRG_EXTCHRG, re)
-            || !read < uint16_t > (EEI_TOUCH_THRESHOLD, t))
+    if (!read(EEI_TOUCH_NSCN_PS, np)
+            || !read(EEI_TOUCH_REFCHRG_EXTCHRG, re)
+            || !read(EEI_TOUCH_THRESHOLD, t))
         return false;
 
     touch.nscn = (uint8_t)(np >> 8);
@@ -288,8 +298,8 @@ bool Eeprom::setLedsColor(uint32_t color_code)
 bool Eeprom::getLedsColor(uint32_t & color_code) const
 {
     uint16_t ccl, cch;
-    if (!read < uint16_t > (EEI_LEDS_COLOR_LOW, ccl)
-            || !read < uint16_t > (EEI_LEDS_COLOR_HIGH, cch))
+    if (!read(EEI_LEDS_COLOR_LOW, ccl)
+            || !read(EEI_LEDS_COLOR_HIGH, cch))
         return false;
 
     color_code = ((uint32_t)cch << 16) | (uint32_t)ccl;
@@ -297,37 +307,37 @@ bool Eeprom::getLedsColor(uint32_t & color_code) const
     return true;
 }
 
-bool Eeprom::setSleep(eSleep const & sleep)
+bool Eeprom::setPower(ePower const & power)
 {
-    uint16_t msh = (uint16_t)(sleep.mcu_secs >> 16);
-    uint16_t msl = (uint16_t)(sleep.mcu_secs & 0xFFFF);
-    uint16_t dsh = (uint16_t)(sleep.display_secs >> 16);
-    uint16_t dsl = (uint16_t)(sleep.display_secs & 0xFFFF);
-    uint16_t psh = (uint16_t)(sleep.player_secs >> 16);
-    uint16_t psl = (uint16_t)(sleep.player_secs & 0xFFFF);
+    uint16_t nsh = (uint16_t)(power.nap_secs >> 16);
+    uint16_t nsl = (uint16_t)(power.nap_secs & 0xFFFF);
+    uint16_t psh = (uint16_t)(power.stop_secs >> 16);
+    uint16_t psl = (uint16_t)(power.stop_secs & 0xFFFF);
+    uint16_t ssh = (uint16_t)(power.sleep_secs >> 16);
+    uint16_t ssl = (uint16_t)(power.sleep_secs & 0xFFFF);
 
-    return (write(EEI_SLEEP_MCU_SECS_HIGH, msh)
-            && write(EEI_SLEEP_MCU_SECS_LOW, msl)
-            && write(EEI_SLEEP_DISPLAY_SECS_HIGH, dsh)
-            && write(EEI_SLEEP_DISPLAY_SECS_LOW, dsl)
-            && write(EEI_SLEEP_PLAYER_SECS_HIGH, psh)
-            && write(EEI_SLEEP_PLAYER_SECS_LOW, psl));
+    return (write(EEI_POWER_NAP_SECS_HIGH, nsh)
+            && write(EEI_POWER_NAP_SECS_LOW, nsl)
+            && write(EEI_POWER_STOP_SECS_HIGH, psh)
+            && write(EEI_POWER_STOP_SECS_LOW, psl)
+            && write(EEI_POWER_SLEEP_SECS_HIGH, ssh)
+            && write(EEI_POWER_SLEEP_SECS_LOW, ssl));
 }
 
-bool Eeprom::getSleep(eSleep & sleep) const
+bool Eeprom::getPower(ePower & power) const
 {
-    uint16_t msh, msl, dsh, dsl, psh, psl;
-    if (!read < uint16_t > (EEI_SLEEP_MCU_SECS_HIGH, msh)
-            || !read < uint16_t > (EEI_SLEEP_MCU_SECS_LOW, msl)
-            || !read < uint16_t > (EEI_SLEEP_DISPLAY_SECS_HIGH, dsh)
-            || !read < uint16_t > (EEI_SLEEP_DISPLAY_SECS_LOW, dsl)
-            || !read < uint16_t > (EEI_SLEEP_PLAYER_SECS_HIGH, psh)
-            || !read < uint16_t > (EEI_SLEEP_PLAYER_SECS_LOW, psl))
+    uint16_t ssh, ssl, nsh, nsl, psh, psl;
+    if (!read(EEI_POWER_SLEEP_SECS_HIGH, ssh)
+            || !read(EEI_POWER_SLEEP_SECS_LOW, ssl)
+            || !read(EEI_POWER_NAP_SECS_HIGH, nsh)
+            || !read(EEI_POWER_NAP_SECS_LOW, nsl)
+            || !read(EEI_POWER_STOP_SECS_HIGH, psh)
+            || !read(EEI_POWER_STOP_SECS_LOW, psl))
         return false;
 
-    sleep.mcu_secs = ((uint32_t)msh << 16) | (uint32_t)msl;
-    sleep.display_secs = ((uint32_t)dsh << 16) | (uint32_t)dsl;
-    sleep.player_secs = ((uint32_t)psh << 16) | (uint32_t)psl;
+    power.sleep_secs = ((uint32_t)ssh << 16) | (uint32_t)ssl;
+    power.nap_secs = ((uint32_t)nsh << 16) | (uint32_t)nsl;
+    power.stop_secs = ((uint32_t)psh << 16) | (uint32_t)psl;
 
     return true;
 }

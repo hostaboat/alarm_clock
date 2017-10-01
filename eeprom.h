@@ -35,12 +35,12 @@ enum eei_e : uint8_t
     EEI_TOUCH_THRESHOLD,
 
     // 17-22
-    EEI_SLEEP_MCU_SECS_HIGH,     // MCU Sleep Time
-    EEI_SLEEP_MCU_SECS_LOW,      // MCU Sleep Time
-    EEI_SLEEP_DISPLAY_SECS_HIGH, // Display Sleep Time
-    EEI_SLEEP_DISPLAY_SECS_LOW,  // Display Sleep Time
-    EEI_SLEEP_PLAYER_SECS_HIGH,  // Player Stop/Sleep Time
-    EEI_SLEEP_PLAYER_SECS_LOW,   // Player Stop/Sleep Time
+    EEI_POWER_NAP_SECS_HIGH,   // Nap Time high 16 bits
+    EEI_POWER_NAP_SECS_LOW,    // Nap Time low 16 bits
+    EEI_POWER_STOP_SECS_HIGH,  // Player Stop Time high 16 bits
+    EEI_POWER_STOP_SECS_LOW,   // Player Stop Time low 16 bits
+    EEI_POWER_SLEEP_SECS_HIGH, // Sleep Time high 16 bits
+    EEI_POWER_SLEEP_SECS_LOW,  // Sleep Time low 16 bits
     // Num entries : 22
 // Used to determine the EEPROM size
 #define EEI_CNT  22
@@ -94,11 +94,11 @@ struct eTouch
     uint16_t threshold;
 };
 
-struct eSleep
+struct ePower
 {
-    uint32_t mcu_secs;
-    uint32_t display_secs;
-    uint32_t player_secs;
+    uint32_t nap_secs;
+    uint32_t stop_secs; // Player stop time
+    uint32_t sleep_secs;
 };
 
 class Eeprom : public Module
@@ -108,15 +108,8 @@ class Eeprom : public Module
 
         bool valid(void) { return _max_index != -1; }
 
-        template < typename T >
-        bool read(eei_e index, T & value) const
-        {
-            if (!ready(index)) return false;
-            value = static_cast < T > (_eeprom[index]);
-            return true;
-        }
-
         bool write(eei_e index, uint16_t value);
+        bool read(eei_e index, uint16_t & value) const;
 
         bool setAlarm(eAlarm const & alarm);
         bool getAlarm(eAlarm & alarm) const;
@@ -136,8 +129,8 @@ class Eeprom : public Module
         bool setLedsColor(uint32_t color_code);
         bool getLedsColor(uint32_t & color_code) const;
 
-        bool setSleep(eSleep const & sleep);
-        bool getSleep(eSleep & sleep) const;
+        bool setPower(ePower const & power);
+        bool getPower(ePower & power) const;
 
         Eeprom(Eeprom const &) = delete;
         Eeprom & operator=(Eeprom const &) = delete;
