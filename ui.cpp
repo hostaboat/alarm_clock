@@ -2109,6 +2109,10 @@ void UI::Clock::uisWait(void)
             display();
         }
     }
+    else if (_ui._controls.touched() && !_track_updated)
+    {
+        _alt_display.reset(_s_flash_time);
+    }
 }
 
 void UI::Clock::uisUpdate(ev_e ev)

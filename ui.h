@@ -998,7 +998,7 @@ class UI
                 Toggle _alt_display{_s_flash_time};
 
                 // Sustained touch time to enter track selection state
-                static constexpr uint32_t const _s_touch_time = 3000;
+                static constexpr uint32_t const _s_touch_time = 2000;
                 // Time out for inactivity after track number update
                 static constexpr uint32_t const _s_track_idle_time = 15000;
                 uint16_t _track = 0;
