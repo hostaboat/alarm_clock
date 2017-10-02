@@ -315,29 +315,33 @@ bool Eeprom::setPower(ePower const & power)
     uint16_t psl = (uint16_t)(power.stop_secs & 0xFFFF);
     uint16_t ssh = (uint16_t)(power.sleep_secs >> 16);
     uint16_t ssl = (uint16_t)(power.sleep_secs & 0xFFFF);
+    uint16_t ts = power.touch_secs;
 
     return (write(EEI_POWER_NAP_SECS_HIGH, nsh)
             && write(EEI_POWER_NAP_SECS_LOW, nsl)
             && write(EEI_POWER_STOP_SECS_HIGH, psh)
             && write(EEI_POWER_STOP_SECS_LOW, psl)
             && write(EEI_POWER_SLEEP_SECS_HIGH, ssh)
-            && write(EEI_POWER_SLEEP_SECS_LOW, ssl));
+            && write(EEI_POWER_SLEEP_SECS_LOW, ssl)
+            && write(EEI_POWER_TOUCH_SECS, ts));
 }
 
 bool Eeprom::getPower(ePower & power) const
 {
-    uint16_t ssh, ssl, nsh, nsl, psh, psl;
-    if (!read(EEI_POWER_SLEEP_SECS_HIGH, ssh)
-            || !read(EEI_POWER_SLEEP_SECS_LOW, ssl)
-            || !read(EEI_POWER_NAP_SECS_HIGH, nsh)
+    uint16_t nsh, nsl, psh, psl, ssh, ssl, ts;
+    if (!read(EEI_POWER_NAP_SECS_HIGH, nsh)
             || !read(EEI_POWER_NAP_SECS_LOW, nsl)
             || !read(EEI_POWER_STOP_SECS_HIGH, psh)
-            || !read(EEI_POWER_STOP_SECS_LOW, psl))
+            || !read(EEI_POWER_STOP_SECS_LOW, psl)
+            || !read(EEI_POWER_SLEEP_SECS_HIGH, ssh)
+            || !read(EEI_POWER_SLEEP_SECS_LOW, ssl)
+            || !read(EEI_POWER_TOUCH_SECS, ts))
         return false;
 
     power.sleep_secs = ((uint32_t)ssh << 16) | (uint32_t)ssl;
     power.nap_secs = ((uint32_t)nsh << 16) | (uint32_t)nsl;
     power.stop_secs = ((uint32_t)psh << 16) | (uint32_t)psl;
+    power.touch_secs = (uint8_t)ts;
 
     return true;
 }

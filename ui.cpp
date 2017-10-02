@@ -37,12 +37,20 @@ void Controls::process(void)
     _next.postProcess();
     _prev.postProcess();
 
-    _interaction = _pos_change || touched()
+    _interaction = _pos_change
         || (_bri_turn != EV_ZERO) || (_enc_turn != EV_ZERO)
         || _enc_swi.closed() || _enc_swi.pressed()
         || _play.closed() || _play.pressed()
         || _next.closed() || _next.pressed()
         || _prev.closed() || _prev.pressed();
+}
+
+bool Controls::interaction(bool inc_touch) const
+{
+    if (inc_touch)
+        return _interaction || touching();
+
+    return _interaction;
 }
 
 ev_e Controls::turn(enc_e enc) const
@@ -146,6 +154,9 @@ void Controls::setPos(void)
 
 void Controls::setTouch(void)
 {
+    _touched = false;
+    _touched_time = 0;
+
     uint16_t thr = _tsi.threshold();
     if (thr == 0)
         return;
@@ -156,19 +167,38 @@ void Controls::setTouch(void)
         return;
 
     if ((_touch_mark == 0) && (tval >= thr))
+    {
         _touch_mark = msecs();
+    }
     else if ((_touch_mark != 0) && (tval < thr))
+    {
+        _touched_time = msecs() - _touch_mark;
+
+        if (_touched_time > _s_touch_time)
+            _touched = true;
+
         _touch_mark = 0;
+    }
 }
 
-bool Controls::touched(void) const
+bool Controls::touching(void) const
 {
     return (_touch_mark != 0) && ((msecs() - _touch_mark) > _s_touch_time);
 }
 
-uint32_t Controls::touchTime(void) const
+bool Controls::touched(void) const
+{
+    return _touched;
+}
+
+uint32_t Controls::touchingTime(void) const
 {
     return (_touch_mark == 0) ? 0 : msecs() - _touch_mark;
+}
+
+uint32_t Controls::touchedTime(void) const
+{
+    return _touched_time;
 }
 
 void Controls::reset(void)
@@ -604,8 +634,8 @@ void UI::updateBrightness(ev_e bev)
 
 void UI::display(char const * str)
 {
-     _display_mark = msecs();
-     _display.showString(str);
+    _display_mark = msecs();
+    _display.showString(str);
 }
 
 void UI::display(int32_t n)
@@ -740,7 +770,7 @@ UI::Power::Power(UI & ui)
     _stop_mark = _rest_mark = msecs();
 
     if (!_ui._eeprom.getPower(_power))
-        _power.sleep_secs = _power.nap_secs = _power.stop_secs = 0;
+        _power.nap_secs = _power.stop_secs = _power.sleep_secs = _power.touch_secs = 0;
 }
 
 void UI::Power::process(void)
@@ -755,6 +785,7 @@ void UI::Power::process(void)
         if (_state == PS_SLEPT)
         {
             _rest_mark = _stop_mark = msecs();
+            _touch_mark = 0;
             return;
         }
     }
@@ -776,13 +807,25 @@ void UI::Power::process(void)
 
 bool UI::Power::canSleep(void)
 {
-    return _ui.canSleep() && (_power.sleep_secs != 0)
+    if (_power.touch_secs != 0)
+    {
+        bool touching = _ui._controls.touching();
+
+        if (!touching && (_touch_mark != 0))
+            _touch_mark = 0;
+        else if (touching && ((_touch_mark == 0) || _ui._controls.interaction(false)))
+            _touch_mark = msecs();
+        else if ((_touch_mark != 0) && ((msecs() - _touch_mark) >= (_power.touch_secs * 1000)))
+            return true;
+    }
+
+    return (_power.sleep_secs != 0) && _ui.canSleep()
         && ((msecs() - _rest_mark) >= (_power.sleep_secs * 1000));
 }
 
 bool UI::Power::canNap(void)
 {
-    return _ui.canNap() && (_power.nap_secs != 0)
+    return (_power.nap_secs != 0) && _ui.canNap()
         && ((msecs() - _rest_mark) >= (_power.nap_secs * 1000));
 }
 
@@ -841,12 +884,14 @@ void UI::Power::sleep(void)
         return;
     }
 
+    _ui.sleepScreens();
+    _ui._player.stop();
+
+    while (_ui._controls.touching()) _ui._controls.process();
+
     // Don't worry about touch not getting enabled since there are the encoders
     // and switches that can wake it up.
     (void)_llwu.tsiEnable < PIN_TOUCH > ();
-
-    _ui.sleepScreens();
-    _ui._player.stop();
 
     // Tell the clock that it needs to read the TSR counter since NVIC is disabled
     _ui._rtc.sleep();
@@ -1185,7 +1230,7 @@ void UI::Alarm::check(void)
 
 bool UI::Alarm::snooze(bool force)
 {
-    if (!force && !_ui._controls.touched())
+    if (!force && !_ui._controls.touching())
         return false;
 
     if (_alarm_music)
@@ -1866,15 +1911,12 @@ void UI::SetPower::uisRefresh(void)
 void UI::SetPower::init(void)
 {
     if (!_ui._eeprom.getPower(_power))
-    {
-        _power.nap_secs = 0;
-        _power.stop_secs = 0;
-        _power.sleep_secs = 0;
-    }
+        _power.nap_secs = _power.stop_secs = _power.sleep_secs = _power.touch_secs = 0;
 
     initTime(_power.nap_secs, _nap_hm, _nap_ms, _nap_hm_flag);
     initTime(_power.stop_secs, _stop_hm, _stop_ms, _stop_hm_flag);
     initTime(_power.sleep_secs, _sleep_hm, _sleep_ms, _sleep_hm_flag);
+    _touch_secs = _power.touch_secs;
 }
 
 void UI::SetPower::initTime(uint32_t secs, uint8_t & hm, uint8_t & ms, df_t & hm_flag)
@@ -1915,6 +1957,8 @@ void UI::SetPower::set(void)
     else
         _power.sleep_secs = (_sleep_hm * 60 * 60) + (_sleep_ms * 60);
 
+    _power.touch_secs = _touch_secs;
+
     (void)_ui._eeprom.setPower(_power);
 
     _ui._power.update(_power);
@@ -1935,6 +1979,11 @@ void UI::SetPower::waitMS(bool on)
     display(on ? DF_NONE : DF_BL_AC);
 }
 
+void UI::SetPower::waitSecs(bool on)
+{
+    display(on ? DF_NONE : DF_BL);
+}
+
 void UI::SetPower::waitDone(bool on)
 {
     display(on ? DF_NONE : DF_BL);
@@ -1953,6 +2002,11 @@ void UI::SetPower::updateStop(ev_e ev)
 void UI::SetPower::updateSleep(ev_e ev)
 {
     _state = SPS_SLEEP_HM;
+}
+
+void UI::SetPower::updateTouch(ev_e ev)
+{
+    _state = SPS_TOUCH_SECS;
 }
 
 void UI::SetPower::updateHM(ev_e ev)
@@ -1986,6 +2040,19 @@ void UI::SetPower::updateMS(ev_e ev)
     }
 }
 
+void UI::SetPower::updateSecs(ev_e ev)
+{
+    evUpdate < uint8_t > (_touch_secs, ev, 0, _s_touch_max);
+
+    if ((_touch_secs > 0) && (_touch_secs < _s_touch_min))
+    {
+        if (ev == EV_NEG)
+            _touch_secs = 0;
+        else
+            _touch_secs = _s_touch_min;
+    }
+}
+
 void UI::SetPower::changeNap(void)
 {
     _sopt = SOPT_NAP;
@@ -2008,6 +2075,11 @@ void UI::SetPower::changeSleep(void)
     _hm = &_sleep_hm;
     _ms = &_sleep_ms;
     _hm_flag = &_sleep_hm_flag;
+}
+
+void UI::SetPower::changeTouch(void)
+{
+    _sopt = SOPT_TOUCH;
 }
 
 void UI::SetPower::changeMS(void)
@@ -2044,9 +2116,14 @@ void UI::SetPower::displayTime(df_t flags)
     _ui._display.showTimer(*_hm, *_ms, (*_hm == 0) ? (flags | DF_BL0) : (flags | DF_NO_LZ));
 }
 
+void UI::SetPower::displaySecs(df_t flags)
+{
+    _ui._display.showInteger(_touch_secs, flags | DF_NO_LZ);
+}
+
 void UI::SetPower::displayDone(df_t flags)
 {
-    static constexpr uint8_t const nopts = 6;
+    static constexpr uint8_t const nopts = 8;
     static uint32_t i = 0;
 
     if (_done) { i = 0; _done = false; }
@@ -2058,11 +2135,13 @@ void UI::SetPower::displayDone(df_t flags)
     if (sw == 0)      changeNap();
     else if (sw == 2) changeStop();
     else if (sw == 4) changeSleep();
+    else if (sw == 6) changeTouch();
 
     switch (sw)
     {
-        case 0: case 2: case 4: displayOpt(); break;
+        case 0: case 2: case 4: case 6: displayOpt(); break;
         case 1: case 3: case 5: ((*_hm == 0) && (*_ms == 0)) ? _ui._display.showOff() : displayTime(); break;
+        case 7: (_touch_secs == 0) ? _ui._display.showOff() : displaySecs(); break;
         default: _ui._display.showString("...."); break;
     }
 }
@@ -2102,14 +2181,14 @@ void UI::Clock::uisWait(void)
         {
             display();
         }
-        else if (_ui._controls.touchTime() >= _s_touch_time)
+        else if (_ui._controls.touchingTime() >= _s_touch_time)
         {
             _state = CS_TRACK;
             changeTrack();
             display();
         }
     }
-    else if (_ui._controls.touched() && !_track_updated)
+    else if (_ui._controls.touching() && !_track_updated)
     {
         _alt_display.reset(_s_flash_time);
     }
@@ -2597,7 +2676,7 @@ void UI::Timer::stop(void)
 
 void UI::Timer::alert(void)
 {
-    if (_ui._controls.touched())
+    if (_ui._controls.touching())
     {
         uisChange();
         return;

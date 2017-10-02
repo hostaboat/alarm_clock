@@ -123,7 +123,7 @@ class Controls
         Controls(void);
 
         void process(void);
-        bool interaction(void) const { return _interaction; }
+        bool interaction(bool inc_touch = true) const;
 
         // Rotary Switch
         rsp_e pos(void) const { return _pos; }
@@ -139,8 +139,10 @@ class Controls
         uint32_t pressTime(swi_e swi) const;
 
         // Touch
+        bool touching(void) const;
         bool touched(void) const;
-        uint32_t touchTime(void) const;
+        uint32_t touchingTime(void) const;
+        uint32_t touchedTime(void) const;
 
         bool valid(con_e con) const;
         bool valid(void) const;
@@ -171,6 +173,8 @@ class Controls
         bool _pos_change = false;
 
         uint32_t _touch_mark = 0;
+        uint32_t _touched_time = 0;
+        bool _touched = false;
         static constexpr uint32_t const _s_touch_time = 50;
 
         bool _interaction = false;
@@ -412,6 +416,7 @@ class UI
                 ps_e _state = PS_AWAKE;
                 uint32_t _rest_mark = 0;
                 uint32_t _stop_mark = 0;
+                uint32_t _touch_mark = 0;
                 ePower _power = {};
         };
 
@@ -803,32 +808,38 @@ class UI
                 void waitOpt(bool on);
                 void waitHM(bool on);
                 void waitMS(bool on);
+                void waitSecs(bool on);
                 void waitDone(bool on);
 
                 void updateNap(ev_e ev);
                 void updateStop(ev_e ev);
                 void updateSleep(ev_e ev);
+                void updateTouch(ev_e ev);
                 void updateHM(ev_e ev);
                 void updateMS(ev_e ev);
+                void updateSecs(ev_e ev);
 
                 void changeNap(void);
                 void changeStop(void);
                 void changeSleep(void);
+                void changeTouch(void);
                 void changeMS(void);
+                void changeSecs(void);
                 void changeDone(void);
 
                 void display(df_t flags = DF_NONE);
                 void displayOpt(df_t flags = DF_NONE);
                 void displayTime(df_t flags = DF_NONE);
+                void displaySecs(df_t flags = DF_NONE);
                 void displayDone(df_t flags = DF_NONE);
 
                 void init(void);
                 void initTime(uint32_t secs, uint8_t & hm, uint8_t & ms, df_t & hm_flag);
                 void set(void);
 
-                enum sopt_e { SOPT_NAP, SOPT_STOP, SOPT_SLEEP, SOPT_CNT };
+                enum sopt_e { SOPT_NAP, SOPT_STOP, SOPT_SLEEP, SOPT_TOUCH, SOPT_CNT };
 
-                static constexpr char const * const _s_opts[SOPT_CNT] = { "nAP", "STOP", "SLEE." };
+                static constexpr char const * const _s_opts[SOPT_CNT] = { "nAP", "STOP", "SLEE.", "tUCH" };
 
                 // Set Power State
                 enum sps_e : uint8_t
@@ -842,6 +853,8 @@ class UI
                     SPS_SLEEP,
                     SPS_SLEEP_HM,
                     SPS_SLEEP_MS,
+                    SPS_TOUCH,
+                    SPS_TOUCH_SECS,
                     SPS_DONE,
                     SPS_CNT
                 };
@@ -856,6 +869,8 @@ class UI
                     SPS_SLEEP,
                     SPS_SLEEP_HM,
                     SPS_SLEEP_MS,
+                    SPS_TOUCH,
+                    SPS_TOUCH_SECS,
                     SPS_DONE,
                     SPS_NAP,
                 };
@@ -872,6 +887,8 @@ class UI
                     &SetPower::waitOpt,
                     &SetPower::waitHM,
                     &SetPower::waitMS,
+                    &SetPower::waitOpt,
+                    &SetPower::waitSecs,
                     &SetPower::waitDone
                 };
 
@@ -887,6 +904,8 @@ class UI
                     &SetPower::updateSleep,
                     &SetPower::updateHM,
                     &SetPower::updateMS,
+                    &SetPower::updateTouch,
+                    &SetPower::updateSecs,
                     nullptr
                 };
 
@@ -902,6 +921,8 @@ class UI
                     &SetPower::changeSleep,
                     nullptr,
                     &SetPower::changeMS,
+                    &SetPower::changeTouch,
+                    nullptr,
                     &SetPower::changeDone
                 };
 
@@ -917,6 +938,8 @@ class UI
                     &SetPower::displayOpt,
                     &SetPower::displayTime,
                     &SetPower::displayTime,
+                    &SetPower::displayOpt,
+                    &SetPower::displaySecs,
                     &SetPower::displayDone
                 };
 
@@ -933,7 +956,10 @@ class UI
                 df_t * _hm_flag = nullptr;
                 uint8_t _min_ms = 0;
                 ePower _power = {};
-                static constexpr uint16_t const _s_min_secs = 10;
+                static constexpr uint8_t const _s_min_secs = 10;
+                uint8_t _touch_secs = 0;
+                static constexpr uint8_t const _s_touch_min = 1;
+                static constexpr uint8_t const _s_touch_max = 60;
         };
 
         class Clock : public UIRunState

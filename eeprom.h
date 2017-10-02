@@ -34,16 +34,17 @@ enum eei_e : uint8_t
     EEI_TOUCH_REFCHRG_EXTCHRG,  // REFCHRG & EXTCHRG
     EEI_TOUCH_THRESHOLD,
 
-    // 17-22
+    // 17-23
     EEI_POWER_NAP_SECS_HIGH,   // Nap Time high 16 bits
     EEI_POWER_NAP_SECS_LOW,    // Nap Time low 16 bits
     EEI_POWER_STOP_SECS_HIGH,  // Player Stop Time high 16 bits
     EEI_POWER_STOP_SECS_LOW,   // Player Stop Time low 16 bits
     EEI_POWER_SLEEP_SECS_HIGH, // Sleep Time high 16 bits
     EEI_POWER_SLEEP_SECS_LOW,  // Sleep Time low 16 bits
-    // Num entries : 22
+    EEI_POWER_TOUCH_SECS,      // Touch Time to sleep
+    // Num entries : 23
 // Used to determine the EEPROM size
-#define EEI_CNT  22
+#define EEI_CNT  23
 };
 
 #define EE_ALARM_TYPE_BEEP   0x00
@@ -99,6 +100,7 @@ struct ePower
     uint32_t nap_secs;
     uint32_t stop_secs; // Player stop time
     uint32_t sleep_secs;
+    uint8_t touch_secs;
 };
 
 class Eeprom : public Module
