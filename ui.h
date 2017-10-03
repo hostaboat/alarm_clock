@@ -1058,8 +1058,7 @@ class UI
 
                 void changeHM(void);
 
-                void displaySetTimer(df_t flags = DF_NONE);
-                void displayTimer(void);
+                void displayTimer(df_t flags = DF_NONE);
 
                 void start(void);
                 void reset(void);

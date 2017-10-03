@@ -2372,7 +2372,7 @@ void UI::Timer::uisBegin(void)
     }
 
     _blink.reset();
-    displaySetTimer();
+    displayTimer();
 }
 
 void UI::Timer::uisWait(void)
@@ -2397,7 +2397,7 @@ void UI::Timer::uisUpdate(ev_e ev)
         MFC(_update_actions[_state])(ev);
 
         _blink.reset();
-        displaySetTimer();
+        displayTimer();
 
         return;
     }
@@ -2418,10 +2418,8 @@ void UI::Timer::uisUpdate(ev_e ev)
         _show_clock = !_show_clock;
         if (_show_clock)
             clockUpdate(true);
-        else if (_state != TS_WAIT)
-            timerUpdate(true);
         else
-            displayTimer();
+            timerUpdate(true);
     }
 
     uisWait();
@@ -2474,8 +2472,8 @@ UI::sc_e UI::Timer::uisSleep(void)
 
 void UI::Timer::uisRefresh(void)
 {
-    if (_state < TS_WAIT)
-        displaySetTimer();
+    if (_state <= TS_WAIT)
+        displayTimer();
     else if (_show_clock)
         clockUpdate(true);
     else
@@ -2487,7 +2485,7 @@ void UI::Timer::waitHM(void)
     if (!_blink.toggled())
         return;
 
-    displaySetTimer(_blink.on() ? DF_NONE : DF_BL_BC);
+    displayTimer(_blink.on() ? DF_NONE : DF_BL_BC);
 }
 
 void UI::Timer::waitMS(void)
@@ -2495,7 +2493,7 @@ void UI::Timer::waitMS(void)
     if (!_blink.toggled())
         return;
 
-    displaySetTimer(_blink.on() ? DF_NONE : DF_BL_AC);
+    displayTimer(_blink.on() ? DF_NONE : DF_BL_AC);
 }
 
 void UI::Timer::updateHM(ev_e ev)
@@ -2521,15 +2519,10 @@ void UI::Timer::updateMS(ev_e ev)
     evUpdate < uint8_t > (_ms, ev, _min_ms, 59);
 }
 
-void UI::Timer::displaySetTimer(df_t flags)
+void UI::Timer::displayTimer(df_t flags)
 {
     flags |= _hm_flag;
     _ui._display.showTimer(_hm, _ms, (_hm == 0) ? (flags | DF_BL0) : (flags | DF_NO_LZ));
-}
-
-void UI::Timer::displayTimer(void)
-{
-    _ui._display.showTimer(_hm, _ms, DF_NO_LZ | _hm_flag);
 }
 
 void UI::Timer::changeHM(void)
@@ -2543,12 +2536,12 @@ void UI::Timer::changeHM(void)
         _ms = _min_ms;
 
     _blink.reset();
-    displaySetTimer();
+    displayTimer();
 }
 
 void UI::Timer::start(void)
 {
-    displayTimer();
+    _ui._display.showTimer(_hm, _ms, DF_NO_LZ | _hm_flag);
 
     if (_hm_flag == DF_NONE)
         _s_seconds = ((uint32_t)_hm * 60) + (uint32_t)_ms;
