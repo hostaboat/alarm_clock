@@ -139,6 +139,8 @@ class Controls
         uint32_t pressTime(swi_e swi) const;
 
         // Touch
+        void touchEnable(void);
+        void touchDisable(void);
         bool touching(void) const;
         bool touched(void) const;
         uint32_t touchingTime(void) const;
@@ -172,6 +174,7 @@ class Controls
         rsp_e _pos_last = RSP_NONE;
         bool _pos_change = false;
 
+        bool _touch_enabled = true;
         uint32_t _touch_mark = 0;
         uint32_t _touched_time = 0;
         bool _touched = false;
@@ -1229,9 +1232,9 @@ class UI
                 void reset(void);
                 void toggleEnabled(void);
 
-                enum topt_e : uint8_t { TOPT_CAL, TOPT_CONF, TOPT_DEF, TOPT_DIS, TOPT_READ, TOPT_CNT };
+                enum topt_e : uint8_t { TOPT_CAL, TOPT_READ, TOPT_CONF, TOPT_DEF, TOPT_DIS, TOPT_CNT };
 
-                static constexpr char const * const _s_topts[TOPT_CNT] = { "CAL", "ConF", "dEF", "OFF", "rEAD" };
+                static constexpr char const * const _s_topts[TOPT_CNT] = { "CAL", "rEAd", "ConF", "dEF", "OFF" };
 
                 enum ts_e : uint8_t
                 {
@@ -1369,6 +1372,9 @@ class UI
                 // To prevent beeper from switching on/off too quickly
                 static constexpr uint32_t const _s_beeper_wait = 30;
                 static constexpr uint32_t const _s_readings = UINT16_MAX;
+
+                static constexpr uint32_t const _s_read_wait = 80;
+                Toggle _read_toggle{_s_read_wait};
         };
 
         class SetLeds : public UISetState

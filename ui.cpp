@@ -152,8 +152,22 @@ void Controls::setPos(void)
         _pos_change = (_pos != _pos_last);
 }
 
+void Controls::touchEnable(void)
+{
+    _touch_enabled = true;
+}
+
+void Controls::touchDisable(void)
+{
+    _touch_enabled = _touched = false;
+    _touch_mark = _touched_time = 0;
+}
+
 void Controls::setTouch(void)
 {
+    if (!_touch_enabled)
+        return;
+
     _touched = false;
     _touched_time = 0;
 
@@ -2705,6 +2719,8 @@ constexpr char const * const UI::SetTouch::_s_topts[TOPT_CNT];
 
 void UI::SetTouch::uisBegin(void)
 {
+    _ui._controls.touchDisable();
+
     _tsi.getConfig(_touch);
     _state = (_touch.threshold == 0) ? TS_DISABLED : TS_OPT;
     _topt = TOPT_CAL;
@@ -2717,8 +2733,10 @@ void UI::SetTouch::uisWait(void)
     if (_wait_actions[_state] == nullptr)
         return;
 
-    if ((_state == TS_CAL_UNTOUCHED) || (_state == TS_CAL_TOUCHED) || (_state == TS_READ))
+    if ((_state == TS_CAL_UNTOUCHED) || (_state == TS_CAL_TOUCHED))
         MFC(_wait_actions[_state])(_blink.toggled());
+    else if (_state == TS_READ)
+        MFC(_wait_actions[_state])(_read_toggle.toggled());
     else if (_state == TS_TEST)
         MFC(_wait_actions[_state])(_ui._beeper.on());
     else if (_blink.toggled())
@@ -2803,16 +2821,18 @@ void UI::SetTouch::uisEnd(void)
 {
     _ui._lighting.state(Lighting::LS_NIGHT_LIGHT);
     _ui._display.blank();
+    _ui._controls.touchEnable();
 }
 
 UI::sc_e UI::SetTouch::uisNap(void)
 {
-    return SC_DIM;
+    return ((_state == TS_CAL_UNTOUCHED) || (_state == TS_CAL_TOUCHED)
+            || (_state == TS_READ) || (_state == TS_TEST)) ? SC_DIM : SC_OFF;
 }
 
 UI::sc_e UI::SetTouch::uisSleep(void)
 {
-    return ((_state == TS_CAL_UNTOUCHED) || (_state == TS_CAL_TOUCHED)) ? SC_DIM : SC_OFF;
+    return uisNap();
 }
 
 void UI::SetTouch::uisRefresh(void)
@@ -2954,6 +2974,8 @@ void UI::SetTouch::waitCalTouched(bool on)
 
 void UI::SetTouch::waitRead(bool on)
 {
+    if (!on) return;
+
     uint16_t read = _tsi_channel.read();
     if ((read != 0) && (read != _touch.threshold))
     {
