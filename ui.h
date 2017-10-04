@@ -267,10 +267,10 @@ class UI
         {
             UIS_SET_ALARM,
             UIS_SET_CLOCK,
-            UIS_SET_POWER,
+            UIS_SET_TOUCH,
             UIS_CLOCK,
             UIS_TIMER,
-            UIS_SET_TOUCH,
+            UIS_SET_POWER,
             UIS_SET_LEDS,
             UIS_CNT
         };
@@ -285,7 +285,7 @@ class UI
                 { UIS_SET_ALARM, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER },  // PS_CHANGE
                 { UIS_SET_ALARM, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER },  // PS_RESET
                 { UIS_SET_ALARM, UIS_SET_CLOCK, UIS_CLOCK,     UIS_TIMER },  // PS_STATE
-                { UIS_SET_ALARM, UIS_SET_POWER, UIS_CLOCK,     UIS_TIMER },  // PS_ALT_STATE
+                { UIS_SET_ALARM, UIS_SET_TOUCH, UIS_CLOCK,     UIS_TIMER },  // PS_ALT_STATE
             },
             //                          UIS_SET_CLOCK
             {
@@ -293,15 +293,15 @@ class UI
                 { UIS_SET_CLOCK, UIS_SET_CLOCK, UIS_CLOCK,     UIS_TIMER },  // PS_CHANGE
                 { UIS_SET_CLOCK, UIS_SET_CLOCK, UIS_CLOCK,     UIS_TIMER },  // PS_RESET
                 { UIS_SET_CLOCK, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER },  // PS_STATE
-                { UIS_SET_CLOCK, UIS_SET_POWER, UIS_CLOCK,     UIS_TIMER },  // PS_ALT_STATE
+                { UIS_SET_CLOCK, UIS_SET_TOUCH, UIS_CLOCK,     UIS_TIMER },  // PS_ALT_STATE
             },
-            //                           UIS_SET_POWER
+            //                           UIS_SET_TOUCH
             {
-                { UIS_SET_POWER, UIS_SET_POWER, UIS_CLOCK,     UIS_TIMER }, // PS_NONE
-                { UIS_SET_POWER, UIS_SET_POWER, UIS_CLOCK,     UIS_TIMER }, // PS_CHANGE
-                { UIS_SET_POWER, UIS_SET_POWER, UIS_CLOCK,     UIS_TIMER }, // PS_RESET
-                { UIS_SET_POWER, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_STATE
-                { UIS_SET_POWER, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_ALT_STATE
+                { UIS_SET_TOUCH, UIS_SET_TOUCH, UIS_CLOCK,     UIS_TIMER }, // PS_NONE
+                { UIS_SET_TOUCH, UIS_SET_TOUCH, UIS_CLOCK,     UIS_TIMER }, // PS_CHANGE
+                { UIS_SET_TOUCH, UIS_SET_TOUCH, UIS_CLOCK,     UIS_TIMER }, // PS_RESET
+                { UIS_SET_TOUCH, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_STATE
+                { UIS_SET_TOUCH, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_ALT_STATE
             },
             //                            UIS_CLOCK
             {
@@ -316,16 +316,16 @@ class UI
                 {     UIS_TIMER, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_NONE
                 {     UIS_TIMER, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_CHANGE
                 {     UIS_TIMER, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_RESET
-                {     UIS_TIMER, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_TOUCH }, // PS_STATE
+                {     UIS_TIMER, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_POWER }, // PS_STATE
                 {     UIS_TIMER, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS }, // PS_ALT_STATE
             },
-            //                           UIS_SET_TOUCH
+            //                           UIS_SET_POWER
             {
-                { UIS_SET_TOUCH, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_TOUCH }, // PS_NONE
-                { UIS_SET_TOUCH, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_TOUCH }, // PS_CHANGE
-                { UIS_SET_TOUCH, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_TOUCH }, // PS_RESET
-                { UIS_SET_TOUCH, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_STATE
-                { UIS_SET_TOUCH, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS }, // PS_ALT_STATE
+                { UIS_SET_POWER, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_POWER }, // PS_NONE
+                { UIS_SET_POWER, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_POWER }, // PS_CHANGE
+                { UIS_SET_POWER, UIS_SET_ALARM, UIS_CLOCK, UIS_SET_POWER }, // PS_RESET
+                { UIS_SET_POWER, UIS_SET_ALARM, UIS_CLOCK,     UIS_TIMER }, // PS_STATE
+                { UIS_SET_POWER, UIS_SET_ALARM, UIS_CLOCK,  UIS_SET_LEDS }, // PS_ALT_STATE
             },
             //                           UIS_SET_LEDS
             {
@@ -1590,20 +1590,20 @@ class UI
 
         SetAlarm _set_alarm{*this};
         SetClock _set_clock{*this};
-        SetPower _set_power{*this};
+        SetTouch _set_touch{*this};
         Clock _clock{*this};
         Timer _timer{*this};
-        SetTouch _set_touch{*this};
+        SetPower _set_power{*this};
         SetLeds _set_leds{*this};
 
         UIState * const _states[UIS_CNT] =
         {
             &_set_alarm,
             &_set_clock,
-            &_set_power,
+            &_set_touch,
             &_clock,
             &_timer,
-            &_set_touch,
+            &_set_power,
             &_set_leds,
         };
 };
