@@ -2806,9 +2806,6 @@ void UI::SetTouch::uisReset(ps_e ps)
             _state = TS_READ;
     }
 
-    if (_state == TS_OPT)
-        _topt = TOPT_CAL;
-
     if (_state == TS_CAL_START)
         _ui._lighting.setColor(CHSV(0, 255, 255));
     else

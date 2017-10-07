@@ -1234,7 +1234,7 @@ class UI
 
                 enum topt_e : uint8_t { TOPT_CAL, TOPT_READ, TOPT_CONF, TOPT_DEF, TOPT_DIS, TOPT_CNT };
 
-                static constexpr char const * const _s_topts[TOPT_CNT] = { "CAL", "rEAd", "ConF", "dEF", "OFF" };
+                static constexpr char const * const _s_topts[TOPT_CNT] = { "CAL.", "rEAd", "ConF.", "dEF.", "OFF" };
 
                 enum ts_e : uint8_t
                 {
