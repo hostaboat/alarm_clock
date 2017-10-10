@@ -566,15 +566,16 @@ bool UI::pressing(es_e encoder_state)
         case DS_STATE:
             if (_state == UIS_CLOCK)
             {
-                _lighting.offNL();
+                _lighting.toggleAni();
+                _lighting.onNL();
+                ds = DS_WAIT_RELEASED;
             }
             else
             {
                 t.reset();
                 display_type = DT_2;
+                ds = DS_WAIT_ALT_STATE;
             }
-
-            ds = DS_WAIT_ALT_STATE;
             break;
 
         case DS_WAIT_ALT_STATE:
@@ -585,13 +586,7 @@ bool UI::pressing(es_e encoder_state)
             break;
 
         case DS_ALT_STATE:
-            if (_state == UIS_CLOCK)
-            {
-                _lighting.setNL(_s_default_color);
-                _lighting.setColor(_s_default_color);
-                _lighting.onNL();
-            }
-            else
+            if (_state != UIS_CLOCK)
             {
                 t.reset();
                 display_type = DT_3;
@@ -1294,9 +1289,14 @@ void UI::Alarm::stop(void)
 ////////////////////////////////////////////////////////////////////////////////
 UI::Lighting::Lighting(uint8_t brightness)
 {
-    uint32_t color_code;
-    if (_eeprom.getLedsColor(color_code))
-        _nl_color = color_code;
+    for (uint8_t i = 0; i < EE_NLC_CNT; i++)
+    {
+        uint32_t color_code;
+        if (_eeprom.getNLC(i, color_code))
+            _nl_colors[i+1] = color_code;
+    }
+
+    removeDups();
 
     _leds.updateColor(CRGB::BLACK);
     this->brightness(brightness);
@@ -1309,10 +1309,16 @@ void UI::Lighting::onNL(void)
 
     _nl_on = true;
 
-    if (_nl_index == 0)
-        _leds.updateColor(_nl_color);
+    if (_nl_ani)
+    {
+        _leds.startPalette(static_cast < Palette::pal_e > (_ani_index));
+    }
     else
-        _leds.startPalette(static_cast < Palette::pal_e > (_nl_index - 1));
+    {
+        if (_active_colors[_active_index] == CRGB::BLACK)
+            _active_index = 0;
+        _leds.updateColor(_active_colors[_active_index]);
+    }
 }
 
 void UI::Lighting::offNL(void)
@@ -1333,6 +1339,14 @@ void UI::Lighting::toggleNL(void)
     else onNL();
 }
 
+void UI::Lighting::toggleAni(void)
+{
+    if (_state != LS_NIGHT_LIGHT)
+        return;
+
+    _nl_ani = !_nl_ani;
+}
+
 bool UI::Lighting::isOnNL(void) const
 {
     return (_state == LS_NIGHT_LIGHT) && _nl_on;
@@ -1340,7 +1354,7 @@ bool UI::Lighting::isOnNL(void) const
 
 void UI::Lighting::paletteNL(void)
 {
-    if ((_state != LS_NIGHT_LIGHT) || !_nl_on || (_nl_index == 0))
+    if ((_state != LS_NIGHT_LIGHT) || !_nl_on || !_nl_ani)
         return;
 
     _leds.updatePalette();
@@ -1351,18 +1365,56 @@ void UI::Lighting::cycleNL(ev_e ev)
     if ((_state != LS_NIGHT_LIGHT) || !_nl_on || (ev == EV_ZERO))
         return;
 
-    evUpdate < uint8_t > (_nl_index, ev, 0, Palette::PAL_CNT);
-
-    if (_nl_index == 0)
-        _leds.updateColor(_nl_color);
+    if (_nl_ani)
+    {
+        evUpdate < uint8_t > (_ani_index, ev, 0, Palette::PAL_CNT - 1);
+        _leds.startPalette(static_cast < Palette::pal_e > (_ani_index));
+    }
     else
-        _leds.startPalette(static_cast < Palette::pal_e > (_nl_index - 1));
+    {
+        evUpdate < uint8_t > (_active_index, ev, 0, _active_cnt - 1);
+        _leds.updateColor(_active_colors[_active_index]);
+    }
 }
 
-void UI::Lighting::setNL(CRGB const & c)
+void UI::Lighting::setNL(uint8_t index, CRGB const & c)
 {
-    _nl_color = c; _nl_index = 0;
-    (void)_eeprom.setLedsColor(c.colorCode());
+    if (index >= EE_NLC_CNT)
+        return;
+
+    _nl_colors[index+1] = c;
+    removeDups(index + 1);
+}
+
+void UI::Lighting::removeDups(uint8_t index)
+{
+    for (uint8_t i = 0; i < EE_NLC_CNT + 1; i++)
+        _active_colors[i] = _nl_colors[i];
+
+    _active_cnt = EE_NLC_CNT + 1;
+
+    for (uint8_t i = 0; i < _active_cnt; i++)
+    {
+        uint8_t ci = i + 1;
+        for (uint8_t j = ci; j < _active_cnt; j++)
+        {
+            if (_active_colors[i] != _active_colors[j])
+            {
+                if (ci != j)
+                    _active_colors[ci] = _active_colors[j];
+                ci++;
+            }
+            else if (index == j)
+            {
+                index = i;
+            }
+        }
+
+        _active_cnt = ci;
+    }
+
+    _active_index = (_active_colors[index] == CRGB::BLACK) ? 0 : index;
+    if (_active_index != index) _nl_on = false;
 }
 
 void UI::Lighting::setColor(CRGB const & c)
@@ -1415,11 +1467,105 @@ void UI::Lighting::state(ls_e state)
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
+// HM START ////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+void UI::HM::init(uint32_t secs)
+{
+    uint32_t mins = secs / 60;
+
+    if (mins < 60)
+    {
+        _hm = mins;
+        _ms = (uint16_t)(secs % 60);
+    }
+    else
+    {
+        _ms = (uint16_t)(mins % 60);
+        _hm = mins - _ms;
+
+        if (_hm > (_s_max_hm)) _hm = _s_max_hm;
+    }
+}
+
+void UI::HM::updateHM(ev_e ev)
+{
+    if (ev == EV_POS)
+    {
+        if (_hm == _s_max_hm)
+            _hm = 0;
+        else if (_hm >= 60)
+            _hm += 60;
+        else
+            _hm += 1;
+    }
+    else // if (ev == EV_NEG)
+    {
+        if (_hm == 0)
+            _hm = _s_max_hm;
+        else if (_hm <= 60)
+            _hm -= 1;
+        else
+            _hm -= 60;
+    }
+}
+
+void UI::HM::updateMS(ev_e ev)
+{
+    evUpdate < uint8_t > (_ms, ev, 0, 59);
+
+    if (_ms >= _min_ms)
+        return;
+
+    if (ev == EV_NEG)
+    {
+        if (_zero && (_ms != 0))
+            _ms = 0;
+        else
+            _ms = 59;
+    }
+    else if (!_zero || (_ms != 0))
+    {
+        _ms = _min_ms;
+    }
+}
+
+void UI::HM::changeMS(void)
+{
+    if (_hm == 0)
+        _min_ms = _min_secs;
+    else
+        _min_ms = 0;
+
+    if ((_ms < _min_ms) && ((_ms != 0) || !_zero))
+        _ms = _min_ms;
+}
+
+uint32_t UI::HM::seconds(void) const
+{
+    uint32_t secs = (_hm * 60);
+    if (_hm < 60)
+        secs += _ms;
+    else
+        secs += (_ms * 60);
+
+    return secs;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// HM END //////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
 // SetAlarm START //////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-void UI::SetAlarm::uisBegin(void)
+UI::SetAlarm::SetAlarm(UI & ui)
+    : UISetState(ui)
 {
     _ui._rtc.getAlarm(_alarm);
+}
+
+void UI::SetAlarm::uisBegin(void)
+{
     _state = _alarm.enabled ? SAS_HOUR : SAS_DISABLED;
     _blink.reset(_s_set_blink_time);
     _updated = _done = false;
@@ -1852,13 +1998,21 @@ void UI::SetClock::displayDone(df_t flags)
 ////////////////////////////////////////////////////////////////////////////////
 constexpr char const * const UI::SetPower::_s_opts[SOPT_CNT];
 
+UI::SetPower::SetPower(UI & ui)
+    : UISetState(ui)
+{
+    if (!_ui._eeprom.getPower(_power))
+        _power.nap_secs = _power.stop_secs = _power.sleep_secs = _power.touch_secs = 0;
+
+    _nap.init(_power.nap_secs);
+    _stop.init(_power.stop_secs);
+    _sleep.init(_power.sleep_secs);
+    _touch_secs = _power.touch_secs;
+}
+
 void UI::SetPower::uisBegin(void)
 {
-    init();
-
-    _state = SPS_NAP;
-    changeNap();
-
+    _state = SPS_OPT;
     _blink.reset(_s_set_blink_time);
     _updated = _done = false;
     display();
@@ -1882,7 +2036,21 @@ void UI::SetPower::uisUpdate(ev_e ev)
 
 void UI::SetPower::uisChange(void)
 {
-    _state = _next_states[_state];
+    if (_state == SPS_OPT)
+    {
+        switch (_sopt)
+        {
+            case SOPT_NAP: _state = SPS_NAP_HM; break;
+            case SOPT_STOP: _state = SPS_STOP_HM; break;
+            case SOPT_SLEEP: _state = SPS_SLEEP_HM; break;
+            case SOPT_TOUCH: _state = SPS_TOUCH; break;
+            default: break;
+        }
+    }
+    else
+    {
+        _state = _next_states[_state];
+    }
 
     if (_change_actions[_state] != nullptr)
         MFC(_change_actions[_state])();
@@ -1902,7 +2070,7 @@ void UI::SetPower::uisReset(ps_e ps)
 
 void UI::SetPower::uisEnd(void)
 {
-    if (_updated) set();
+    if (_updated) commit();
     _ui._display.blank();
 }
 
@@ -1922,55 +2090,11 @@ void UI::SetPower::uisRefresh(void)
     display();
 }
 
-void UI::SetPower::init(void)
+void UI::SetPower::commit(void)
 {
-    if (!_ui._eeprom.getPower(_power))
-        _power.nap_secs = _power.stop_secs = _power.sleep_secs = _power.touch_secs = 0;
-
-    initTime(_power.nap_secs, _nap_hm, _nap_ms, _nap_hm_flag);
-    initTime(_power.stop_secs, _stop_hm, _stop_ms, _stop_hm_flag);
-    initTime(_power.sleep_secs, _sleep_hm, _sleep_ms, _sleep_hm_flag);
-    _touch_secs = _power.touch_secs;
-}
-
-void UI::SetPower::initTime(uint32_t secs, uint8_t & hm, uint8_t & ms, df_t & hm_flag)
-{
-    uint32_t mins = secs / 60;
-
-    if (mins < 60)
-    {
-        hm_flag = DF_NONE;
-        hm = (uint8_t)mins;
-        ms = (uint8_t)(secs % 60);
-
-        if ((hm == 0) && (ms != 0) && (ms < _min_ms))
-            ms = 0;
-    }
-    else
-    {
-        hm_flag = DF_HM;
-        hm = (uint8_t)(mins / 60);
-        ms = (uint8_t)(mins % 60);
-    }
-}
-
-void UI::SetPower::set(void)
-{
-    if (_nap_hm_flag == DF_NONE)
-        _power.nap_secs = (_nap_hm * 60) + _nap_ms;
-    else
-        _power.nap_secs = (_nap_hm * 60 * 60) + (_nap_ms * 60);
-
-    if (_stop_hm_flag == DF_NONE)
-        _power.stop_secs = (_stop_hm * 60) + _stop_ms;
-    else
-        _power.stop_secs = (_stop_hm * 60 * 60) + (_stop_ms * 60);
-
-    if (_sleep_hm_flag == DF_NONE)
-        _power.sleep_secs = (_sleep_hm * 60) + _sleep_ms;
-    else
-        _power.sleep_secs = (_sleep_hm * 60 * 60) + (_sleep_ms * 60);
-
+    _power.nap_secs = _nap.seconds();
+    _power.stop_secs = _stop.seconds();
+    _power.sleep_secs = _sleep.seconds();
     _power.touch_secs = _touch_secs;
 
     (void)_ui._eeprom.setPower(_power);
@@ -1993,7 +2117,7 @@ void UI::SetPower::waitMS(bool on)
     display(on ? DF_NONE : DF_BL_AC);
 }
 
-void UI::SetPower::waitSecs(bool on)
+void UI::SetPower::waitTouch(bool on)
 {
     display(on ? DF_NONE : DF_BL);
 }
@@ -2003,58 +2127,22 @@ void UI::SetPower::waitDone(bool on)
     display(on ? DF_NONE : DF_BL);
 }
 
-void UI::SetPower::updateNap(ev_e ev)
+void UI::SetPower::updateOpt(ev_e ev)
 {
-    _state = SPS_NAP_HM;
-}
-
-void UI::SetPower::updateStop(ev_e ev)
-{
-    _state = SPS_STOP_HM;
-}
-
-void UI::SetPower::updateSleep(ev_e ev)
-{
-    _state = SPS_SLEEP_HM;
-}
-
-void UI::SetPower::updateTouch(ev_e ev)
-{
-    _state = SPS_TOUCH_SECS;
+    evUpdate < sopt_e > (_sopt, ev, SOPT_NAP, (sopt_e)(SOPT_CNT - 1));
 }
 
 void UI::SetPower::updateHM(ev_e ev)
 {
-    if ((*_hm_flag != DF_NONE) && (*_hm == 1) && (ev == EV_NEG))
-    {
-        *_hm_flag = DF_NONE;
-        *_hm = 59;
-    }
-    else if ((*_hm_flag == DF_NONE) && (*_hm == 59) && (ev == EV_POS))
-    {
-        *_hm_flag = DF_HM;
-        *_hm = 1;
-    }
-    else
-    {
-        evUpdate < uint8_t > (*_hm, ev, 0, 99, false);
-    }
+    _hm->updateHM(ev);
 }
 
 void UI::SetPower::updateMS(ev_e ev)
 {
-    evUpdate < uint8_t > (*_ms, ev, 0, 59);
-
-    if ((*_ms > 0) && (*_ms < _min_ms))
-    {
-        if (ev == EV_NEG)
-            *_ms = 0;
-        else
-            *_ms = _min_ms;
-    }
+    _hm->updateMS(ev);
 }
 
-void UI::SetPower::updateSecs(ev_e ev)
+void UI::SetPower::updateTouch(ev_e ev)
 {
     evUpdate < uint8_t > (_touch_secs, ev, 0, _s_touch_max);
 
@@ -2069,47 +2157,27 @@ void UI::SetPower::updateSecs(ev_e ev)
 
 void UI::SetPower::changeNap(void)
 {
-    _sopt = SOPT_NAP;
-    _hm = &_nap_hm;
-    _ms = &_nap_ms;
-    _hm_flag = &_nap_hm_flag;
+    _hm = &_nap;
 }
 
 void UI::SetPower::changeStop(void)
 {
-    _sopt = SOPT_STOP;
-    _hm = &_stop_hm;
-    _ms = &_stop_ms;
-    _hm_flag = &_stop_hm_flag;
+    _hm = &_stop;
 }
 
 void UI::SetPower::changeSleep(void)
 {
-    _sopt = SOPT_SLEEP;
-    _hm = &_sleep_hm;
-    _ms = &_sleep_ms;
-    _hm_flag = &_sleep_hm_flag;
-}
-
-void UI::SetPower::changeTouch(void)
-{
-    _sopt = SOPT_TOUCH;
+    _hm = &_sleep;
 }
 
 void UI::SetPower::changeMS(void)
 {
-    if ((*_hm == 0) && (*_hm_flag == DF_NONE))
-        _min_ms = _s_min_secs;
-    else
-        _min_ms = 0;
-
-    if ((*_ms != 0) && (*_ms < _min_ms))
-        *_ms = _min_ms;
+    _hm->changeMS();
 }
 
 void UI::SetPower::changeDone(void)
 {
-    set();
+    commit();
     _done = true;
     _updated = false;
 }
@@ -2124,40 +2192,35 @@ void UI::SetPower::displayOpt(df_t flags)
     _ui._display.showString(_s_opts[_sopt], flags);
 }
 
-void UI::SetPower::displayTime(df_t flags)
+void UI::SetPower::displayTimer(df_t flags)
 {
-    flags |= *_hm_flag;
-    _ui._display.showTimer(*_hm, *_ms, (*_hm == 0) ? (flags | DF_BL0) : (flags | DF_NO_LZ));
+    uint32_t seconds = _hm->seconds();
+    if (_hm->hm() >= 60)
+        flags |= DF_HM;
+
+    _ui._display.showTimer(seconds, (_hm->hm() == 0) ? (flags | DF_BL0) : (flags | DF_NO_LZ));
 }
 
-void UI::SetPower::displaySecs(df_t flags)
+void UI::SetPower::displayTouch(df_t flags)
 {
     _ui._display.showInteger(_touch_secs, flags | DF_NO_LZ);
 }
 
 void UI::SetPower::displayDone(df_t flags)
 {
-    static constexpr uint8_t const nopts = 8;
+    static constexpr uint8_t const nopts = 2;
     static uint32_t i = 0;
 
     if (_done) { i = 0; _done = false; }
     else if (flags == DF_NONE) i++;
     else return;
 
-    uint8_t sw = i % (nopts + 1);
-
-    if (sw == 0)      changeNap();
-    else if (sw == 2) changeStop();
-    else if (sw == 4) changeSleep();
-    else if (sw == 6) changeTouch();
-
-    switch (sw)
-    {
-        case 0: case 2: case 4: case 6: displayOpt(); break;
-        case 1: case 3: case 5: ((*_hm == 0) && (*_ms == 0)) ? _ui._display.showOff() : displayTime(); break;
-        case 7: (_touch_secs == 0) ? _ui._display.showOff() : displaySecs(); break;
-        default: _ui._display.showString("...."); break;
-    }
+    if ((i % nopts) == 0)
+        displayOpt();
+    else if (_sopt == SOPT_TOUCH)
+        displayTouch();
+    else
+        displayTimer();
 }
 ////////////////////////////////////////////////////////////////////////////////
 // SetPower END ////////////////////////////////////////////////////////////////
@@ -2373,7 +2436,11 @@ void UI::Timer::timerLeds(void)
 
 void UI::Timer::uisBegin(void)
 {
-    _state = TS_SET_HM;
+    if ((_hm.hm() == 0) && (_hm.ms() == 0))
+        _state = TS_SET_HM;
+    else
+        _state = TS_WAIT;
+
     _show_clock = false;
 
     _display_timer = Pit::acquire(timerDisplay, _s_seconds_interval);
@@ -2441,12 +2508,8 @@ void UI::Timer::uisUpdate(ev_e ev)
 
 void UI::Timer::uisChange(void)
 {
-    if ((_state != TS_SET_HM) && (_hm == 0) && (_ms == 0))
-        return;
-
     // Action comes before changing state
     MFC(_change_actions[_state])();
-
     _state = _next_states[_state];
 }
 
@@ -2512,55 +2575,39 @@ void UI::Timer::waitMS(void)
 
 void UI::Timer::updateHM(ev_e ev)
 {
-    if ((_hm_flag != DF_NONE) && (_hm == 1) && (ev == EV_NEG))
-    {
-        _hm_flag = DF_NONE;
-        _hm = 59;
-    }
-    else if ((_hm_flag == DF_NONE) && (_hm == 59) && (ev == EV_POS))
-    {
-        _hm_flag = DF_HM;
-        _hm = 1;
-    }
-    else
-    {
-        evUpdate < uint8_t > (_hm, ev, 0, 99, false);
-    }
+    _hm.updateHM(ev);
 }
 
 void UI::Timer::updateMS(ev_e ev)
 {
-    evUpdate < uint8_t > (_ms, ev, _min_ms, 59);
+    _hm.updateMS(ev);
 }
 
 void UI::Timer::displayTimer(df_t flags)
 {
-    flags |= _hm_flag;
-    _ui._display.showTimer(_hm, _ms, (_hm == 0) ? (flags | DF_BL0) : (flags | DF_NO_LZ));
+    uint32_t seconds = _hm.seconds();
+    if (_hm.hm() >= 60)
+        flags |= DF_HM;
+
+    _ui._display.showTimer(seconds, (_hm.hm() == 0) ? (flags | DF_BL0) : (flags | DF_NO_LZ));
 }
 
 void UI::Timer::changeHM(void)
 {
-    if (_hm == 0)
-        _min_ms = 1;
-    else
-        _min_ms = 0;
-
-    if (_ms < _min_ms)
-        _ms = _min_ms;
-
+    _hm.changeMS();
     _blink.reset();
     displayTimer();
 }
 
 void UI::Timer::start(void)
 {
-    _ui._display.showTimer(_hm, _ms, DF_NO_LZ | _hm_flag);
+    df_t flags = DF_NO_LZ;
 
-    if (_hm_flag == DF_NONE)
-        _s_seconds = ((uint32_t)_hm * 60) + (uint32_t)_ms;
-    else
-        _s_seconds = ((uint32_t)_hm * 60 * 60) + ((uint32_t)_ms * 60);
+    _s_seconds = _hm.seconds();
+    if (_hm.hm() >= 60)
+        flags |= DF_HM;
+
+    _ui._display.showTimer(_s_seconds, flags);
 
     uint32_t minutes = _s_seconds / 60;
     if (minutes > (10 * 60))
@@ -2573,7 +2620,7 @@ void UI::Timer::start(void)
     _led_timer->updateInterval((_s_seconds * _s_us_per_hue) / _s_hue_interval, false);
 
     _last_second = _s_seconds;
-    _hm_toggle = true;
+    _hm_on = true;
 
     _s_hue_calls = 0;
     _s_hue = _s_hue_max;
@@ -2612,32 +2659,21 @@ void UI::Timer::run(void)
 void UI::Timer::timerUpdate(bool force)
 {
     // Not critical that interrupts be disabled
-    uint32_t second = _s_seconds;
+    uint32_t seconds = _s_seconds;
 
-    if (!force && (second == _last_second))
+    if (!force && (seconds == _last_second))
         return;
 
-    _last_second = second;
+    _last_second = seconds;
 
-    df_t hm_flag;
-    uint8_t hm, ms;
-    uint32_t minute = second / 60;
-    if (minute < 60)
-    {
-        hm_flag = DF_NONE;
-        hm = (uint8_t)minute;
-        ms = (uint8_t)(second % 60);
-    }
+    // If an hour or more left, blink the decimal to indicate progress
+    if ((seconds / 60) >= 60)
+        _hm_on = !_hm_on;
     else
-    {
-        _hm_toggle = !_hm_toggle;
-        hm_flag = _hm_toggle ? DF_HM : DF_NONE;
-        hm = (uint8_t)(minute / 60);
-        ms = (uint8_t)(minute % 60);
-    }
+        _hm_on = false;
 
     if (!_ui.displaying())
-        _ui._display.showTimer(hm, ms, DF_NO_LZ | hm_flag);
+        _ui._display.showTimer(seconds, _hm_on ? (DF_HM | DF_NO_LZ) : DF_NO_LZ);
 }
 
 void UI::Timer::clockUpdate(bool force)
@@ -3173,26 +3209,39 @@ void UI::SetTouch::displayDisabled(df_t flags)
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
-// SetLeds START ///////////////////////////////////////////////////////////////
+// SetNLC START ///////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-constexpr CRGB::Color const UI::SetLeds::_s_colors[];
+constexpr CRGB::Color const UI::SetNLC::_s_colors[];
 
-void UI::SetLeds::uisBegin(void)
+UI::SetNLC::SetNLC(UI & ui)
+    : UISetState(ui)
 {
-    _state = SLS_TYPE;
+    for (uint8_t i = 0; i < EE_NLC_CNT; i++)
+    {
+        uint32_t color_code;
+        if (_ui._eeprom.getNLC(i, color_code))
+            _nl_colors[i] = color_code;
+    }
+}
+
+void UI::SetNLC::uisBegin(void)
+{
+    _state = SLS_INDEX;
     _blink.reset();
     _updated = _done = false;
     _ui._lighting.state(Lighting::LS_SET);
+    _color = _nl_colors[_index];
+    _ui._lighting.setColor(_color);
     display();
 }
 
-void UI::SetLeds::uisWait(void)
+void UI::SetNLC::uisWait(void)
 {
     if ((_wait_actions[_state] != nullptr) && _blink.toggled())
         MFC(_wait_actions[_state])(_blink.on());
 }
 
-void UI::SetLeds::uisUpdate(ev_e ev)
+void UI::SetNLC::uisUpdate(ev_e ev)
 {
     if (_update_actions[_state] == nullptr)
         return;
@@ -3201,70 +3250,21 @@ void UI::SetLeds::uisUpdate(ev_e ev)
 
     if (_state != SLS_TYPE)
     {
-        _updated = true;
+        if (_state >= SLS_COLOR)
+            _updated = true;
         _ui._lighting.setColor(_color);
     }
 
     display();
 }
 
-void UI::SetLeds::uisChange(void)
+void UI::SetNLC::uisChange(void)
 {
-    if (_state == SLS_TYPE)
-    {
-        _state = _next_type_states[_type];
-
-        if (_state == SLS_COLOR)
-        {
-            _color = _s_colors[_cindex];
-        }
-        else
-        {
-            _sub_state = 0;
-
-            if (_state == SLS_RGB)
-            {
-                _opt = _rgb_opts[_sub_state];
-                _val = &_rgb[_sub_state];
-                _color = _rgb;
-            }
-            else  // _state == SLS_HSV
-            {
-                _opt = _hsv_opts[_sub_state];
-                _val = &_hsv[_sub_state];
-                _color = _hsv;
-            }
-        }
-
-        _ui._lighting.setColor(_color);
-    }
-    else if ((_state == SLS_COLOR) || _ui._controls.doublePressed(SWI_ENC))
-    {
-        _state = SLS_DONE;
-    }
-    else if (_state == SLS_DONE)
-    {
-        _state = SLS_TYPE;
-    }
-    else
-    {
-        _sub_state = (_sub_state == 2) ? 0 : _sub_state + 1;
-
-        if (_state == SLS_RGB)
-        {
-            _opt = _rgb_opts[_sub_state];
-            _val = &_rgb[_sub_state];
-        }
-        else  // _state == SLS_HSV
-        {
-            _opt = _hsv_opts[_sub_state];
-            _val = &_hsv[_sub_state];
-        }
-    }
+    MFC(_change_actions[_state])();
 
     if (_state == SLS_DONE)
     {
-        _ui._lighting.setNL(_color);
+        commit();
         _done = true;
     }
 
@@ -3272,22 +3272,19 @@ void UI::SetLeds::uisChange(void)
     display();
 }
 
-void UI::SetLeds::uisReset(ps_e ps)
+void UI::SetNLC::uisReset(ps_e ps)
 {
-    _state = SLS_TYPE;
+    _state = SLS_INDEX;
     _type = SLT_COLOR;
     _sub_state = 0;
-    _rgb = _default_rgb;
-    _hsv = _default_hsv;
-    _cindex = 0;
-    _ui._lighting.setColor(CRGB::BLACK);
+    _color = _nl_colors[_index];
+    _ui._lighting.setColor(_color);
     display();
 }
 
-void UI::SetLeds::uisEnd(void)
+void UI::SetNLC::uisEnd(void)
 {
-    if (_updated)
-        _ui._lighting.setNL(_color);
+    if (_updated) commit();
 
     _ui._lighting.state(Lighting::LS_NIGHT_LIGHT);
     if (_ui._lighting.isOn())
@@ -3295,77 +3292,175 @@ void UI::SetLeds::uisEnd(void)
     _ui._display.blank();
 }
 
-UI::sc_e UI::SetLeds::uisNap(void)
+void UI::SetNLC::commit(void)
+{
+    if (_type == SLT_COLOR)
+        _nl_colors[_index] = ((uint32_t)_cindex << 24) | _color.colorCode();
+    else
+        _nl_colors[_index] = (_nl_colors[_index] & 0xFF000000) | _color.colorCode();
+
+    (void)_ui._eeprom.setNLC(_index, _nl_colors[_index]);
+    _ui._lighting.setNL(_index, _color);
+}
+
+UI::sc_e UI::SetNLC::uisNap(void)
 {
     return SC_OFF;
 }
 
-UI::sc_e UI::SetLeds::uisSleep(void)
+UI::sc_e UI::SetNLC::uisSleep(void)
 {
     return SC_OFF;
 }
 
-void UI::SetLeds::uisRefresh(void)
+void UI::SetNLC::uisRefresh(void)
 {
     _blink.reset();
     display();
 }
 
-void UI::SetLeds::waitType(bool on)
-{
-    display(on ? DF_NONE : DF_BL);
-}
-
-void UI::SetLeds::waitColor(bool on)
-{
-    display(on ? DF_NONE : DF_BL);
-}
-
-void UI::SetLeds::waitRGB(bool on)
+void UI::SetNLC::waitIndex(bool on)
 {
     display(on ? DF_NONE : DF_BL_AC);
 }
 
-void UI::SetLeds::waitHSV(bool on)
-{
-    display(on ? DF_NONE : DF_BL_AC);
-}
-
-void UI::SetLeds::waitDone(bool on)
+void UI::SetNLC::waitType(bool on)
 {
     display(on ? DF_NONE : DF_BL);
 }
 
-void UI::SetLeds::updateType(ev_e ev)
+void UI::SetNLC::waitColor(bool on)
+{
+    display(on ? DF_NONE : DF_BL);
+}
+
+void UI::SetNLC::waitRGB(bool on)
+{
+    display(on ? DF_NONE : DF_BL_AC);
+}
+
+void UI::SetNLC::waitHSV(bool on)
+{
+    display(on ? DF_NONE : DF_BL_AC);
+}
+
+void UI::SetNLC::waitDone(bool on)
+{
+    display(on ? DF_NONE : DF_BL);
+}
+
+void UI::SetNLC::updateIndex(ev_e ev)
+{
+    evUpdate < uint8_t > (_index, ev, 0, EE_NLC_CNT - 1);
+    _color = _nl_colors[_index];
+}
+
+void UI::SetNLC::updateType(ev_e ev)
 {
     evUpdate < slt_e > (_type, ev, SLT_COLOR, SLT_HSV);
 }
 
-void UI::SetLeds::updateColor(ev_e ev)
+void UI::SetNLC::updateColor(ev_e ev)
 {
     evUpdate < uint8_t > (_cindex, ev, 0, (sizeof(_s_colors) / sizeof(CRGB::Color)) - 1);
     _color = _s_colors[_cindex];
 }
 
-void UI::SetLeds::updateRGB(ev_e ev)
+void UI::SetNLC::updateRGB(ev_e ev)
 {
     evUpdate < uint8_t > (*_val, ev, 0, 255);
     _color = _rgb;
 }
 
-void UI::SetLeds::updateHSV(ev_e ev)
+void UI::SetNLC::updateHSV(ev_e ev)
 {
     evUpdate < uint8_t > (*_val, ev, 0, 255);
     _color = _hsv;
 }
 
-void UI::SetLeds::display(df_t flags)
+void UI::SetNLC::changeIndex(void)
+{
+    _state = SLS_TYPE;
+}
+
+void UI::SetNLC::changeType(void)
+{
+    _state = _next_type_states[_type];
+    _sub_state = 0;
+
+    if (_state == SLS_COLOR)
+    {
+        _cindex = _nl_colors[_index] >> 24;
+        if (_cindex >= (sizeof(_s_colors) / sizeof(CRGB::Color)))
+            _cindex = 0;
+        _color = _s_colors[_cindex];
+    }
+    else if (_state == SLS_RGB)
+    {
+        _opt = _rgb_opts[_sub_state];
+        _rgb = _color;
+        _val = &_rgb[_sub_state];
+    }
+    else  // _state == SLS_HSV
+    {
+        _opt = _hsv_opts[_sub_state];
+        _hsv = _color;
+        _val = &_hsv[_sub_state];
+    }
+
+    _ui._lighting.setColor(_color);
+}
+
+void UI::SetNLC::changeColor(void)
+{
+    _state = SLS_DONE;
+}
+
+void UI::SetNLC::changeRGB(void)
+{
+    if (_ui._controls.doublePressed(SWI_ENC))
+    {
+        _state = SLS_DONE;
+        return;
+    }
+
+    _sub_state = (_sub_state == 2) ? 0 : _sub_state + 1;
+
+    _opt = _rgb_opts[_sub_state];
+    _val = &_rgb[_sub_state];
+}
+
+void UI::SetNLC::changeHSV(void)
+{
+    if (_ui._controls.doublePressed(SWI_ENC))
+    {
+        _state = SLS_DONE;
+        return;
+    }
+
+    _sub_state = (_sub_state == 2) ? 0 : _sub_state + 1;
+
+    _opt = _hsv_opts[_sub_state];
+    _val = &_hsv[_sub_state];
+}
+
+void UI::SetNLC::changeDone(void)
+{
+    _state = SLS_INDEX;
+}
+
+void UI::SetNLC::display(df_t flags)
 {
     if (_display_actions[_state] != nullptr)
         MFC(_display_actions[_state])(flags);
 }
 
-void UI::SetLeds::displayType(df_t flags)
+void UI::SetNLC::displayIndex(df_t flags)
+{
+    _ui._display.showOption("nL", (uint8_t)(_index + 1), flags);
+}
+
+void UI::SetNLC::displayType(df_t flags)
 {
     switch (_type)
     {
@@ -3381,65 +3476,60 @@ void UI::SetLeds::displayType(df_t flags)
     }
 }
 
-void UI::SetLeds::displayColor(df_t flags)
+void UI::SetNLC::displayColor(df_t flags)
 {
-    _ui._display.showInteger(_cindex, flags);
+    _ui._display.showInteger(_cindex + 1, flags);
 }
 
-void UI::SetLeds::displayRGB(df_t flags)
+void UI::SetNLC::displayRGB(df_t flags)
 {
     _ui._display.showOption(_opt, *_val, flags | DF_HEX | DF_LZ);
 }
 
-void UI::SetLeds::displayHSV(df_t flags)
+void UI::SetNLC::displayHSV(df_t flags)
 {
     _ui._display.showOption(_opt, *_val, flags | DF_HEX | DF_LZ);
 }
 
-void UI::SetLeds::displayDone(df_t flags)
+void UI::SetNLC::displayDone(df_t flags)
 {
+    static uint8_t nopts = 0;
     static uint32_t i = 0;
 
-    if (_done) { i = 0; _done = false; }
+    if (_done) { i = 0; _done = false; if (_type == SLT_COLOR) nopts = 3; else nopts = 5; }
     else if (flags == DF_NONE) i++;
     else return;
 
-    switch (_type)
+    if ((i % nopts) == 0)
     {
-        case SLT_COLOR:
-            if ((i % 2) == 0)
-                displayType();
-            else
-                displayColor();
-            break;
+        displayIndex();
+    }
+    else if ((i % nopts) == 1)
+    {
+        displayType();
+    }
+    else if (_type == SLT_COLOR)
+    {
+        displayColor();
+    }
+    else if ((_type == SLT_RGB) || (_type == SLT_HSV))
+    {
+        uint8_t oi = (i % nopts) - 2;
 
-        case SLT_RGB:
-            if ((i % 4) == 0)
-            {
-                displayType();
-            }
-            else
-            {
-                _opt = _rgb_opts[(i % 4) - 1];
-                _val = &_rgb[(i % 4) - 1];
-                displayRGB();
-            }
-            break;
-
-        case SLT_HSV:
-            if ((i % 4) == 0)
-            {
-                displayType();
-            }
-            else
-            {
-                _opt = _hsv_opts[(i % 4) - 1];
-                _val = &_hsv[(i % 4) - 1];
-                displayHSV();
-            }
-            break;
+        if (_type == SLT_RGB)
+        {
+            _opt = _rgb_opts[oi];
+            _val = &_rgb[oi];
+            displayRGB();
+        }
+        else
+        {
+            _opt = _hsv_opts[oi];
+            _val = &_hsv[oi];
+            displayHSV();
+        }
     }
 }
 ////////////////////////////////////////////////////////////////////////////////
-// SetLeds END /////////////////////////////////////////////////////////////////
+// SetNLC END /////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////

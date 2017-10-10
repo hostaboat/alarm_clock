@@ -97,6 +97,8 @@ class Seg7Display : public Display
         void showTime(uint8_t hour_min, uint8_t min_sec, df_t flags = DF_NONE);
         void setTimer(uint8_t hour_min, uint8_t min_sec, df_t flags = DF_NONE);
         void showTimer(uint8_t hour_min, uint8_t min_sec, df_t flags = DF_NONE);
+        void setTimer(uint32_t seconds, df_t flags = DF_NONE);
+        void showTimer(uint32_t seconds, df_t flags = DF_NONE);
         void setClock(uint8_t hour, uint8_t minute, df_t flags = DF_NONE);
         void showClock(uint8_t hour, uint8_t minute, df_t flags = DF_NONE);
         void setClock12(uint8_t hour, uint8_t minute, df_t flags = DF_NONE);

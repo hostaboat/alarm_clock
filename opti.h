@@ -37,7 +37,7 @@
 struct CHSV;
 struct CRGB;
 
-void hsv2rgb_rainbow(CHSV const & hsv, CRGB & rgb);
+uint8_t sqrt16(uint16_t x);
 
 inline uint8_t scale8(uint16_t i, uint8_t scale)
 {
@@ -60,6 +60,13 @@ inline uint8_t qadd8(uint8_t i, uint8_t j)
     return i;
 }
 
+inline uint8_t qsub8(uint8_t i, uint8_t j)
+{
+    int t = i - j;
+    if (t < 0) t = 0;
+    return t;
+}
+
 inline uint8_t rand8(uint8_t lo, uint8_t hi, uint16_t entropy = 0)
 {
     static uint16_t seed = 0;
@@ -79,6 +86,9 @@ inline uint8_t rand8(uint8_t lo, uint8_t hi, uint16_t entropy = 0)
     return (r % ((hi - lo) + 1)) + lo;
 }
 
+void hsv2rgb_rainbow(CHSV const & hsv, CRGB & rgb);
+void rgb2hsv_approximate(CRGB const & rgb, CHSV & hsv);
+
 struct CHSV
 {
     union
@@ -87,10 +97,27 @@ struct CHSV
         uint8_t raw[3];
     };
 
+    enum Hue : uint8_t
+    {
+        RED = 0,
+        ORANGE = 32,
+        YELLOW = 64,
+        GREEN = 96,
+        AQUA = 128,
+        BLUE = 160,
+        PURPLE = 192,
+        PINK = 224,
+    };
+
     CHSV(void) {}
     CHSV(uint8_t h, uint8_t s, uint8_t v) : h(h), s(s), v(v) {}
     CHSV(CHSV const & copy) { h = copy.h; s = copy.s; v = copy.v; }
+    CHSV(CRGB const & copy) { rgb2hsv_approximate(copy, *this); }
     CHSV & operator=(CHSV const & rval) { h = rval.h; s = rval.s; v = rval.v; return *this; }
+    CHSV & operator=(CRGB const & rval) { rgb2hsv_approximate(rval, *this); return *this; }
+    bool operator ==(CHSV const & rhs) {
+        for (uint8_t i = 0; i < sizeof(raw); i++) { if (raw[i] != rhs.raw[i]) return false; } return true; }
+    bool operator != (CHSV const & rhs) { return !(*this == rhs); }
     uint8_t & operator[](uint8_t i) { return raw[i]; }
     const uint8_t & operator[](uint8_t i) const { return raw[i]; }
 };
@@ -269,6 +296,13 @@ struct CRGB
     CRGB & operator=(CHSV const & rval) { hsv2rgb_rainbow(rval, *this); return *this; }
     uint8_t & operator[](uint8_t i) { return raw[i]; }
     const uint8_t & operator[](uint8_t i) const { return raw[i]; }
+    bool operator == (CRGB const & rhs) {
+        for (uint8_t i = 0; i < sizeof(raw); i++) { if (raw[i] != rhs.raw[i]) return false; } return true; }
+    bool operator != (CRGB const & rhs) { return !(*this == rhs); }
+    bool operator == (CHSV const & hsv) { CRGB rgb; hsv2rgb_rainbow(hsv, rgb); return *this == rgb; }
+    bool operator != (CHSV const & hsv) { return !(*this == hsv); }
+    bool operator == (uint32_t colorcode) { CRGB c(colorcode); return *this == c; }
+    bool operator != (uint32_t colorcode) { return !(*this == colorcode); }
     bool isBlack(void) { return (r == 0) && (g == 0) && (b == 0); }
     uint32_t colorCode(void) const { return ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b; }
 };

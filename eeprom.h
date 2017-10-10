@@ -25,16 +25,12 @@ enum eei_e : uint8_t
     // 11
     EEI_TRACK,
 
-    // 12-13
-    EEI_LEDS_COLOR_LOW,
-    EEI_LEDS_COLOR_HIGH,
-
-    // 14-16
+    // 12-14
     EEI_TOUCH_NSCN_PS,          // NSCN & PS
     EEI_TOUCH_REFCHRG_EXTCHRG,  // REFCHRG & EXTCHRG
     EEI_TOUCH_THRESHOLD,
 
-    // 17-23
+    // 15-21
     EEI_POWER_NAP_SECS_HIGH,   // Nap Time high 16 bits
     EEI_POWER_NAP_SECS_LOW,    // Nap Time low 16 bits
     EEI_POWER_STOP_SECS_HIGH,  // Player Stop Time high 16 bits
@@ -42,9 +38,18 @@ enum eei_e : uint8_t
     EEI_POWER_SLEEP_SECS_HIGH, // Sleep Time high 16 bits
     EEI_POWER_SLEEP_SECS_LOW,  // Sleep Time low 16 bits
     EEI_POWER_TOUCH_SECS,      // Touch Time to sleep
-    // Num entries : 23
+
+    // 22-27
+    EEI_NLC_01_LOW,  // Night Light Color
+    EEI_NLC_01_HIGH,
+    EEI_NLC_02_LOW,
+    EEI_NLC_02_HIGH,
+    EEI_NLC_03_LOW,
+    EEI_NLC_03_HIGH,
+
+    // Num entries : 27
 // Used to determine the EEPROM size
-#define EEI_CNT  23
+#define EEI_CNT  27
 };
 
 #define EE_ALARM_TYPE_BEEP   0x00
@@ -62,6 +67,9 @@ enum eei_e : uint8_t
 #define EE_CLOCK_DST_DISABLED  0x00
 #define EE_CLOCK_DST_ENABLED   0x01
 #define EE_CLOCK_DST_MAX       EE_CLOCK_DST_ENABLED
+
+// Night Light Colors Count
+#define EE_NLC_CNT  3
 
 struct eAlarm
 {
@@ -128,11 +136,11 @@ class Eeprom : public Module
         bool setTouch(eTouch const & touch);
         bool getTouch(eTouch & touch) const;
 
-        bool setLedsColor(uint32_t color_code);
-        bool getLedsColor(uint32_t & color_code) const;
-
         bool setPower(ePower const & power);
         bool getPower(ePower & power) const;
+
+        bool setNLC(uint8_t index, uint32_t color_code);
+        bool getNLC(uint8_t index, uint32_t & color_code) const;
 
         Eeprom(Eeprom const &) = delete;
         Eeprom & operator=(Eeprom const &) = delete;

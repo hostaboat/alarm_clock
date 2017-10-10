@@ -370,7 +370,6 @@ class UI
         uint8_t _brightness = 120;
         static constexpr uint8_t const _s_dim_br = 14;
         uint8_t _display_brightness;
-        static constexpr CRGB::Color const _s_default_color = CRGB::WHITE;
 
         uint32_t _display_mark = 0;
         static constexpr uint32_t const _s_display_wait = 1000;
@@ -573,10 +572,36 @@ class UI
                 virtual void uisRefresh(void) = 0;
         };
 
+
+        // Helper for Timer settings
+        struct HM
+        {
+            public:
+                HM(uint8_t min_secs = 0, bool zero = true)
+                    : _min_secs(min_secs), _zero(zero) {}
+
+                void init(uint32_t secs);
+                void updateHM(ev_e ev);
+                void updateMS(ev_e ev);
+                void changeMS(void);
+                uint32_t seconds(void) const;
+                uint16_t hm(void) const { return _hm; }
+                uint16_t ms(void) const { return _ms; }
+
+            private:
+                uint16_t _hm;
+                uint8_t _ms;
+                uint8_t _min_ms;
+
+                uint8_t const _min_secs;
+                bool const _zero;
+                static constexpr uint16_t const _s_max_hm = 99 * 60;
+        };
+
         class SetAlarm : public UISetState
         {
             public:
-                SetAlarm(UI & ui) : UISetState(ui) {}
+                SetAlarm(UI & ui);
 
                 virtual void uisBegin(void);
                 virtual void uisWait(void);
@@ -795,7 +820,7 @@ class UI
         class SetPower : public UISetState
         {
             public:
-                SetPower(UI & ui) : UISetState(ui) { init(); }
+                SetPower(UI & ui);
 
                 virtual void uisBegin(void);
                 virtual void uisWait(void);
@@ -811,53 +836,43 @@ class UI
                 void waitOpt(bool on);
                 void waitHM(bool on);
                 void waitMS(bool on);
-                void waitSecs(bool on);
+                void waitTouch(bool on);
                 void waitDone(bool on);
 
-                void updateNap(ev_e ev);
-                void updateStop(ev_e ev);
-                void updateSleep(ev_e ev);
-                void updateTouch(ev_e ev);
+                void updateOpt(ev_e ev);
                 void updateHM(ev_e ev);
                 void updateMS(ev_e ev);
-                void updateSecs(ev_e ev);
+                void updateTouch(ev_e ev);
 
                 void changeNap(void);
                 void changeStop(void);
                 void changeSleep(void);
-                void changeTouch(void);
                 void changeMS(void);
-                void changeSecs(void);
                 void changeDone(void);
 
                 void display(df_t flags = DF_NONE);
                 void displayOpt(df_t flags = DF_NONE);
-                void displayTime(df_t flags = DF_NONE);
-                void displaySecs(df_t flags = DF_NONE);
+                void displayTimer(df_t flags = DF_NONE);
+                void displayTouch(df_t flags = DF_NONE);
                 void displayDone(df_t flags = DF_NONE);
 
-                void init(void);
-                void initTime(uint32_t secs, uint8_t & hm, uint8_t & ms, df_t & hm_flag);
-                void set(void);
+                void commit(void);
 
-                enum sopt_e { SOPT_NAP, SOPT_STOP, SOPT_SLEEP, SOPT_TOUCH, SOPT_CNT };
+                enum sopt_e : uint8_t { SOPT_NAP, SOPT_STOP, SOPT_SLEEP, SOPT_TOUCH, SOPT_CNT };
 
                 static constexpr char const * const _s_opts[SOPT_CNT] = { "nAP", "STOP", "SLEE.", "tUCH" };
 
                 // Set Power State
                 enum sps_e : uint8_t
                 {
-                    SPS_NAP,
+                    SPS_OPT,
                     SPS_NAP_HM,  // Hours or Minutes
                     SPS_NAP_MS,  // Minutes or Seconds
-                    SPS_STOP,
                     SPS_STOP_HM,
                     SPS_STOP_MS,
-                    SPS_SLEEP,
                     SPS_SLEEP_HM,
                     SPS_SLEEP_MS,
                     SPS_TOUCH,
-                    SPS_TOUCH_SECS,
                     SPS_DONE,
                     SPS_CNT
                 };
@@ -866,16 +881,13 @@ class UI
                 {
                     SPS_NAP_HM,
                     SPS_NAP_MS,
-                    SPS_STOP,
-                    SPS_STOP_HM,
-                    SPS_STOP_MS,
-                    SPS_SLEEP,
-                    SPS_SLEEP_HM,
-                    SPS_SLEEP_MS,
-                    SPS_TOUCH,
-                    SPS_TOUCH_SECS,
                     SPS_DONE,
-                    SPS_NAP,
+                    SPS_STOP_MS,
+                    SPS_DONE,
+                    SPS_SLEEP_MS,
+                    SPS_DONE,
+                    SPS_DONE,
+                    SPS_OPT,
                 };
 
                 using sps_wait_action_t = void (SetPower::*)(bool on);
@@ -884,47 +896,38 @@ class UI
                     &SetPower::waitOpt,
                     &SetPower::waitHM,
                     &SetPower::waitMS,
-                    &SetPower::waitOpt,
                     &SetPower::waitHM,
                     &SetPower::waitMS,
-                    &SetPower::waitOpt,
                     &SetPower::waitHM,
                     &SetPower::waitMS,
-                    &SetPower::waitOpt,
-                    &SetPower::waitSecs,
+                    &SetPower::waitTouch,
                     &SetPower::waitDone
                 };
 
                 using sps_update_action_t = void (SetPower::*)(ev_e ev);
                 sps_update_action_t const _update_actions[SPS_CNT] =
                 {
-                    &SetPower::updateNap,
+                    &SetPower::updateOpt,
                     &SetPower::updateHM,
                     &SetPower::updateMS,
-                    &SetPower::updateStop,
                     &SetPower::updateHM,
                     &SetPower::updateMS,
-                    &SetPower::updateSleep,
                     &SetPower::updateHM,
                     &SetPower::updateMS,
                     &SetPower::updateTouch,
-                    &SetPower::updateSecs,
                     nullptr
                 };
 
                 using sps_change_action_t = void (SetPower::*)(void);
                 sps_change_action_t const _change_actions[SPS_CNT] =
                 {
-                    &SetPower::changeNap,
                     nullptr,
+                    &SetPower::changeNap,
                     &SetPower::changeMS,
                     &SetPower::changeStop,
-                    nullptr,
                     &SetPower::changeMS,
                     &SetPower::changeSleep,
-                    nullptr,
                     &SetPower::changeMS,
-                    &SetPower::changeTouch,
                     nullptr,
                     &SetPower::changeDone
                 };
@@ -933,31 +936,22 @@ class UI
                 sps_display_action_t const _display_actions[SPS_CNT] =
                 {
                     &SetPower::displayOpt,
-                    &SetPower::displayTime,
-                    &SetPower::displayTime,
-                    &SetPower::displayOpt,
-                    &SetPower::displayTime,
-                    &SetPower::displayTime,
-                    &SetPower::displayOpt,
-                    &SetPower::displayTime,
-                    &SetPower::displayTime,
-                    &SetPower::displayOpt,
-                    &SetPower::displaySecs,
+                    &SetPower::displayTimer,
+                    &SetPower::displayTimer,
+                    &SetPower::displayTimer,
+                    &SetPower::displayTimer,
+                    &SetPower::displayTimer,
+                    &SetPower::displayTimer,
+                    &SetPower::displayTouch,
                     &SetPower::displayDone
                 };
 
                 sopt_e _sopt = SOPT_NAP;
-                sps_e _state = SPS_NAP;
-                uint8_t _nap_hm, _nap_ms;
-                df_t _nap_hm_flag;
-                uint8_t _stop_hm, _stop_ms;
-                df_t _stop_hm_flag;
-                uint8_t _sleep_hm, _sleep_ms;
-                df_t _sleep_hm_flag;
-                uint8_t * _hm = nullptr;
-                uint8_t * _ms = nullptr;
-                df_t * _hm_flag = nullptr;
-                uint8_t _min_ms = 0;
+                sps_e _state = SPS_OPT;
+                HM _nap{_s_min_secs, true};
+                HM _stop{_s_min_secs, true};
+                HM _sleep{_s_min_secs, true};
+                HM * _hm = nullptr;
                 ePower _power = {};
                 static constexpr uint8_t const _s_min_secs = 10;
                 uint8_t _touch_secs = 0;
@@ -1131,11 +1125,8 @@ class UI
 
                 ts_e _state = TS_WAIT;
 
-                uint8_t _hm = 0;  // Hour or Minute
-                uint8_t _ms = 0;  // Minute or Second
-                uint8_t _min_ms = 0;
-                df_t _hm_flag = DF_NONE;
-                bool _hm_toggle = true;
+                HM _hm{1, false};
+                bool _hm_on = true;
 
                 uint8_t _last_hue = 0;
                 uint32_t _last_second = 0;
@@ -1377,10 +1368,10 @@ class UI
                 Toggle _read_toggle{_s_read_wait};
         };
 
-        class SetLeds : public UISetState
+        class SetNLC : public UISetState
         {
             public:
-                SetLeds(UI & ui) : UISetState(ui) {}
+                SetNLC(UI & ui);
 
                 virtual void uisBegin(void);
                 virtual void uisWait(void);
@@ -1393,26 +1384,39 @@ class UI
                 virtual void uisRefresh(void);
 
             private:
+                void waitIndex(bool on);
                 void waitType(bool on);
                 void waitColor(bool on);
                 void waitRGB(bool on);
                 void waitHSV(bool on);
                 void waitDone(bool on);
 
+                void updateIndex(ev_e ev);
                 void updateType(ev_e ev);
                 void updateColor(ev_e ev);
                 void updateRGB(ev_e ev);
                 void updateHSV(ev_e ev);
 
+                void changeIndex(void);
+                void changeType(void);
+                void changeColor(void);
+                void changeRGB(void);
+                void changeHSV(void);
+                void changeDone(void);
+
                 void display(df_t flags = DF_NONE);
+                void displayIndex(df_t flags = DF_NONE);
                 void displayType(df_t flags = DF_NONE);
                 void displayColor(df_t flags = DF_NONE);
                 void displayRGB(df_t flags = DF_NONE);
                 void displayHSV(df_t flags = DF_NONE);
                 void displayDone(df_t flags = DF_NONE);
 
+                void commit(void);
+
                 enum sls_e : uint8_t
                 {
+                    SLS_INDEX,
                     SLS_TYPE,
                     SLS_COLOR,
                     SLS_RGB,
@@ -1435,42 +1439,57 @@ class UI
                     SLS_HSV,
                 };
 
-                using sls_wait_action_t = void (SetLeds::*)(bool on);
+                using sls_wait_action_t = void (SetNLC::*)(bool on);
                 sls_wait_action_t const _wait_actions[SLS_CNT] =
                 {
-                    &SetLeds::waitType,
-                    &SetLeds::waitColor,
-                    &SetLeds::waitRGB,
-                    &SetLeds::waitHSV,
-                    &SetLeds::waitDone,
+                    &SetNLC::waitIndex,
+                    &SetNLC::waitType,
+                    &SetNLC::waitColor,
+                    &SetNLC::waitRGB,
+                    &SetNLC::waitHSV,
+                    &SetNLC::waitDone,
                 };
 
-                using sls_update_action_t = void (SetLeds::*)(ev_e ev);
+                using sls_update_action_t = void (SetNLC::*)(ev_e ev);
                 sls_update_action_t const _update_actions[SLS_CNT] =
                 {
-                    &SetLeds::updateType,
-                    &SetLeds::updateColor,
-                    &SetLeds::updateRGB,
-                    &SetLeds::updateHSV,
+                    &SetNLC::updateIndex,
+                    &SetNLC::updateType,
+                    &SetNLC::updateColor,
+                    &SetNLC::updateRGB,
+                    &SetNLC::updateHSV,
                     nullptr,
                 };
 
-                using sls_display_action_t = void (SetLeds::*)(df_t flags);
-                sls_display_action_t const _display_actions[SLS_CNT] =
+                using sls_change_action_t = void (SetNLC::*)(void);
+                sls_change_action_t const _change_actions[SLS_CNT] =
                 {
-                    &SetLeds::displayType,
-                    &SetLeds::displayColor,
-                    &SetLeds::displayRGB,
-                    &SetLeds::displayHSV,
-                    &SetLeds::displayDone
+                    &SetNLC::changeIndex,
+                    &SetNLC::changeType,
+                    &SetNLC::changeColor,
+                    &SetNLC::changeRGB,
+                    &SetNLC::changeHSV,
+                    &SetNLC::changeDone,
                 };
 
-                sls_e _state = SLS_TYPE;
+                using sls_display_action_t = void (SetNLC::*)(df_t flags);
+                sls_display_action_t const _display_actions[SLS_CNT] =
+                {
+                    &SetNLC::displayIndex,
+                    &SetNLC::displayType,
+                    &SetNLC::displayColor,
+                    &SetNLC::displayRGB,
+                    &SetNLC::displayHSV,
+                    &SetNLC::displayDone
+                };
+
+                sls_e _state = SLS_INDEX;
                 slt_e _type = SLT_COLOR;
                 uint8_t _sub_state = 0;
 
                 CRGB _color = {};
 
+                uint8_t _index = 0;
                 uint8_t _cindex = 0;
 
                 CRGB const _default_rgb{ 255, 255, 255 };
@@ -1484,55 +1503,51 @@ class UI
                 uint8_t * _val = nullptr;
                 char const * _opt = nullptr;
 
+                uint32_t _nl_colors[EE_NLC_CNT];
+
                 static constexpr CRGB::Color const _s_colors[] =
                 {
-                    CRGB::NAVAJO_WHITE,           CRGB::KHAKI,                  CRGB::FAIRY_LIGHT,
-                    CRGB::PEACH_PUFF,             CRGB::GOLDENROD,              CRGB::WHEAT,
-                    CRGB::PERU,                   CRGB::DARK_SALMON,            CRGB::FLORAL_WHITE,
-                    CRGB::LEMON_CHIFFON,          CRGB::SIENNA,                 CRGB::CORNSILK,
-                    CRGB::SEASHELL,               CRGB::BURLY_WOOD,             CRGB::OLD_LACE,
-                    CRGB::DARK_GOLDENROD,         CRGB::SADDLE_BROWN,           CRGB::PAPAYA_WHIP,
-                    CRGB::DARK_ORANGE,            CRGB::TOMATO,                 CRGB::LINEN,
-                    CRGB::SALMON,                 CRGB::GOLD,                   CRGB::BLANCHED_ALMOND,
-                    CRGB::LIGHT_SALMON,           CRGB::CORAL,                  CRGB::ORANGE_RED,
-                    CRGB::ANTIQUE_WHITE,          CRGB::TAN,                    CRGB::PLAID,
-                    CRGB::MISTY_ROSE,             CRGB::SANDY_BROWN,            CRGB::ORANGE,
-                    CRGB::BISQUE,                 CRGB::MOCCASIN,               CRGB::DARK_KHAKI,
-                    CRGB::CHOCOLATE,              CRGB::PALE_GOLDENROD,         CRGB::MAROON,
-                    CRGB::DARK_RED,               CRGB::RED,                    CRGB::BROWN,
-                    CRGB::FIRE_BRICK,             CRGB::INDIAN_RED,             CRGB::LIGHT_CORAL,
-                    CRGB::ROSY_BROWN,             CRGB::SNOW,                   CRGB::MEDIUM_VIOLET_RED,
-                    CRGB::CRIMSON,                CRGB::DEEP_PINK,              CRGB::PALE_VIOLET_RED,
-                    CRGB::ORCHID,                 CRGB::HOT_PINK,               CRGB::LIGHT_PINK,
-                    CRGB::PINK,                   CRGB::LAVENDER_BLUSH,         CRGB::IVORY,
-                    CRGB::LIGHT_YELLOW,           CRGB::LIGHT_GOLDENROD_YELLOW, CRGB::BEIGE,
-                    CRGB::OLIVE,                  CRGB::YELLOW,                 CRGB::GREEN_YELLOW,
-                    CRGB::CHARTREUSE,             CRGB::YELLOW_GREEN,           CRGB::DARK_OLIVE_GREEN,
-                    CRGB::LAWN_GREEN,             CRGB::OLIVE_DRAB,             CRGB::DARK_GREEN,
-                    CRGB::GREEN,                  CRGB::FOREST_GREEN,           CRGB::LIME_GREEN,
-                    CRGB::DARK_SEA_GREEN,         CRGB::LIME,                   CRGB::LIGHT_GREEN,
-                    CRGB::PALE_GREEN,             CRGB::HONEYDEW,               CRGB::SEA_GREEN,
-                    CRGB::LIGHT_SEA_GREEN,        CRGB::MEDIUM_SEA_GREEN,       CRGB::MEDIUM_AQUAMARINE,
-                    CRGB::MEDIUM_TURQUOISE,       CRGB::TURQUOISE,              CRGB::MEDIUM_SPRING_GREEN,
-                    CRGB::SPRING_GREEN,           CRGB::AQUAMARINE,             CRGB::MINT_CREAM,
-                    CRGB::DARK_SLATE_GREY,        CRGB::TEAL,                   CRGB::DARK_CYAN,
-                    CRGB::AQUA,                   CRGB::PALE_TURQUOISE,         CRGB::LIGHT_CYAN,
-                    CRGB::AZURE,                  CRGB::GHOST_WHITE,            CRGB::MEDIUM_BLUE,
-                    CRGB::DARK_BLUE,              CRGB::MIDNIGHT_BLUE,          CRGB::NAVY,
-                    CRGB::BLUE,                   CRGB::LAVENDER,               CRGB::ROYAL_BLUE,
-                    CRGB::STEEL_BLUE,             CRGB::LIGHT_SLATE_GREY,       CRGB::SLATE_GREY,
-                    CRGB::CADET_BLUE,             CRGB::CORNFLOWER_BLUE,        CRGB::DODGER_BLUE,
-                    CRGB::DARK_TURQUOISE,         CRGB::DEEP_SKY_BLUE,          CRGB::SKY_BLUE,
-                    CRGB::LIGHT_SKY_BLUE,         CRGB::LIGHT_STEEL_BLUE,       CRGB::POWDER_BLUE,
-                    CRGB::LIGHT_BLUE,             CRGB::ALICE_BLUE,             CRGB::INDIGO,
-                    CRGB::DARK_VIOLET,            CRGB::DARK_SLATE_BLUE,        CRGB::BLUE_VIOLET,
-                    CRGB::DARK_ORCHID,            CRGB::SLATE_BLUE,             CRGB::MEDIUM_ORCHID,
-                    CRGB::MEDIUM_SLATE_BLUE,      CRGB::AMETHYST,               CRGB::MEDIUM_PURPLE,
-                    CRGB::DARK_MAGENTA,           CRGB::PURPLE,                 CRGB::FUCHSIA,
-                    CRGB::VIOLET,                 CRGB::PLUM,                   CRGB::THISTLE,
-                    CRGB::DIM_GREY,               CRGB::GREY,                   CRGB::DARK_GREY,
-                    CRGB::SILVER,                 CRGB::LIGHT_GREY,             CRGB::GAINSBORO,
-                    CRGB::WHITE_SMOKE,            CRGB::WHITE,
+                    CRGB::WHITE,                     CRGB::KHAKI,                     CRGB::FAIRY_LIGHT,
+                    CRGB::PEACH_PUFF,                CRGB::GOLDENROD,                 CRGB::PERU,
+                    CRGB::DARK_SALMON,               CRGB::FLORAL_WHITE,              CRGB::LEMON_CHIFFON,
+                    CRGB::SIENNA,                    CRGB::BURLY_WOOD,                CRGB::DARK_GOLDENROD,
+                    CRGB::SADDLE_BROWN,              CRGB::PAPAYA_WHIP,               CRGB::DARK_ORANGE,
+                    CRGB::TOMATO,                    CRGB::SALMON,                    CRGB::GOLD,
+                    CRGB::BLANCHED_ALMOND,           CRGB::LIGHT_SALMON,              CRGB::CORAL,
+                    CRGB::ORANGE_RED,                CRGB::TAN,                       CRGB::PLAID,
+                    CRGB::MISTY_ROSE,                CRGB::SANDY_BROWN,               CRGB::ORANGE,
+                    CRGB::MOCCASIN,                  CRGB::DARK_KHAKI,                CRGB::CHOCOLATE,
+                    CRGB::PALE_GOLDENROD,            CRGB::MAROON,                    CRGB::DARK_RED,
+                    CRGB::RED,                       CRGB::BROWN,                     CRGB::FIRE_BRICK,
+                    CRGB::INDIAN_RED,                CRGB::LIGHT_CORAL,               CRGB::ROSY_BROWN,
+                    CRGB::SNOW,                      CRGB::MEDIUM_VIOLET_RED,         CRGB::CRIMSON,
+                    CRGB::DEEP_PINK,                 CRGB::PALE_VIOLET_RED,           CRGB::ORCHID,
+                    CRGB::HOT_PINK,                  CRGB::LIGHT_PINK,                CRGB::LAVENDER_BLUSH,
+                    CRGB::LIGHT_YELLOW,              CRGB::BEIGE,                     CRGB::OLIVE,
+                    CRGB::YELLOW,                    CRGB::GREEN_YELLOW,              CRGB::CHARTREUSE,
+                    CRGB::YELLOW_GREEN,              CRGB::DARK_OLIVE_GREEN,          CRGB::LAWN_GREEN,
+                    CRGB::OLIVE_DRAB,                CRGB::DARK_GREEN,                CRGB::GREEN,
+                    CRGB::FOREST_GREEN,              CRGB::LIME_GREEN,                CRGB::DARK_SEA_GREEN,
+                    CRGB::LIME,                      CRGB::LIGHT_GREEN,               CRGB::HONEYDEW,
+                    CRGB::SEA_GREEN,                 CRGB::LIGHT_SEA_GREEN,           CRGB::MEDIUM_SEA_GREEN,
+                    CRGB::MEDIUM_AQUAMARINE,         CRGB::MEDIUM_TURQUOISE,          CRGB::MEDIUM_SPRING_GREEN,
+                    CRGB::SPRING_GREEN,              CRGB::AQUAMARINE,                CRGB::MINT_CREAM,
+                    CRGB::DARK_SLATE_GREY,           CRGB::TEAL,                      CRGB::AQUA,
+                    CRGB::PALE_TURQUOISE,            CRGB::LIGHT_CYAN,                CRGB::GHOST_WHITE,
+                    CRGB::MEDIUM_BLUE,               CRGB::DARK_BLUE,                 CRGB::MIDNIGHT_BLUE,
+                    CRGB::NAVY,                      CRGB::BLUE,                      CRGB::LAVENDER,
+                    CRGB::ROYAL_BLUE,                CRGB::STEEL_BLUE,                CRGB::LIGHT_SLATE_GREY,
+                    CRGB::CADET_BLUE,                CRGB::CORNFLOWER_BLUE,           CRGB::DODGER_BLUE,
+                    CRGB::DARK_TURQUOISE,            CRGB::DEEP_SKY_BLUE,             CRGB::SKY_BLUE,
+                    CRGB::LIGHT_STEEL_BLUE,          CRGB::POWDER_BLUE,               CRGB::ALICE_BLUE,
+                    CRGB::INDIGO,                    CRGB::DARK_VIOLET,               CRGB::DARK_SLATE_BLUE,
+                    CRGB::BLUE_VIOLET,               CRGB::DARK_ORCHID,               CRGB::SLATE_BLUE,
+                    CRGB::MEDIUM_ORCHID,             CRGB::MEDIUM_SLATE_BLUE,         CRGB::AMETHYST,
+                    CRGB::MEDIUM_PURPLE,             CRGB::DARK_MAGENTA,              CRGB::FUCHSIA,
+                    CRGB::VIOLET,                    CRGB::PLUM,                      CRGB::THISTLE,
+                    CRGB::DIM_GREY,                  CRGB::DARK_GREY,                 CRGB::SILVER,
+                    CRGB::LIGHT_GREY,                CRGB::GAINSBORO,                 CRGB::WHITE_SMOKE,
+                    CRGB::NAVAJO_WHITE,              CRGB::BLACK,
                 };
         };
 
@@ -1548,9 +1563,10 @@ class UI
                 void onNL(void);
                 void offNL(void);
                 void toggleNL(void);
+                void toggleAni(void);
                 bool isOnNL(void) const;
                 void cycleNL(ev_e ev);
-                void setNL(CRGB const & c);
+                void setNL(uint8_t index, CRGB const & c);
                 void paletteNL(void);
 
                 void off(void) { _leds.blank(); if (_state == LS_NIGHT_LIGHT) _nl_on = false; }
@@ -1570,15 +1586,22 @@ class UI
                 void state(ls_e state);
 
             private:
+                void removeDups(uint8_t keep_index = 0);
+
                 TLeds & _leds = TLeds::acquire();
                 Eeprom & _eeprom = Eeprom::acquire();
                 ls_e _state = LS_NIGHT_LIGHT;
                 bool _nl_on = false;
-                uint8_t _nl_index = 0;
-                CRGB _nl_color{CRGB::WHITE};
+                uint8_t _ani_index = 0;  // Lighting Animation
+                bool _nl_ani = false;
                 static constexpr uint8_t const _default_brightness = 128;
                 uint8_t _brightness = _default_brightness;
                 bool _was_on = false;
+                static constexpr CRGB::Color const _s_default_color = CRGB::WHITE;
+                CRGB _nl_colors[EE_NLC_CNT+1] = {_s_default_color, CRGB::BLACK, CRGB::BLACK, CRGB::BLACK};
+                CRGB _active_colors[EE_NLC_CNT+1];
+                uint8_t _active_index = 0;
+                uint8_t _active_cnt = 1; 
         };
 
         Controls _controls;
@@ -1594,7 +1617,7 @@ class UI
         Clock _clock{*this};
         Timer _timer{*this};
         SetPower _set_power{*this};
-        SetLeds _set_leds{*this};
+        SetNLC _set_nlc{*this};
 
         UIState * const _states[UIS_CNT] =
         {
@@ -1604,7 +1627,7 @@ class UI
             &_clock,
             &_timer,
             &_set_power,
-            &_set_leds,
+            &_set_nlc,
         };
 };
 

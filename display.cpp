@@ -235,6 +235,29 @@ void Seg7Display::showTimer(uint8_t hour_min, uint8_t min_sec, df_t flags)
     show();
 }
 
+void Seg7Display::setTimer(uint32_t seconds, df_t flags)
+{
+    uint32_t mins = seconds / 60;
+
+    if (mins < 60)
+    {
+        setTimer(mins, seconds % 60, flags);
+    }
+    else
+    {
+        uint32_t hrs = mins / 60;
+        if (hrs > 99) hrs = 99;
+
+        setTimer(hrs, mins % 60, flags);
+    }
+}
+
+void Seg7Display::showTimer(uint32_t seconds, df_t flags)
+{
+    setTimer(seconds, flags);
+    show();
+}
+
 void Seg7Display::setClock(uint8_t hour, uint8_t minute, df_t flags)
 {
     if (flags & DF_12H)

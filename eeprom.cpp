@@ -289,20 +289,29 @@ bool Eeprom::getTouch(eTouch & touch) const
     return true;
 }
 
-bool Eeprom::setLedsColor(uint32_t color_code)
+bool Eeprom::setNLC(uint8_t index, uint32_t color_code)
 {
-    return write(EEI_LEDS_COLOR_LOW, color_code & 0xFFFF)
-        && write(EEI_LEDS_COLOR_HIGH, color_code >> 16);
-}
-
-bool Eeprom::getLedsColor(uint32_t & color_code) const
-{
-    uint16_t ccl, cch;
-    if (!read(EEI_LEDS_COLOR_LOW, ccl)
-            || !read(EEI_LEDS_COLOR_HIGH, cch))
+    if (index >= EE_NLC_CNT)
         return false;
 
-    color_code = ((uint32_t)cch << 16) | (uint32_t)ccl;
+    uint16_t l = color_code & 0xFFFF;
+    uint16_t h = color_code >> 16;
+
+    return write((eei_e)(EEI_NLC_01_LOW + (index * 2)), l)
+        && write((eei_e)(EEI_NLC_01_HIGH + (index * 2)), h);
+}
+
+bool Eeprom::getNLC(uint8_t index, uint32_t & color_code) const
+{
+    if (index >= EE_NLC_CNT)
+        return false;
+
+    uint16_t l, h;
+    if (!read((eei_e)(EEI_NLC_01_LOW + (index * 2)), l)
+            || !read((eei_e)(EEI_NLC_01_HIGH + (index * 2)), h))
+        return false;
+
+    color_code = ((uint32_t)h << 16) | (uint32_t)l;
 
     return true;
 }
