@@ -2453,6 +2453,7 @@ void UI::Timer::uisBegin(void)
     }
 
     _blink.reset();
+    _show_timer.disable();
     displayTimer();
 }
 
@@ -2461,8 +2462,12 @@ void UI::Timer::uisWait(void)
     if (_wait_actions[_state] != nullptr)
         MFC(_wait_actions[_state])();
 
-    if (_show_clock && !_ui.displaying())
-        clockUpdate();
+    bool st = _show_timer.toggled();
+
+    if (_show_clock && _show_timer.off() && !_ui.displaying())
+        clockUpdate(st);
+
+    if (st) _show_timer.disable();
 }
 
 void UI::Timer::uisUpdate(ev_e ev)
@@ -2501,6 +2506,8 @@ void UI::Timer::uisUpdate(ev_e ev)
             clockUpdate(true);
         else
             timerUpdate(true);
+
+        _show_timer.disable();
     }
 
     uisWait();
@@ -2637,12 +2644,13 @@ void UI::Timer::reset(void)
     _ui._beeper.stop();
     _ui._lighting.state(Lighting::LS_NIGHT_LIGHT);
     _blink.reset();
+    _show_timer.disable();
     displayTimer();
 }
 
 void UI::Timer::run(void)
 {
-    if (!_show_clock || (_s_seconds == 0))
+    if (!_show_clock || _show_timer.on() || (_s_seconds == 0))
         timerUpdate();
 
     hueUpdate();
@@ -2703,10 +2711,16 @@ void UI::Timer::pause(void)
 {
     _display_timer->pause();
     _led_timer->pause();
+
+    _show_timer.reset();
+    _ui._display.showTimer(_s_seconds, (_s_seconds >= 3600) ? (DF_HM | DF_NO_LZ) : DF_NO_LZ);
 }
 
 void UI::Timer::resume(void)
 {
+    _show_timer.reset();
+    _ui._display.showTimer(_s_seconds, _hm_on ? (DF_HM | DF_NO_LZ) : DF_NO_LZ);
+
     _display_timer->resume();
     _led_timer->resume();
 }

@@ -1145,7 +1145,12 @@ class UI
                 static constexpr uint32_t _s_us_per_hue = _s_seconds_interval / _s_hue_max;
 
                 // For setting timer
-                Toggle _blink{500};
+                static constexpr uint32_t const _s_blink = 500;
+                Toggle _blink{_s_blink};
+
+                // For showing timer if currently showing the clock and pausing/resuming
+                static constexpr uint32_t const _s_show_timer = 3000;
+                Toggle _show_timer{_s_show_timer};
 
                 // ISR
                 static void timerDisplay(void);
