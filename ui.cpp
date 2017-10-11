@@ -1315,8 +1315,7 @@ void UI::Lighting::onNL(void)
     }
     else
     {
-        if (_active_colors[_active_index] == CRGB::BLACK)
-            _active_index = 0;
+        if (!isOn()) _active_index = 0;
         _leds.updateColor(_active_colors[_active_index]);
     }
 }
@@ -1457,8 +1456,8 @@ void UI::Lighting::state(ls_e state)
 
     if ((lstate != LS_SET) && (state == LS_NIGHT_LIGHT))
     {
-        if (_nl_on) onNL();
-        else offNL();
+        if (_nl_on && isOn()) onNL();
+        else if (!_nl_on) offNL();
     }
 }
 
