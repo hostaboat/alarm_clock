@@ -115,9 +115,9 @@ struct CHSV
     CHSV(CRGB const & copy) { rgb2hsv_approximate(copy, *this); }
     CHSV & operator=(CHSV const & rval) { h = rval.h; s = rval.s; v = rval.v; return *this; }
     CHSV & operator=(CRGB const & rval) { rgb2hsv_approximate(rval, *this); return *this; }
-    bool operator ==(CHSV const & rhs) {
+    bool operator ==(CHSV const & rhs) const {
         for (uint8_t i = 0; i < sizeof(raw); i++) { if (raw[i] != rhs.raw[i]) return false; } return true; }
-    bool operator != (CHSV const & rhs) { return !(*this == rhs); }
+    bool operator != (CHSV const & rhs) const { return !(*this == rhs); }
     uint8_t & operator[](uint8_t i) { return raw[i]; }
     const uint8_t & operator[](uint8_t i) const { return raw[i]; }
 };
@@ -296,13 +296,13 @@ struct CRGB
     CRGB & operator=(CHSV const & rval) { hsv2rgb_rainbow(rval, *this); return *this; }
     uint8_t & operator[](uint8_t i) { return raw[i]; }
     const uint8_t & operator[](uint8_t i) const { return raw[i]; }
-    bool operator == (CRGB const & rhs) {
+    bool operator == (CRGB const & rhs) const {
         for (uint8_t i = 0; i < sizeof(raw); i++) { if (raw[i] != rhs.raw[i]) return false; } return true; }
-    bool operator != (CRGB const & rhs) { return !(*this == rhs); }
-    bool operator == (CHSV const & hsv) { CRGB rgb; hsv2rgb_rainbow(hsv, rgb); return *this == rgb; }
-    bool operator != (CHSV const & hsv) { return !(*this == hsv); }
-    bool operator == (uint32_t colorcode) { CRGB c(colorcode); return *this == c; }
-    bool operator != (uint32_t colorcode) { return !(*this == colorcode); }
+    bool operator != (CRGB const & rhs) const { return !(*this == rhs); }
+    bool operator == (CHSV const & hsv) const { CRGB rgb; hsv2rgb_rainbow(hsv, rgb); return *this == rgb; }
+    bool operator != (CHSV const & hsv) const { return !(*this == hsv); }
+    bool operator == (uint32_t colorcode) const { CRGB c(colorcode); return *this == c; }
+    bool operator != (uint32_t colorcode) const { return !(*this == colorcode); }
     bool isBlack(void) { return (r == 0) && (g == 0) && (b == 0); }
     uint32_t colorCode(void) const { return ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b; }
 };

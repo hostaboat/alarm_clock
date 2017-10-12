@@ -367,9 +367,11 @@ class UI
         // The display levels are about 1/16 of the night light levels
         // off by one - 17 display levels and 256 night light levels.
         // The value 120 is midway between 112 and 128. See updateBrightness().
-        uint8_t _brightness = 120;
-        static constexpr uint8_t const _s_dim_br = 14;
-        uint8_t _display_brightness;
+        static constexpr uint8_t const _s_brightness = 120;
+        uint8_t _brightness = _s_brightness;
+        uint8_t _display_brightness = BR_MID;
+        static constexpr uint8_t const _s_dim_leds = 14;
+        static constexpr br_e const _s_dim_display = BR_LOW;
 
         uint32_t _display_mark = 0;
         static constexpr uint32_t const _s_display_wait = 1000;
@@ -1559,28 +1561,25 @@ class UI
         class Lighting
         {
             public:
-                enum ls_e { LS_NIGHT_LIGHT, LS_SET, LS_OTHER };
-
                 Lighting(uint8_t brightness = _default_brightness);
 
                 bool valid(void) { return _leds.valid(); }
 
-                void onNL(void);
+                void onNL(bool force = false);
                 void offNL(void);
                 void toggleNL(void);
                 void toggleAni(void);
-                bool isOnNL(void) const;
+                bool isOnNL(void) const { return _nl_on; }
+                bool isAniNL(void) const { return _nl_ani; }
                 void cycleNL(ev_e ev);
                 void setNL(uint8_t index, CRGB const & c);
+                void updateNL(void);
                 void paletteNL(void);
+                uint8_t indexNL(void) { return (_active_index == 0) ? 0 : _active_index - 1; }
 
-                void off(void) { _leds.blank(); if (_state == LS_NIGHT_LIGHT) _nl_on = false; }
-                void on(void) { _leds.show(); if (_state == LS_NIGHT_LIGHT) _nl_on = true; }
+                void off(void) { _leds.blank(); brightness(0); }
+                void on(void) { brightness(_brightness); _leds.show(); }
                 bool isOn(void) { return !_leds.isClear(); }
-
-                void sleep(void) { if (isOn()) { off(); _was_on = true; } }
-                void wake(void) { if (_was_on) { on(); _was_on = false; } }
-                bool isSleeping(void) { return _was_on; }
 
                 void up(void);
                 void down(void);
@@ -1588,20 +1587,17 @@ class UI
                 uint8_t brightness(void) const { return _brightness; }
 
                 void setColor(CRGB const & c);
-                void state(ls_e state);
 
             private:
                 void removeDups(uint8_t keep_index = 0);
 
                 TLeds & _leds = TLeds::acquire();
                 Eeprom & _eeprom = Eeprom::acquire();
-                ls_e _state = LS_NIGHT_LIGHT;
                 bool _nl_on = false;
-                uint8_t _ani_index = 0;  // Lighting Animation
                 bool _nl_ani = false;
+                uint8_t _ani_index = 0;  // Lighting Animation
                 static constexpr uint8_t const _default_brightness = 128;
                 uint8_t _brightness = _default_brightness;
-                bool _was_on = false;
                 static constexpr CRGB::Color const _s_default_color = CRGB::WHITE;
                 CRGB _nl_colors[EE_NLC_CNT+1] = {_s_default_color, CRGB::BLACK, CRGB::BLACK, CRGB::BLACK};
                 CRGB _active_colors[EE_NLC_CNT+1];
