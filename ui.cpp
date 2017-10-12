@@ -1703,6 +1703,20 @@ void UI::Timer::uisBegin(void)
 
 void UI::Timer::uisWait(void)
 {
+    if (!_ui._controls.touching())
+        _touching = false;
+
+    if (!_touching && ((_state == TS_RUNNING) || (_state == TS_PAUSED))
+            && (_ui._controls.touchingTime() >= _s_touch_time))
+    {
+        _touching = true;
+        _show_lighting = !_show_lighting;
+        if (_show_lighting)
+            _ui._lighting.setColor(CHSV(_s_hue, 255, 255));
+        else
+            _ui._lighting.isOnNL() ? _ui._lighting.onNL() : _ui._lighting.offNL();
+    }
+
     if (_wait_actions[_state] != nullptr)
         MFC(_wait_actions[_state])();
 
@@ -1802,7 +1816,7 @@ void UI::Timer::uisRefresh(void)
 
 bool UI::Timer::uisPower(pwr_e pwr)
 {
-    if ((pwr != PWR_TOUCH_SLEEP) && ((_state == TS_RUNNING) || (_state == TS_ALERT)))
+    if ((_state == TS_RUNNING) || (_state == TS_ALERT))
     {
         _ui.dimScreens();
         return pwr == PWR_NAP;
@@ -1880,7 +1894,8 @@ void UI::Timer::start(void)
     _s_hue_calls = 0;
     _s_hue = _s_hue_max;
     _last_hue = _s_hue;
-    _ui._lighting.setColor(CHSV(_last_hue, 255, 255));
+    if (_show_lighting)
+        _ui._lighting.setColor(CHSV(_last_hue, 255, 255));
 
     _display_timer->start();
     _led_timer->start();
@@ -1950,7 +1965,8 @@ void UI::Timer::hueUpdate(void)
     if (hue != _last_hue)
     {
         _last_hue = hue;
-        _ui._lighting.setColor(CHSV(hue, 255, 255));
+        if (_show_lighting)
+            _ui._lighting.setColor(CHSV(hue, 255, 255));
     }
 }
 
@@ -1995,14 +2011,16 @@ void UI::Timer::alert(void)
         if (!_ui.displaying())
             _ui._display.showDone();
 
-        _ui._lighting.setColor(CRGB::RED);
+        if (_show_lighting)
+            _ui._lighting.setColor(CRGB::RED);
     }
     else
     {
         if (!_ui.displaying())
             _ui._display.blank();
 
-        _ui._lighting.setColor(CRGB::BLACK);
+        if (_show_lighting)
+            _ui._lighting.setColor(CRGB::BLACK);
     }
 }
 
@@ -2933,8 +2951,9 @@ void UI::Player::process(void)
     {
         if (_track->eof())
         {
-            // Only save file index to eeprom if track was played to completion
-            (void)_ui._eeprom.setTrack(_current_track);
+            // Save file index of next track to eeprom only if current
+            // track played to completion.
+            (void)_ui._eeprom.setTrack(skipTracks(1));
             _next_track = skipTracks(1);
         }
         else
@@ -3130,10 +3149,7 @@ bool UI::Power::canStop(void)
 void UI::Power::nap(UIState & uis)
 {
     if (!uis.uisPower(PWR_NAP))
-    {
-        _rest_mark = msecs();
         return;
-    }
 
     _state = PS_NAPPING;
 }
@@ -3148,11 +3164,7 @@ void UI::Power::wake(void)
 void UI::Power::sleep(UIState & uis, bool touch)
 {
     if (!uis.uisPower(touch ? PWR_TOUCH_SLEEP : PWR_SLEEP))
-    {
-        _rest_mark = msecs();
-        _touch_mark = 0;
         return;
-    }
 
     // Puts MCU in LLS (Low Leakage Stop) mode - a state retention power mode
     // where most peripherals are in state retention mode (with clocks stopped).

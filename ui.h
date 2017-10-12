@@ -352,12 +352,6 @@ class UI
         static constexpr uint32_t const _s_press_state = 6500;
         static constexpr uint32_t const _s_press_alt_state = 8000;
 
-        uint32_t _mcu_sleep_time = 0;
-        uint32_t _display_sleep_time = 0;
-
-        void setMcuSleep(uint32_t msecs) { _mcu_sleep_time = msecs; }
-        void setDisplaySleep(uint32_t msecs) { _display_sleep_time = msecs; }
-
         TDisplay & _display = TDisplay::acquire();
         TBeep & _beeper = TBeep::acquire();
         Rtc & _rtc = Rtc::acquire();
@@ -387,6 +381,12 @@ class UI
         void wakeScreens(int8_t wakeup_pin);
         bool _wait_released = false;
         bool _skip_processing = false;
+
+        // Make touch activation times consistent and make sure touch induced
+        // sleep is greater than the touch activation time.
+        // Times are in seconds.
+        static constexpr uint32_t const _s_touch_activate = 1;
+        static constexpr uint32_t const _s_touch_sleep = _s_touch_activate + 1;
 
         class UIState
         {
@@ -823,7 +823,7 @@ class UI
                 ePower _power = {};
                 static constexpr uint8_t const _s_min_secs = 10;
                 uint8_t _touch_secs = 0;
-                static constexpr uint8_t const _s_touch_min = 1;
+                static constexpr uint8_t const _s_touch_min = _s_touch_sleep;
                 static constexpr uint8_t const _s_touch_max = 60;
         };
 
@@ -888,7 +888,7 @@ class UI
                 Toggle _alt_display{_s_flash_time};
 
                 // Sustained touch time to enter track selection state
-                static constexpr uint32_t const _s_touch_time = 2000;
+                static constexpr uint32_t const _s_touch_time = _s_touch_activate * 1000;
                 // Time out for inactivity after track number update
                 static constexpr uint32_t const _s_track_idle_time = 15000;
                 uint16_t _track = 0;
@@ -1017,6 +1017,11 @@ class UI
                 // For showing timer if currently showing the clock and pausing/resuming
                 static constexpr uint32_t const _s_show_timer = 3000;
                 Toggle _show_timer{_s_show_timer};
+
+                // For lighting
+                static constexpr uint32_t const _s_touch_time = _s_touch_activate * 1000;
+                bool _show_lighting = true;
+                bool _touching = false;
 
                 // ISR
                 static void timerDisplay(void);
@@ -1452,7 +1457,6 @@ class UI
                 bool pressing(void);
                 int32_t skip(uint32_t t);
                 uint16_t skipTracks(int32_t skip);
-                void autoStop(bool inactive);
 
                 TAudio & _audio = TAudio::acquire();
                 TFs & _fs = TFs::acquire();
