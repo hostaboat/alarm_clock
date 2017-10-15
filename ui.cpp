@@ -3444,7 +3444,7 @@ void UI::Lighting::toggleNL(void)
 void UI::Lighting::toggleAni(void)
 {
     _nl_ani = !_nl_ani;
-    if (!isOn()) onNL(true);
+    onNL(true);
 }
 
 void UI::Lighting::paletteNL(void)
