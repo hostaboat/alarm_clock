@@ -422,7 +422,7 @@ class UI
 
             protected:
                 static constexpr uint32_t const _s_set_blink_time = 500;   // milliseconds
-                static constexpr uint32_t const _s_done_blink_time = 800;
+                static constexpr uint32_t const _s_done_blink_time = 700;
                 Toggle _blink{_s_set_blink_time};
                 bool _updated = false;
                 bool _done = false;
@@ -472,7 +472,7 @@ class UI
         class SetAlarm : public UISetState
         {
             public:
-                SetAlarm(UI & ui);
+                SetAlarm(UI & ui) : UISetState(ui) {}
 
                 virtual void uisBegin(void);
                 virtual void uisWait(void);
@@ -689,7 +689,7 @@ class UI
         class SetPower : public UISetState
         {
             public:
-                SetPower(UI & ui);
+                SetPower(UI & ui) : UISetState(ui) {}
 
                 virtual void uisBegin(void);
                 virtual void uisWait(void);
@@ -1292,6 +1292,7 @@ class UI
                 void displayDone(df_t flags = DF_NONE);
 
                 void commit(void);
+                void reset(void);
 
                 enum sls_e : uint8_t
                 {

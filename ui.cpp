@@ -819,14 +819,9 @@ uint32_t UI::HM::seconds(void) const
 ////////////////////////////////////////////////////////////////////////////////
 // SetAlarm START //////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-UI::SetAlarm::SetAlarm(UI & ui)
-    : UISetState(ui)
-{
-    _ui._rtc.getAlarm(_alarm);
-}
-
 void UI::SetAlarm::uisBegin(void)
 {
+    _ui._rtc.getAlarm(_alarm);
     _state = _alarm.enabled ? SAS_HOUR : SAS_DISABLED;
     _blink.reset(_s_set_blink_time);
     _updated = _done = false;
@@ -844,7 +839,7 @@ void UI::SetAlarm::uisUpdate(ev_e ev)
     if (_update_actions[_state] == nullptr)
         return;
 
-    _updated = true;
+    if (!_updated) _updated = true;
     MFC(_update_actions[_state])(ev);
     display();
 }
@@ -890,7 +885,7 @@ void UI::SetAlarm::uisReset(ps_e ps)
 
 void UI::SetAlarm::uisEnd(void)
 {
-    if (_updated)
+    if (_updated && (_state >= SAS_TYPE))
         (void)_ui._rtc.setAlarm(_alarm);
 
     _ui._display.blank();
@@ -1067,7 +1062,7 @@ void UI::SetClock::uisUpdate(ev_e ev)
     if (_update_actions[_state] == nullptr)
         return;
 
-    _updated = true;
+    if (!_updated) _updated = true;
     MFC(_update_actions[_state])(ev);
     display();
 }
@@ -1098,7 +1093,7 @@ void UI::SetClock::uisReset(ps_e ps)
 
 void UI::SetClock::uisEnd(void)
 {
-    if (_updated)
+    if (_updated && (_state >= SCS_YEAR))
         (void)_ui._rtc.setClock(_clock);
 
     _ui._display.blank();
@@ -1251,8 +1246,7 @@ void UI::SetClock::displayDone(df_t flags)
 ////////////////////////////////////////////////////////////////////////////////
 constexpr char const * const UI::SetPower::_s_opts[SOPT_CNT];
 
-UI::SetPower::SetPower(UI & ui)
-    : UISetState(ui)
+void UI::SetPower::uisBegin(void)
 {
     if (!_ui._eeprom.getPower(_power))
         _power.nap_secs = _power.stop_secs = _power.sleep_secs = _power.touch_secs = 0;
@@ -1261,10 +1255,7 @@ UI::SetPower::SetPower(UI & ui)
     _stop.init(_power.stop_secs);
     _sleep.init(_power.sleep_secs);
     _touch_secs = _power.touch_secs;
-}
 
-void UI::SetPower::uisBegin(void)
-{
     _state = SPS_OPT;
     _blink.reset(_s_set_blink_time);
     _updated = _done = false;
@@ -1282,7 +1273,7 @@ void UI::SetPower::uisUpdate(ev_e ev)
     if (_update_actions[_state] == nullptr)
         return;
 
-    _updated = true;
+    if (!_updated) _updated = true;
     MFC(_update_actions[_state])(ev);
     display();
 }
@@ -1323,7 +1314,6 @@ void UI::SetPower::uisReset(ps_e ps)
 
 void UI::SetPower::uisEnd(void)
 {
-    if (_updated) commit();
     _ui._display.blank();
 }
 
@@ -2528,12 +2518,12 @@ UI::SetNLC::SetNLC(UI & ui)
 
 void UI::SetNLC::uisBegin(void)
 {
-    _state = SLS_INDEX;
-    _blink.reset();
-    _updated = _done = false;
-    _index = _ui._lighting.indexNL();
+    if (_ui._lighting.isOnNL())
+        _index = _ui._lighting.indexNL();
     _color = _nl_colors[_index];
     _ui._lighting.setColor(_color);
+
+    reset();
     display();
 }
 
@@ -2552,7 +2542,7 @@ void UI::SetNLC::uisUpdate(ev_e ev)
 
     if (_state != SLS_TYPE)
     {
-        if (_state >= SLS_COLOR)
+        if ((_state >= SLS_COLOR) && !_updated)
             _updated = true;
 
         _ui._lighting.setColor(_color);
@@ -2569,19 +2559,23 @@ void UI::SetNLC::uisChange(void)
     {
         commit();
         _done = true;
+        _updated = false;
+        _blink.reset(_s_done_blink_time);
+    }
+    else
+    {
+        _blink.reset(_s_set_blink_time);
     }
 
-    _blink.reset();
     display();
 }
 
 void UI::SetNLC::uisReset(ps_e ps)
 {
-    _state = SLS_INDEX;
-    _type = SLT_COLOR;
-    _sub_state = 0;
     _color = _nl_colors[_index];
     _ui._lighting.setColor(_color);
+
+    reset();
     display();
 }
 
@@ -2591,6 +2585,15 @@ void UI::SetNLC::uisEnd(void)
 
     _ui._lighting.isOnNL() ? _ui._lighting.onNL() : _ui._lighting.offNL();
     _ui._display.blank();
+}
+
+void UI::SetNLC::reset(void)
+{
+    _state = SLS_INDEX;
+    _type = SLT_COLOR;
+    _sub_state = 0;
+    _updated = _done = false;
+    _blink.reset(_s_set_blink_time);
 }
 
 void UI::SetNLC::commit(void)
