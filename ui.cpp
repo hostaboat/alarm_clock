@@ -464,7 +464,8 @@ void UI::process(void)
     else if (displaying())
     {
         // Still show timer hue change though it has to be aware to not alter display.
-        if ((_state == UIS_TIMER) && _timer.running())
+        // Also have to process if alerting so beeper doesn't stall.
+        if ((_state == UIS_TIMER) && _timer.active())
             _timer.uisWait();
 
         if (!refresh())
@@ -1794,9 +1795,13 @@ void UI::Timer::uisReset(ps_e ps)
 void UI::Timer::uisEnd(void)
 {
     stop();
+
+    if (!_ui._alarm.beeping())
+        _ui._beeper.stop();
+
     _ui._lighting.isOnNL() ? _ui._lighting.onNL() : _ui._lighting.offNL();
-    _ui._beeper.stop();
     _ui._display.blank();
+
     _display_timer->release();
     _led_timer->release();
     _display_timer = _led_timer = nullptr;
@@ -1903,10 +1908,13 @@ void UI::Timer::start(void)
 
 void UI::Timer::reset(void)
 {
-    _ui._beeper.stop();
-    _ui._lighting.isOnNL() ? _ui._lighting.onNL() : _ui._lighting.offNL();
+    if (!_ui._alarm.beeping())
+        _ui._beeper.stop();
+
     _blink.reset();
     _show_timer.disable();
+
+    _ui._lighting.isOnNL() ? _ui._lighting.onNL() : _ui._lighting.offNL();
     displayTimer();
 }
 
@@ -2002,6 +2010,10 @@ void UI::Timer::alert(void)
         uisChange();
         return;
     }
+
+    // This could happen if alarm started before alerting
+    if (!_ui._beeper.running())
+        _ui._beeper.start();
 
     if (!_ui._beeper.toggled())
         return;
@@ -2161,8 +2173,12 @@ void UI::SetTouch::reset(void)
 {
     _readings = 0;
     _untouched.reset();
-    _ui._beeper.stop();
-    _ui._player.stop();
+
+    if (!_ui._alarm.beeping())
+        _ui._beeper.stop();
+
+    if (!_ui._alarm.playing())
+        _ui._player.stop();
 
     _done = false;
 
@@ -2393,7 +2409,8 @@ void UI::SetTouch::changeRead(void)
 
 void UI::SetTouch::changeDone(void)
 {
-    _ui._beeper.stop();
+    if (!_ui._alarm.beeping())
+        _ui._beeper.stop();
 
     if (!_ui._lighting.isOn())
         _ui._lighting.onNL();
@@ -3066,7 +3083,7 @@ bool UI::Player::setTrack(uint16_t track)
 UI::Power::Power(UI & ui)
     : _ui{ui}
 {
-    _stop_mark = _rest_mark = msecs();
+    _nap_mark = _stop_mark = _sleep_mark = msecs();
 
     if (!_ui._eeprom.getPower(_power))
         _power.nap_secs = _power.stop_secs = _power.sleep_secs = _power.touch_secs = 0;
@@ -3088,8 +3105,8 @@ void UI::Power::process(UIState & uis)
 
         if (_state == PS_SLEPT)
         {
-            _rest_mark = _stop_mark = msecs();
-            _touch_mark = 0;
+            _nap_mark = _stop_mark = _sleep_mark = msecs();
+            if (_touch_mark != 0) _touch_mark = 0;
             return;
         }
     }
@@ -3108,11 +3125,11 @@ void UI::Power::process(UIState & uis)
 void UI::Power::updateMarks(void)
 {
     if (_ui.displaying() || _ui._controls.interaction())
-        _rest_mark = _stop_mark = msecs();
-    else if (_ui._rtc.alarmIsAwake())
-        _rest_mark = msecs();
+        _nap_mark = _stop_mark = _sleep_mark = msecs();
     else if (_ui._player.occupied())
-        _stop_mark = msecs();
+        _stop_mark = _sleep_mark = msecs();
+    else if (_ui._rtc.alarmIsAwake())
+        _sleep_mark = msecs();
 
     bool touching = _ui._controls.touching();
 
@@ -3130,15 +3147,12 @@ bool UI::Power::touchSleep(void)
 
 bool UI::Power::canSleep(void)
 {
-    uint32_t m = msecs();
-    uint32_t sm = _power.sleep_secs * 1000;
-
-    return (sm != 0) && ((m - _rest_mark) >= sm) && ((m - _stop_mark) >= sm);
+    return (_power.sleep_secs != 0) && ((msecs() - _sleep_mark) >= (_power.sleep_secs * 1000));
 } 
 
 bool UI::Power::canNap(void)
 {
-    return (_power.nap_secs != 0) && ((msecs() - _rest_mark) >= (_power.nap_secs * 1000));
+    return (_power.nap_secs != 0) && ((msecs() - _nap_mark) >= (_power.nap_secs * 1000));
 }
 
 bool UI::Power::canStop(void)
@@ -3158,7 +3172,7 @@ void UI::Power::wake(void)
 {
     _ui.wakeScreens(-1);
     _state = PS_NAPPED;
-    _rest_mark = msecs();
+    _nap_mark = msecs();
 }
 
 void UI::Power::sleep(UIState & uis, bool touch)
@@ -3257,8 +3271,9 @@ void UI::Alarm::process(bool snooze, bool stop)
         if (_state != AS_OFF)
             this->stop();
     }
-    else if (stop)
+    else if (stop || interrupt())
     {
+        if (!stop) _alarm_music = false;
         this->stop();
     }
     else if (_state == AS_OFF)
@@ -3276,6 +3291,31 @@ void UI::Alarm::process(bool snooze, bool stop)
     {
         wake();
     }
+}
+
+bool UI::Alarm::interrupt(void)
+{
+    if (!awake()) return false;
+
+    // If the music is the wake source and the user fiddles with the audio
+    // controls, consider interrupted and turn off.
+    if (_alarm_music &&
+            (_ui._controls.closed(SWI_PLAY) ||
+             _ui._controls.closed(SWI_NEXT) ||
+             _ui._controls.closed(SWI_PREV)))
+    {
+        return true;
+    }
+    else if (!_alarm_music)
+    {
+        // Let specific UI states have dibs on the beeper.
+        if (_ui._timer.alerting())
+            return true;
+        else if (_ui._set_touch.testing())
+            return true;
+    }
+
+    return false;
 }
 
 void UI::Alarm::check(void)
@@ -3332,12 +3372,13 @@ void UI::Alarm::stop(void)
 {
     if (_alarm_music)
         _ui._player.stop();
-    else
+    else if (!_ui._timer.alerting())
         _ui._beeper.stop();
 
     _ui._rtc.alarmStop();
     _ui._rtc.alarmStart();
 
+    _alarm_music = false;
     _state = AS_STOPPED;
 }
 

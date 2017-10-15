@@ -909,7 +909,9 @@ class UI
                 virtual void uisRefresh(void);
                 virtual bool uisPower(pwr_e pwr);
 
-                bool running(void) const { return (_state == TS_RUNNING) || (_state == TS_ALERT); }
+                bool running(void) const { return _state == TS_RUNNING; }
+                bool alerting(void) const { return _state == TS_ALERT; }
+                bool active(void) const { return running() || alerting(); }
                 bool clock(void) const { return _show_clock; }
 
             private:
@@ -1046,6 +1048,9 @@ class UI
                 virtual void uisEnd(void);
                 virtual void uisRefresh(void);
                 virtual bool uisPower(pwr_e pwr);
+
+                bool calibrating(void) const { return (_state >= TS_CAL_START) && (_state <= TS_CAL_TOUCHED); }
+                bool testing(void) const { return _state == TS_TEST; }
 
             private:
                 struct TouchCal
@@ -1504,12 +1509,15 @@ class UI
                 bool stopped(void) const { return _state == AS_STOPPED; }
                 bool off(void) const { return stopped() || (_state == AS_OFF); }
                 bool inProgress(void) const { return snoozing() || awake(); }
+                bool beeping(void) const { return alerting() && !_alarm_music; }
+                bool playing(void) const { return alerting() && _alarm_music; }
 
             private:
                 void check(void);
                 bool snooze(bool force = false);
                 void wake(void);
                 void stop(void);
+                bool interrupt(void);
 
                 UI & _ui;
                 as_e _state = AS_OFF;
@@ -1548,8 +1556,9 @@ class UI
                 Llwu & _llwu = Llwu::acquire();
                 UI & _ui;
                 ps_e _state = PS_AWAKE;
-                uint32_t _rest_mark = 0;
+                uint32_t _nap_mark = 0;
                 uint32_t _stop_mark = 0;
+                uint32_t _sleep_mark = 0;
                 uint32_t _touch_mark = 0;
                 ePower _power = {};
         };

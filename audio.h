@@ -21,8 +21,10 @@ class DevBeeper : public DevPin < PinOut, PIN > , public Toggle
                 uint32_t off_time = _s_beep_off_time)
         { static DevBeeper b(on_time, off_time); return b; }
 
-        virtual void start(void) { reset(); this->_pin.set(); }
-        virtual void stop(void) { disable(); this->_pin.clear(); }
+        void start(void) { reset(); this->_pin.set(); }
+        void stop(void) { disable(); this->_pin.clear(); }
+        bool running(void) const { return !disabled(); }
+
         virtual bool toggled(void)
         {
             if (!Toggle::toggled()) return false;
