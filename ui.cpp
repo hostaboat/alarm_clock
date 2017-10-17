@@ -703,6 +703,12 @@ void UI::wakeScreens(int8_t wakeup_pin)
     {
         bool was_on = _display.isOn();
 
+        if (_brightness == 0)
+        {
+            _display_brightness = _s_dim_display;
+            _brightness = _s_dim_leds;
+        }
+
         _display.brightness(_display_brightness);
         _lighting.brightness(_brightness);
 
@@ -1559,7 +1565,11 @@ void UI::Clock::uisRefresh(void)
 
 bool UI::Clock::uisPower(pwr_e pwr)
 {
-    (pwr == PWR_NAP) ? _ui.dimScreens() : _ui.sleepScreens();
+    if (pwr == PWR_NAP)
+        _ui.dimScreens();
+    else
+        _ui.sleepScreens();
+
     return true;
 }
 
@@ -1721,9 +1731,6 @@ void UI::Timer::uisWait(void)
 
 void UI::Timer::uisUpdate(ev_e ev)
 {
-    static uint32_t turn_msecs = 0;
-    static int8_t turns = 0;
-
     if (_state <= TS_WAIT)
     {
         if (_state == TS_WAIT)
@@ -1740,15 +1747,30 @@ void UI::Timer::uisUpdate(ev_e ev)
     if (_state == TS_ALERT)
         return;
 
-    if ((msecs() - turn_msecs) < _s_turn_wait)
+    // For toggling between showing the clock time and timer time
+
+    static uint32_t toggle_mark = 0;
+    static uint32_t turn_mark = 0;
+    static int8_t turns = 0;
+
+    uint32_t m = msecs();
+
+    if ((m - toggle_mark) < _s_toggle_wait)
         return;
+
+    if (((m - turn_mark) > _s_toggle_timeout)
+            || ((turns < 0) && (ev == EV_POS)) || ((turns > 0) && (ev == EV_NEG)))
+        turns = 0;
+
+    if (turns == 0)
+        turn_mark = m;
 
     turns += (int8_t)ev;
 
-    if ((turns == _s_turns) || (turns == -_s_turns))
+    if ((turns == _s_toggle_turns) || (turns == -_s_toggle_turns))
     {
         turns = 0;
-        turn_msecs = msecs();
+        toggle_mark = msecs();
 
         _show_clock = !_show_clock;
         if (_show_clock)
@@ -1811,13 +1833,13 @@ void UI::Timer::uisRefresh(void)
 
 bool UI::Timer::uisPower(pwr_e pwr)
 {
-    if ((_state == TS_RUNNING) || (_state == TS_ALERT))
-    {
+    if ((pwr == PWR_SLEEP) && active())
+        return false;
+    else if (active())
         _ui.dimScreens();
-        return pwr == PWR_NAP;
-    }
+    else
+        _ui.sleepScreens();
 
-    _ui.sleepScreens();
     return true;
 }
 
@@ -2050,11 +2072,11 @@ void UI::SetTouch::uisWait(void)
     if (_wait_actions[_state] == nullptr)
         return;
 
-    if ((_state == TS_CAL_UNTOUCHED) || (_state == TS_CAL_TOUCHED))
+    if (calibrating())
         MFC(_wait_actions[_state])(_blink.toggled());
-    else if (_state == TS_READ)
+    else if (reading())
         MFC(_wait_actions[_state])(_read_toggle.toggled());
-    else if (_state == TS_TEST)
+    else if (testing())
         MFC(_wait_actions[_state])(_ui._beeper.on());
     else if (_blink.toggled())
         MFC(_wait_actions[_state])(_blink.on());
@@ -2071,10 +2093,10 @@ void UI::SetTouch::uisUpdate(ev_e ev)
 
 void UI::SetTouch::uisChange(void)
 {
-    if (_state == TS_READ)
+    if (reading())
     {
         _touch.threshold = _read.hi;
-        _untouched.hi = _read.lo;
+        _cal_base.hi = _read.lo;
     }
 
     if (_state == TS_DISABLED)
@@ -2098,8 +2120,10 @@ void UI::SetTouch::uisChange(void)
         _state = _next_states[_state];
     }
 
-    if (_state == TS_TEST)
+    if (testing())
         _ui._lighting.setColor(CHSV(_touch.threshold % 256, 255, 255));
+    else if (_state == TS_OPT)
+        _ui._lighting.isOnNL() ? _ui._lighting.onNL() : _ui._lighting.offNL();
 
     if (_change_actions[_state] != nullptr)
         MFC(_change_actions[_state])();
@@ -2138,6 +2162,8 @@ void UI::SetTouch::uisEnd(void)
     _ui._lighting.isOnNL() ? _ui._lighting.onNL() : _ui._lighting.offNL();
     _ui._display.blank();
     _ui._controls.touchEnable();
+
+    audioOff();
 }
 
 void UI::SetTouch::uisRefresh(void)
@@ -2148,32 +2174,35 @@ void UI::SetTouch::uisRefresh(void)
 
 bool UI::SetTouch::uisPower(pwr_e pwr)
 {
-    if ((_state == TS_CAL_UNTOUCHED) || (_state == TS_CAL_TOUCHED)
-            || (_state == TS_READ) || (_state == TS_TEST))
-    {
+    if ((pwr == PWR_SLEEP) && (calibrating() || testing() || reading()))
+        return false;
+    else if (calibrating() || testing() || reading())
         _ui.dimScreens();
-        return pwr == PWR_NAP;
-    }
+    else
+        _ui.sleepScreens();
 
-    _ui.sleepScreens();
     return true;
 }
 
 void UI::SetTouch::reset(void)
 {
-    _readings = 0;
-    _untouched.reset();
+    audioOff();
 
+    _readings = 0;
+    _cal_base.reset();
+    _done = false;
+    _blink.reset();
+
+    display();
+}
+
+void UI::SetTouch::audioOff(void)
+{
     if (!_ui._alarm.beeping())
         _ui._beeper.stop();
 
-    if (!_ui._alarm.playing())
-        _ui._player.stop();
-
-    _done = false;
-
-    _blink.reset();
-    display();
+    if (_amp.running() && !_ui._player.playing())
+        _amp.stop();
 }
 
 void UI::SetTouch::toggleEnabled(void)
@@ -2217,7 +2246,7 @@ void UI::SetTouch::waitCalStart(bool on)
     display(on ? DF_NONE : DF_BL);
 }
 
-void UI::SetTouch::waitCalUntouched(bool on)
+void UI::SetTouch::waitCalBase(bool on)
 {
     if (on) display();
 
@@ -2225,8 +2254,8 @@ void UI::SetTouch::waitCalUntouched(bool on)
     if (read == 0)
         return;
 
-    if (read > _untouched.hi)
-        _untouched.hi = read;
+    if (read > _cal_base.hi)
+        _cal_base.hi = read;
 
     _readings++;
 
@@ -2250,7 +2279,7 @@ void UI::SetTouch::waitCalThreshold(bool on)
     display(on ? DF_NONE : DF_BL);
 }
 
-void UI::SetTouch::waitCalTouched(bool on)
+void UI::SetTouch::waitCalTouch(bool on)
 {
     if (on) display();
 
@@ -2258,29 +2287,29 @@ void UI::SetTouch::waitCalTouched(bool on)
     if (read == 0)
         return;
 
-    if (read < _touched->lo)
-        _touched->lo = read;
+    if (read < _cal_touch->lo)
+        _cal_touch->lo = read;
 
-    if (read > _touched->hi)
-        _touched->hi = read;
+    if (read > _cal_touch->hi)
+        _cal_touch->hi = read;
 
     _readings++;
 
     if (_readings == (_s_readings / 2))
     {
         _amp.start();
-        _touched = &_touched_amp_on;
+        _cal_touch = &_touch_amp_on;
     }
     else if (_readings == _s_readings)
     {
-        if (_touched_amp_off.lo < _untouched.hi)
-            _touched_amp_off.lo = _untouched.hi;
+        if (_touch_amp_off.lo < _cal_base.hi)
+            _touch_amp_off.lo = _cal_base.hi;
 
-        if (_touched_amp_on.lo < _untouched.hi)
-            _touched_amp_on.lo = _untouched.hi;
+        if (_touch_amp_on.lo < _cal_base.hi)
+            _touch_amp_on.lo = _cal_base.hi;
 
-        uint16_t amp_off_avg = _touched_amp_off.avg();
-        uint16_t amp_on_avg = _touched_amp_on.avg();
+        uint16_t amp_off_avg = _touch_amp_off.avg();
+        uint16_t amp_on_avg = _touch_amp_on.avg();
 
         _touch.threshold = (amp_off_avg + amp_on_avg) / 2;
 
@@ -2367,7 +2396,7 @@ void UI::SetTouch::updateExtChrg(ev_e ev)
 
 void UI::SetTouch::updateThreshold(ev_e ev)
 {
-    evUpdate < uint16_t > (_touch.threshold, ev, _untouched.hi, Tsi::maxThreshold(), false);
+    evUpdate < uint16_t > (_touch.threshold, ev, _cal_base.hi, Tsi::maxThreshold(), false);
     _ui._lighting.setColor(CHSV(_touch.threshold % 256, 255, 255));
 }
 
@@ -2378,7 +2407,7 @@ void UI::SetTouch::changeCalStart(void)
 
     _ui._lighting.setColor(CHSV(0, 255, 255));
     _readings = 0;
-    _untouched.reset();
+    _cal_base.reset();
     _ui._player.stop();
 }
 
@@ -2386,21 +2415,20 @@ void UI::SetTouch::changeCalThreshold(void)
 {
     _ui._lighting.setColor(CHSV(0, 255, 255));
     _readings = 0;
-    _touched_amp_off.reset();
-    _touched_amp_on.reset();
-    _touched = &_touched_amp_off;
+    _touch_amp_off.reset();
+    _touch_amp_on.reset();
+    _cal_touch = &_touch_amp_off;
 }
 
 void UI::SetTouch::changeRead(void)
 {
     _read.reset();
-    _untouched.reset();
+    _cal_base.reset();
 }
 
 void UI::SetTouch::changeDone(void)
 {
-    if (!_ui._alarm.beeping())
-        _ui._beeper.stop();
+    audioOff();
 
     if (!_ui._lighting.isOn())
         _ui._lighting.onNL();
@@ -3094,27 +3122,27 @@ UI::Power::Power(UI & ui)
 
 void UI::Power::process(UIState & uis)
 {
-    if ((_state == PS_SLEPT) || (_state == PS_NAPPED))
+    if (slept() || napped())
         _state = PS_AWAKE;
 
     updateMarks();
 
-    bool cs = canSleep();
-    bool ts = touchSleep();
+    // Touch sleep but still touching - don't process until
+    // untouched since touch is also a wake event.
+    if (_touch_wait)
+        return;
 
-    if ((awake() || napping()) && (cs || ts))
+    bool can_sleep = canSleep();
+
+    if ((awake() || napping()) && can_sleep)
     {
-        sleep(uis, ts);
+        sleep(uis);
 
-        if (_state == PS_SLEPT)
-        {
-            _nap_mark = _stop_mark = _sleep_mark = msecs();
-            if (_touch_mark != 0) _touch_mark = 0;
+        if (slept() || _touch_wait)
             return;
-        }
     }
 
-    bool can_nap = canNap();
+    bool can_nap = canNap() || can_sleep;
 
     if (napping() && !can_nap)
         wake();
@@ -3127,31 +3155,52 @@ void UI::Power::process(UIState & uis)
 
 void UI::Power::updateMarks(void)
 {
-    if (_ui.displaying() || _ui._controls.interaction())
-        _nap_mark = _stop_mark = _sleep_mark = msecs();
-    else if (_ui._player.occupied())
-        _stop_mark = _sleep_mark = msecs();
-    else if (_ui._rtc.alarmIsAwake())
-        _sleep_mark = msecs();
-
     bool touching = _ui._controls.touching();
+    bool ntc = _ui._controls.interaction(false);  // Non-Touch Control interaction
+    bool rtm = false;  // Reset Touch Mark
+    bool cts = false;  // Cancel Touch Sleep
+    uint32_t m = msecs();
+
+    if (_ui.displaying() || ntc || (touching && !_touch_wait))
+    {
+        _nap_mark = _stop_mark = _sleep_mark = m;
+        cts = true;
+        if (_ui.displaying() || ntc) rtm = true;
+    }
+    else if (_ui._player.occupied() || _ui._alarm.music())
+    {
+        _stop_mark = _sleep_mark = m;
+        rtm = cts = true;
+    }
+    else if (_ui._alarm.beeping())
+    {
+        _sleep_mark = m;
+        rtm = cts = true;
+    }
 
     if (!touching && (_touch_mark != 0))
         _touch_mark = 0;
-    else if (touching && ((_touch_mark == 0) || _ui._controls.interaction(false)))
-        _touch_mark = msecs();
-}
+    else if (touching && ((_touch_mark == 0) || rtm))
+        _touch_mark = m;
 
-bool UI::Power::touchSleep(void)
-{
-    return (_power.touch_secs != 0) && (_touch_mark != 0)
-        && ((msecs() - _touch_mark) >= (_power.touch_secs * 1000));
+    if (cts)
+        _touch_sleep = _touch_wait = false;
+
+    if (!touching && _touch_wait)
+        _touch_wait = false;
 }
 
 bool UI::Power::canSleep(void)
 {
-    return (_power.sleep_secs != 0) && ((msecs() - _sleep_mark) >= (_power.sleep_secs * 1000));
-} 
+    if (!_touch_sleep && (_power.touch_secs != 0) && (_touch_mark != 0)
+            && ((msecs() - _touch_mark) >= (_power.touch_secs * 1000)))
+    {
+        _touch_sleep = _touch_wait = true;
+    }
+
+    return _touch_sleep
+        || ((_power.sleep_secs != 0) && ((msecs() - _sleep_mark) >= (_power.sleep_secs * 1000)));
+}
 
 bool UI::Power::canNap(void)
 {
@@ -3178,9 +3227,29 @@ void UI::Power::wake(void)
     _nap_mark = msecs();
 }
 
-void UI::Power::sleep(UIState & uis, bool touch)
+void UI::Power::sleep(UIState & uis)
 {
-    if (!uis.uisPower(touch ? PWR_TOUCH_SLEEP : PWR_SLEEP))
+    if (_state != PS_WAIT_SLEEP)
+    {
+        // Stop player regardless of whether or not the current UI state can sleep
+        _ui._player.stop();
+
+        // If the UI state can't sleep, try to nap
+        if (!uis.uisPower(PWR_SLEEP))
+        {
+            if (!napping()) nap(uis);
+
+            // If still not napping, cancel touch induced sleep
+            if (!napping()) _touch_wait = _touch_sleep = false;
+
+            return;
+        }
+
+        _state = PS_WAIT_SLEEP;
+    }
+
+    // If touch induced sleep, wait until not touching
+    if (_touch_wait)
         return;
 
     // Puts MCU in LLS (Low Leakage Stop) mode - a state retention power mode
@@ -3217,10 +3286,6 @@ void UI::Power::sleep(UIState & uis, bool touch)
         return;
     }
 
-    while (_ui._controls.touching()) _ui._controls.process();
-
-    _ui._player.stop();
-
     // Don't worry about touch not getting enabled since there are the encoders
     // and switches that can wake it up.
     (void)_llwu.tsiEnable < PIN_TOUCH > ();
@@ -3240,6 +3305,10 @@ void UI::Power::sleep(UIState & uis, bool touch)
     _ui.wakeScreens(_llwu.wakeupPin());
 
     // Don't restart player if it was stopped before sleeping.
+
+    _nap_mark = _stop_mark = _sleep_mark = msecs();
+    _touch_mark = 0;
+    _touch_wait = _touch_sleep = false;
 
     _state = PS_SLEPT;
 }
@@ -3298,8 +3367,6 @@ void UI::Alarm::process(bool snooze, bool stop)
 
 bool UI::Alarm::interrupt(void)
 {
-    if (!awake()) return false;
-
     // If the music is the wake source and the user fiddles with the audio
     // controls, consider interrupted and turn off.
     if (_alarm_music &&
@@ -3309,14 +3376,19 @@ bool UI::Alarm::interrupt(void)
     {
         return true;
     }
-    else if (!_alarm_music)
-    {
-        // Let specific UI states have dibs on the beeper.
-        if (_ui._timer.alerting())
-            return true;
-        else if (_ui._set_touch.testing())
-            return true;
-    }
+
+    // Touch calibration turns the player off so if music should
+    // be playing but isn't turn alarm off.
+    if (playing() && !_ui._player.playing())
+        return true;
+
+    if (!beeping()) return false;
+
+    // Let specific UI states have dibs on the beeper.
+    if (_ui._timer.alerting())
+        return true;
+    else if (_ui._set_touch.testing())
+        return true;
 
     return false;
 }

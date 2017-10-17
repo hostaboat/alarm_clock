@@ -374,7 +374,7 @@ class UI
         void display(int32_t n);
         bool refresh(void);
 
-        enum pwr_e : uint8_t { PWR_NAP, PWR_SLEEP, PWR_TOUCH_SLEEP };
+        enum pwr_e : uint8_t { PWR_NAP, PWR_SLEEP };
 
         void dimScreens(void);
         void sleepScreens(void);
@@ -1003,8 +1003,9 @@ class UI
 
                 // For showing the clock while in timer state
                 bool _show_clock = false;
-                static constexpr uint32_t const _s_turn_wait = 300;
-                static constexpr int8_t const _s_turns = 3;
+                static constexpr uint32_t const _s_toggle_wait = 300;
+                static constexpr int8_t const _s_toggle_turns = 3;
+                static constexpr uint32_t const _s_toggle_timeout = 500;
 
                 // Start with blue hue and decrease to red hue
                 static constexpr uint8_t const _s_hue_max = 160; // blue
@@ -1049,8 +1050,9 @@ class UI
                 virtual void uisRefresh(void);
                 virtual bool uisPower(pwr_e pwr);
 
-                bool calibrating(void) const { return (_state >= TS_CAL_START) && (_state <= TS_CAL_TOUCHED); }
+                bool calibrating(void) const { return (_state == TS_CAL_BASE) || (_state == TS_CAL_TOUCH); }
                 bool testing(void) const { return _state == TS_TEST; }
+                bool reading(void) const { return _state == TS_READ; }
 
             private:
                 struct TouchCal
@@ -1067,9 +1069,9 @@ class UI
                 void waitRefChrg(bool on);
                 void waitExtChrg(bool on);
                 void waitCalStart(bool on);
-                void waitCalUntouched(bool on);
+                void waitCalBase(bool on);
                 void waitCalThreshold(bool on);
-                void waitCalTouched(bool on);
+                void waitCalTouch(bool on);
                 void waitRead(bool on);
                 void waitTest(bool on);
                 void waitDone(bool on);
@@ -1102,6 +1104,7 @@ class UI
 
                 void reset(void);
                 void toggleEnabled(void);
+                void audioOff(void);
 
                 enum topt_e : uint8_t { TOPT_CAL, TOPT_READ, TOPT_CONF, TOPT_DEF, TOPT_DIS, TOPT_CNT };
 
@@ -1119,9 +1122,9 @@ class UI
 
                     // Calibration
                     TS_CAL_START,
-                    TS_CAL_UNTOUCHED,
+                    TS_CAL_BASE,
                     TS_CAL_THRESHOLD,
-                    TS_CAL_TOUCHED,
+                    TS_CAL_TOUCH,
 
                     TS_READ,
 
@@ -1141,9 +1144,9 @@ class UI
                     TS_REFCHRG,
                     TS_EXTCHRG,
                     TS_CAL_START,
-                    TS_CAL_UNTOUCHED,
+                    TS_CAL_BASE,
                     TS_CAL_THRESHOLD,
-                    TS_CAL_TOUCHED,
+                    TS_CAL_TOUCH,
                     TS_TEST,
                     TS_TEST,
                     TS_DONE,
@@ -1160,9 +1163,9 @@ class UI
                     &SetTouch::waitRefChrg,
                     &SetTouch::waitExtChrg,
                     &SetTouch::waitCalStart,
-                    &SetTouch::waitCalUntouched,
+                    &SetTouch::waitCalBase,
                     &SetTouch::waitCalThreshold,
-                    &SetTouch::waitCalTouched,
+                    &SetTouch::waitCalTouch,
                     &SetTouch::waitRead,
                     &SetTouch::waitTest,
                     &SetTouch::waitDone,
@@ -1226,10 +1229,10 @@ class UI
                 ts_e _state = TS_CAL_START;
                 topt_e _topt = TOPT_CAL;
                 tTouch _touch = {};
-                TouchCal _untouched = {};
-                TouchCal _touched_amp_off = {};
-                TouchCal _touched_amp_on = {};
-                TouchCal * _touched = &_touched_amp_off;
+                TouchCal _cal_base = {};
+                TouchCal _touch_amp_off = {};
+                TouchCal _touch_amp_on = {};
+                TouchCal * _cal_touch = &_touch_amp_off;
                 uint32_t _readings = 0;
                 TouchCal _read = {};
 
@@ -1512,6 +1515,7 @@ class UI
                 bool inProgress(void) const { return snoozing() || awake(); }
                 bool beeping(void) const { return alerting() && !_alarm_music; }
                 bool playing(void) const { return alerting() && _alarm_music; }
+                bool music(void) const { return inProgress() && _alarm_music; }
 
             private:
                 void check(void);
@@ -1533,26 +1537,26 @@ class UI
                     PS_AWAKE,
                     PS_NAPPING,
                     PS_NAPPED,
+                    PS_WAIT_SLEEP,
                     PS_SLEPT,
                 };
 
                 Power(UI & ui);
                 void process(UIState & uis);
                 void update(ePower const & power) { _power = power; }
-                bool napping(void) const { return _state == PS_NAPPING; }
+                bool napping(void) const { return (_state == PS_NAPPING) || (_state == PS_WAIT_SLEEP); }
                 bool napped(void) const { return _state == PS_NAPPED; }
                 bool slept(void) const { return _state == PS_SLEPT; }
                 bool awake(void) const { return napped() || slept() || (_state == PS_AWAKE); }
 
             private:
                 void updateMarks(void);
-                bool touchSleep(void);
                 bool canSleep(void);
                 bool canNap(void);
                 bool canStop(void);
                 void nap(UIState & uis);
                 void wake(void);
-                void sleep(UIState & uis, bool touch);
+                void sleep(UIState & uis);
 
                 Llwu & _llwu = Llwu::acquire();
                 UI & _ui;
@@ -1561,6 +1565,8 @@ class UI
                 uint32_t _stop_mark = 0;
                 uint32_t _sleep_mark = 0;
                 uint32_t _touch_mark = 0;
+                bool _touch_sleep = false;
+                bool _touch_wait = false;
                 ePower _power = {};
         };
 
@@ -1605,7 +1611,9 @@ class UI
                 static constexpr uint8_t const _default_brightness = 128;
                 uint8_t _brightness = _default_brightness;
                 static constexpr CRGB::Color const _s_default_color = CRGB::WHITE;
-                CRGB _nl_colors[EE_NLC_CNT+1] = {_s_default_color, CRGB::BLACK, CRGB::BLACK, CRGB::BLACK};
+                CRGB _nl_colors[EE_NLC_CNT+1] = {
+                    _s_default_color, _s_default_color, _s_default_color, _s_default_color
+                };
                 CRGB _active_colors[EE_NLC_CNT+1];
                 uint8_t _active_index = 0;
                 uint8_t _active_cnt = 1; 
