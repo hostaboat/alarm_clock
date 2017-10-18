@@ -1510,7 +1510,8 @@ void UI::Clock::uisWait(void)
     {
         display();
     }
-    else if (_ui._controls.touchingTime() >= _s_touch_time)
+    else if ((_ui._controls.touchingTime() >= _s_touch_time)
+            && ((msecs() - _touch_mark) > _s_touch_wait))
     {
         changeTrack();
         display();
@@ -1544,11 +1545,19 @@ void UI::Clock::uisChange(void)
     _state = _next_states[_state];
 
     if (_state == CS_SHOW_TRACK)
+    {
         changeTrack();
+    }
     else if (_state != CS_TIME)
+    {
         _alt_display.reset(_s_flash_time);
+    }
     else
+    {
+        _touch_mark = msecs();
         _alt_display.disable();
+        clockUpdate(true);
+    }
 
     display();
 }
@@ -1574,7 +1583,8 @@ void UI::Clock::uisRefresh(void)
 
 bool UI::Clock::uisPower(pwr_e pwr)
 {
-    if ((pwr == PWR_SLEEP) && (_state >= CS_SHOW_TRACK))
+    if ((_state == CS_SET_TRACK)
+            || ((pwr == PWR_NAP) && (_state == CS_SHOW_TRACK)))
         return false;
     else if (pwr == PWR_NAP)
         _ui.dimScreens();
