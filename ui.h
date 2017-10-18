@@ -858,7 +858,8 @@ class UI
                     CS_TIME,
                     CS_DATE,
                     CS_YEAR,
-                    CS_TRACK,
+                    CS_SHOW_TRACK,
+                    CS_SET_TRACK,
                     CS_CNT
                 };
 
@@ -866,8 +867,9 @@ class UI
                 {
                     CS_DATE,
                     CS_YEAR,
-                    CS_TRACK,
+                    CS_SHOW_TRACK,
                     CS_TIME,
+                    CS_SHOW_TRACK,
                 };
 
                 using cs_display_action_t = void (Clock::*)(void);
@@ -876,6 +878,7 @@ class UI
                     &Clock::displayTime,
                     &Clock::displayDate,
                     &Clock::displayYear,
+                    &Clock::displayTrack,
                     &Clock::displayTrack,
                 };
 
@@ -892,7 +895,6 @@ class UI
                 // Time out for inactivity after track number update
                 static constexpr uint32_t const _s_track_idle_time = 15000;
                 uint16_t _track = 0;
-                bool _track_updated = false;
         };
 
         class Timer : public UIRunState

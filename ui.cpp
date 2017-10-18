@@ -223,6 +223,8 @@ void Controls::reset(void)
     _play.reset();
     _next.reset();
     _prev.reset();
+    _touch_mark = _touched_time = 0;
+    _touched = false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1463,9 +1465,9 @@ void UI::SetPower::displayDone(df_t flags)
     if ((i % nopts) == 0)
         displayOpt();
     else if (_sopt == SOPT_TOUCH)
-        displayTouch();
+        (_touch_secs == 0) ? _ui._display.showString("OFF") : displayTouch();
     else
-        displayTimer();
+        (_hm->seconds() == 0) ? _ui._display.showString("OFF") : displayTimer();
 }
 ////////////////////////////////////////////////////////////////////////////////
 // SetPower END ////////////////////////////////////////////////////////////////
@@ -1477,8 +1479,7 @@ void UI::SetPower::displayDone(df_t flags)
 void UI::Clock::uisBegin(void)
 {
     _state = CS_TIME;
-    _track_updated = false;
-    _alt_display.reset(_s_flash_time);
+    _alt_display.disable();
     _dflag = _ui._rtc.clockIs12H() ? DF_12H : DF_24H;
 
     clockUpdate(true);
@@ -1490,55 +1491,64 @@ void UI::Clock::uisWait(void)
 {
     bool force = false;
 
-    if ((_state != CS_TIME) && _alt_display.toggled())
+    if (_alt_display.toggled())
     {
-        _alt_display.reset(_s_flash_time);
+        _alt_display.disable();
         _state = CS_TIME;
         force = true;
     }
 
-    if (_state != CS_TRACK)
+    if (_state >= CS_SHOW_TRACK)
     {
-        if (clockUpdate(force))
-        {
-            display();
-        }
-        else if (_ui._controls.touchingTime() >= _s_touch_time)
-        {
-            _state = CS_TRACK;
-            changeTrack();
-            display();
-        }
+        if (_ui._controls.touching())
+            _alt_display.reset();
+
+        return;
     }
-    else if (_ui._controls.touching() && !_track_updated)
+
+    if (clockUpdate(force))
     {
-        _alt_display.reset(_s_flash_time);
+        display();
+    }
+    else if (_ui._controls.touchingTime() >= _s_touch_time)
+    {
+        changeTrack();
+        display();
     }
 }
 
 void UI::Clock::uisUpdate(ev_e ev)
 {
-    if (_state != CS_TRACK)
+    if (_state < CS_SHOW_TRACK)
     {
         _ui._lighting.cycleNL(ev);
         uisWait();
     }
     else
     {
+        if (_state == CS_SHOW_TRACK)
+            _state = CS_SET_TRACK;
+
         updateTrack(ev);
-        _track_updated = true;
+
+        _alt_display.reset(_s_track_idle_time);
+        display();
     }
 }
 
 void UI::Clock::uisChange(void)
 {
-    if ((_state != CS_TRACK) || !_track_updated)
-        _state = _next_states[_state];
+    if (_state == CS_SET_TRACK)
+        _ui._player.setTrack(_track);
 
-    if (_state == CS_TRACK)
+    _state = _next_states[_state];
+
+    if (_state == CS_SHOW_TRACK)
         changeTrack();
     else if (_state != CS_TIME)
-        _alt_display.reset();
+        _alt_display.reset(_s_flash_time);
+    else
+        _alt_display.disable();
 
     display();
 }
@@ -1558,14 +1568,15 @@ void UI::Clock::uisEnd(void)
 
 void UI::Clock::uisRefresh(void)
 {
-    _alt_display.reset();
     clockUpdate(true);
     display();
 }
 
 bool UI::Clock::uisPower(pwr_e pwr)
 {
-    if (pwr == PWR_NAP)
+    if ((pwr == PWR_SLEEP) && (_state >= CS_SHOW_TRACK))
+        return false;
+    else if (pwr == PWR_NAP)
         _ui.dimScreens();
     else
         _ui.sleepScreens();
@@ -1605,24 +1616,14 @@ bool UI::Clock::clockUpdate(bool force)
 
 void UI::Clock::changeTrack(void)
 {
-    if (_alt_display.onTime() == _s_flash_time)
-    {
-        _track = _ui._player.currentTrack();
-    }
-    else
-    {
-        _ui._player.setTrack(_track);
-        _track_updated = false;
-    }
-
+    if (_state != CS_SHOW_TRACK) _state = CS_SHOW_TRACK;
+    _track = _ui._player.currentTrack();
     _alt_display.reset(_s_flash_time);
 }
 
 void UI::Clock::updateTrack(ev_e ev)
 {
     evUpdate < uint16_t > (_track, ev, 0, _ui._player.numTracks() - 1);
-    _alt_display.reset(_s_track_idle_time);
-    display();
 }
 
 void UI::Clock::display(void)
@@ -3231,9 +3232,6 @@ void UI::Power::sleep(UIState & uis)
 {
     if (_state != PS_WAIT_SLEEP)
     {
-        // Stop player regardless of whether or not the current UI state can sleep
-        _ui._player.stop();
-
         // If the UI state can't sleep, try to nap
         if (!uis.uisPower(PWR_SLEEP))
         {
@@ -3245,12 +3243,15 @@ void UI::Power::sleep(UIState & uis)
             return;
         }
 
-        _state = PS_WAIT_SLEEP;
-    }
+        // Only stop player if UI state can sleep
+        _ui._player.stop();
 
-    // If touch induced sleep, wait until not touching
-    if (_touch_wait)
-        return;
+        _state = PS_WAIT_SLEEP;
+
+        // If touch induced sleep, wait until not touching
+        if (_touch_wait)
+            return;
+    }
 
     // Puts MCU in LLS (Low Leakage Stop) mode - a state retention power mode
     // where most peripherals are in state retention mode (with clocks stopped).
@@ -3298,6 +3299,8 @@ void UI::Power::sleep(UIState & uis)
 
     _llwu.disable();
     _ui._rtc.wake();
+
+    _ui._controls.reset();
 
     // If the rotary switch is the wakeup source, state is going to change so
     // don't redisplay data from state prior to sleeping.
