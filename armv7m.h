@@ -105,16 +105,16 @@ class SysTick
     friend void systick_isr(void);
 
     public:
-        static void init(void) { init(TICKS_PER_MSEC, 32); }
-
-        static uint32_t currentValue(void) { return *_s_cvr; }
-        static uint32_t reloadValue(void) { return *_s_rvr; }
-        static uint32_t intervals(void) { return _intervals; }
-        static uint32_t msecs(void) { return _intervals; }
-
-    private:
-        static void init(uint32_t rv, uint8_t priority)  // rv -> Reload Value
+        static void start(void) { start(_s_rv, _s_pri); }
+        static void start(uint32_t rv) { start(rv, _s_pri); }
+        static void start(uint32_t rv, uint8_t priority)  // rv -> Reload Value
         {
+            _s_rv = rv;
+            _s_pri = priority;
+
+            if (*_s_csr & SYST_CSR_ENABLE)
+                stop();
+
             SCB::setPriority(EXCEPT_SYS_TICK, priority);
 
             *_s_rvr = rv;
@@ -122,7 +122,19 @@ class SysTick
             *_s_csr = SYST_CSR_ENABLE | SYST_CSR_TICKINT | SYST_CSR_CLKSOURCE;
         }
 
-        static v32 _intervals;
+        static void stop(void) { *_s_csr = 0; }
+
+        static uint32_t currentValue(void) { return *_s_cvr; }
+        static uint32_t reloadValue(void) { return *_s_rvr; }
+        static uint32_t intervals(void) { return _s_intervals; }
+        static void intervals(uint32_t m) { stop(); _s_intervals += m; start(); }
+
+    private:
+        static constexpr uint8_t const _s_def_pri = 32;
+        static constexpr uint32_t const _s_def_rv = TICKS_PER_MSEC;
+        static uint8_t _s_pri;
+        static uint32_t _s_rv;
+        static v32 _s_intervals;
 
         static reg32 _s_base;
         static reg32 _s_csr;

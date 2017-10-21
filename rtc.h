@@ -94,7 +94,7 @@ class Rtc : public Module
         // waking/resuming.  Call sleep() before putting the MCU to sleep and
         // wake() after MCU wakes up.
         void sleep(void);
-        void wake(void);
+        uint32_t wake(void);
 
         ////////////////////////////////////////////////////////////////////////
         // Alarm ///////////////////////////////////////////////////////////////

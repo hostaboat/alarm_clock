@@ -18,14 +18,14 @@
 
 inline uint32_t msecs(void)
 {
-    return SysTick::msecs();
+    return SysTick::intervals();
 }
 
 inline uint32_t usecs(void)
 {
     __disable_irq();
 
-    uint32_t ms = SysTick::msecs();  // Won't increment while interrupts disabled
+    uint32_t ms = SysTick::intervals();  // Won't increment while interrupts disabled
     uint32_t cv = SysTick::currentValue();  // Read this before reading pending
     bool pending = SCB::sysTickIntrPending();
 

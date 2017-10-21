@@ -129,11 +129,13 @@ reg32 SysTick::_s_cvr   = _s_base + 2;
 reg32 SysTick::_s_calib = _s_base + 3;
 // 0xE000E020 - 0xE000E0FC  // Reserved
 
-v32 SysTick::_intervals = 0;
+uint8_t SysTick::_s_pri = _s_def_pri;
+uint32_t SysTick::_s_rv = _s_def_rv;
+v32 SysTick::_s_intervals = 0;
 
 void systick_isr(void)
 {
-    SysTick::_intervals++;
+    SysTick::_s_intervals++;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

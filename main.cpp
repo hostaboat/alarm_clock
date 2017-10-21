@@ -4,7 +4,7 @@
 
 extern "C" int main(void)
 {
-    SysTick::init();
+    SysTick::start(TICKS_PER_MSEC);
     NVIC::init();
 
     // ~1170us wait else cycle count doesn't increment - wait for a bit longer

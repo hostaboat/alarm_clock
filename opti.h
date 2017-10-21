@@ -344,8 +344,8 @@ class Leds : public DevPin < PinOut, PIN >
         void show(void) { _show(_leds, _brightness); }
         void show(uint8_t brightness) { _show(_leds, brightness); }
 
-        void show(CRGB const * rgb) { _show(rgb, _brightness); }
-        void show(CRGB const * rgb, uint8_t brightness) { _show(rgb, brightness); }
+        void show(CRGB const (&rgb)[N]) { _show(rgb, _brightness); }
+        void show(CRGB const (&rgb)[N], uint8_t brightness) { _show(rgb, brightness); }
 
         void showColor(void) { _showColor(_color, _brightness); }
         void showColor(uint8_t brightness) { _showColor(_color, brightness); }
@@ -359,8 +359,8 @@ class Leds : public DevPin < PinOut, PIN >
         void startPalette(Palette::pal_e pal);
         void updatePalette(void);
 
-        void set(CRGB const * rgb) { for (uint8_t i = 0; i < N; i++) _leds[i] = rgb[i]; }
-        void update(CRGB const * rgb) { set(rgb); show(); }
+        void set(CRGB const (&rgb)[N]) { for (uint8_t i = 0; i < N; i++) _leds[i] = rgb[i]; }
+        void update(CRGB const (&rgb)[N]) { set(rgb); show(); }
         void setColor(CRGB const & rgb) { _color = rgb; for (uint8_t i = 0; i < N; i++) _leds[i] = _color; }
         void updateColor(CRGB const & rgb) { setColor(rgb); show(); }
         Leds & operator=(CRGB const & rval) { for (uint8_t i = 0; i < N; i++) _leds[i] = rval; return *this; }
@@ -419,7 +419,7 @@ class Leds : public DevPin < PinOut, PIN >
         template < uint8_t SLOT > uint8_t dither(uint8_t b) { return b ? qadd8(b, _d[RB<SLOT>()]) : 0; }
         template < uint8_t SLOT > uint8_t scale(uint8_t b) { return scale8_video(b, _scale.raw[RB<SLOT>()]); }
 
-        void _show(CRGB const * rgb, uint8_t brightness) { _advance = 3; showLeds(rgb, brightness); }
+        void _show(CRGB const (&rgb)[N], uint8_t brightness) { _advance = 3; showLeds(rgb, brightness); }
         void _showColor(CRGB const & rgb, uint8_t brightness) { _advance = 0; showLeds(&rgb, brightness); }
         void updatePalette(uint8_t index);
         void showLeds(CRGB const * rgb, uint8_t brightness);
@@ -571,6 +571,7 @@ void Leds < PIN, N >::updatePalette(uint8_t index)
     }
     _pindex++;
 
+    _advance = 3;
     showLeds(_leds, _brightness);
 }
 

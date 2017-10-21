@@ -501,19 +501,22 @@ void Rtc::sleep(void)
     _tsr = *_s_tsr;
 }
 
-void Rtc::wake(void)
+uint32_t Rtc::wake(void)
 {
     if (_tsr == RTC_TSR_INVALID)
-        return;
+        return 0;
 
     NVIC::disable(IRQ_RTC_SECOND);
 
-    _s_isr_seconds += (*_s_tsr - _tsr);
+    uint32_t secs = *_s_tsr - _tsr;
+    _s_isr_seconds += secs;
 
     NVIC::clearPending(IRQ_RTC_SECOND);
     NVIC::enable(IRQ_RTC_SECOND);
 
     _tsr = RTC_TSR_INVALID;
+
+    return secs;
 }
 
 bool Rtc::isValidClock(tClock const & clock)

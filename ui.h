@@ -27,9 +27,12 @@ class MomSwitch  // Momentary Switch
         bool pressed(void) const { return cd() != 0; }
         bool doublePressed(void) const { return _double_pressed; }
         uint32_t pressTime(void) const { return _press_time; }
+        void setStart(void) { if (_swi.closed()) _cs_tmp = msecs(); }
+        void cancel(void) { if (_swi.closed()) _cancel = true; }
+        void resume(void) { _cancel = false; }
 
         bool valid(void) const { return _swi.valid(); }
-        void reset(void) { _cs = _cd = _cs_tmp = 0; }
+        void reset(void) { _cs = _cd = _cs_tmp = _last_press = _press_time = 0; _double_pressed = false; }
 
     private:
         uint32_t cs(void) const { if (_cs_tmp != 0) return _cs_tmp; return _cs; }
@@ -37,12 +40,13 @@ class MomSwitch  // Momentary Switch
         static constexpr uint32_t const _s_double_press = 300;
 
         DSW & _swi;
-        uint32_t _cs = 0;
-        uint32_t _cd = 0;
-        uint32_t _cs_tmp = 0;
+        uint32_t _cs = 0;  // Closed Start
+        uint32_t _cd = 0;  // Closed Duration
+        uint32_t _cs_tmp = 0;  // Closed Start if either interrupt from sleep or set explicitly
         uint32_t _last_press = 0;
         uint32_t _press_time = 0;
         bool _double_pressed = false;
+        bool _cancel = false;  // Cancel current pressed event when it occurs
 };
 
 template < class DSW >
@@ -53,10 +57,11 @@ void MomSwitch < DSW >::postProcess(void)
         if ((_cs == 0) && (_cs_tmp == 0))
             _cs_tmp = msecs();
     }
-    else if (_cs_tmp != 0)
+    else if ((_cs_tmp != 0) || _cancel)
     {
-        _cd = msecs() - _cs_tmp;
+        _cd = _cancel ? 0 : msecs() - _cs_tmp;
         _cs_tmp = 0;
+        if (_cancel) _cancel = false;
     }
 
     _double_pressed = false;
@@ -99,6 +104,7 @@ enum con_e : uint8_t
     CON_SWI_PLAY,
     CON_SWI_NEXT,
     CON_SWI_PREV,
+    CON_TOUCH,
 };
 
 // Encoders
@@ -122,8 +128,9 @@ class Controls
     public:
         Controls(void);
 
-        void process(void);
+        void process(bool reset = false);
         bool interaction(bool inc_touch = true) const;
+        void cancel(con_e con);
 
         // Rotary Switch
         rsp_e pos(void) const { return _pos; }
@@ -137,6 +144,8 @@ class Controls
         bool pressed(swi_e swi) const;
         bool doublePressed(swi_e swi) const;
         uint32_t pressTime(swi_e swi) const;
+        void setStart(swi_e swi);
+        void resume(swi_e swi);
 
         // Touch
         void touchEnable(void);
@@ -341,7 +350,7 @@ class UI
         err_e _errno = ERR_NONE;
 
         ps_e pressState(uint32_t msecs);
-        bool pressing(es_e encoder_state);
+        bool pressing(void);
         void updateBrightness(ev_e ev);
         void error(void);
 
@@ -370,17 +379,13 @@ class UI
         uint32_t _display_mark = 0;
         static constexpr uint32_t const _s_display_wait = 1000;
         bool displaying(void) const { return _display_mark != 0; }
-        void display(char const * str);
-        void display(int32_t n);
         bool refresh(void);
 
         enum pwr_e : uint8_t { PWR_NAP, PWR_SLEEP };
 
         void dimScreens(void);
         void sleepScreens(void);
-        void wakeScreens(int8_t wakeup_pin);
-        bool _wait_released = false;
-        bool _skip_processing = false;
+        void wakeScreens(bool br_turn, bool rs_turn);
 
         // Make touch activation times consistent and make sure touch induced
         // sleep is greater than the touch activation time.
@@ -1088,10 +1093,12 @@ class UI
                 void updateExtChrg(ev_e val);
                 void updateThreshold(ev_e val);
 
+                void changeOpt(void);
                 void changeNscn(void);
                 void changeCalStart(void);
                 void changeCalThreshold(void);
                 void changeRead(void);
+                void changeTest(void);
                 void changeDone(void);
 
                 void display(df_t flags = DF_NONE);
@@ -1198,7 +1205,7 @@ class UI
                 using ts_change_action_t = void (SetTouch::*)(void);
                 ts_change_action_t const _change_actions[TS_CNT] =
                 {
-                    nullptr,
+                    &SetTouch::changeOpt,
                     nullptr,
                     nullptr,
                     nullptr,
@@ -1208,7 +1215,7 @@ class UI
                     &SetTouch::changeCalThreshold,
                     nullptr,
                     &SetTouch::changeRead,
-                    nullptr,
+                    &SetTouch::changeTest,
                     &SetTouch::changeDone,
                     nullptr,
                 };
@@ -1549,10 +1556,11 @@ class UI
                 Power(UI & ui);
                 void process(UIState & uis);
                 void update(ePower const & power) { _power = power; }
-                bool napping(void) const { return (_state == PS_NAPPING) || (_state == PS_WAIT_SLEEP); }
+                bool napping(void) const { return _state == PS_NAPPING; }
                 bool napped(void) const { return _state == PS_NAPPED; }
                 bool slept(void) const { return _state == PS_SLEPT; }
                 bool awake(void) const { return napped() || slept() || (_state == PS_AWAKE); }
+                void wake(int8_t wakeup_pin = -1);
 
             private:
                 void updateMarks(void);
@@ -1560,7 +1568,6 @@ class UI
                 bool canNap(void);
                 bool canStop(void);
                 void nap(UIState & uis);
-                void wake(void);
                 void sleep(UIState & uis);
 
                 Llwu & _llwu = Llwu::acquire();
@@ -1584,33 +1591,39 @@ class UI
 
                 void onNL(bool force = false);
                 void offNL(void);
+
                 void toggleNL(void);
                 void toggleAni(void);
-                bool isOnNL(void) const { return _nl_on; }
+
+                bool isActiveNL(void) const { return _nl_active; }
+                bool isOnNL(void) const { return isOn() && isActiveNL() && _nl_on; }
                 bool isAniNL(void) const { return _nl_ani; }
+                bool isBlankNL(void) const;
+
                 void cycleNL(ev_e ev);
                 void setNL(uint8_t index, CRGB const & c);
-                void updateNL(void);
-                void paletteNL(void);
+                void aniNL(void);
+
                 uint8_t indexNL(void) { return (_active_index == 0) ? 0 : _active_index - 1; }
 
-                void off(void) { _leds.blank(); brightness(0); }
-                void on(void) { brightness(_brightness); _leds.show(); }
-                bool isOn(void) { return !_leds.isClear(); }
-
+                bool isOn(void) const { return _brightness != 0; }
                 void up(void);
                 void down(void);
+                void off(void) { brightness(0); }
                 void brightness(uint8_t b);
                 uint8_t brightness(void) const { return _brightness; }
 
-                void setColor(CRGB const & c);
+                void set(CRGB const & c);
+                void resumeNL(void);
 
             private:
+                void updateNL(void);
                 void removeDups(uint8_t keep_index = 0);
 
                 TLeds & _leds = TLeds::acquire();
                 Eeprom & _eeprom = Eeprom::acquire();
                 bool _nl_on = false;
+                bool _nl_active = true;
                 bool _nl_ani = false;
                 uint8_t _ani_index = 0;  // Lighting Animation
                 static constexpr uint8_t const _default_brightness = 128;
