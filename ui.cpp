@@ -1040,7 +1040,9 @@ void UI::SetAlarm::displayDisabled(df_t flags)
 
 void UI::SetAlarm::toggleEnabled(void)
 {
-    _alarm.enabled = !_alarm.enabled;
+    bool enabled = !_alarm.enabled;
+    _ui._rtc.getAlarm(_alarm);
+    _alarm.enabled = enabled;
     _state = _alarm.enabled ? SAS_HOUR : SAS_DISABLED;
     (void)_ui._rtc.setAlarm(_alarm);
 }
