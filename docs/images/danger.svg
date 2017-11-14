@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="0.5in"
+   height="0.40000001in"
+   viewBox="0 0 45.000001 36.000001"
+   id="svg42074"
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="danger.svg"
+   inkscape:export-filename="/home/twease/alarm_clock_docs/images/danger.png"
+   inkscape:export-xdpi="200"
+   inkscape:export-ydpi="200">
+  <defs
+     id="defs42076" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="11.2"
+     inkscape:cx="17.929651"
+     inkscape:cy="23.974651"
+     inkscape:document-units="in"
+     inkscape:current-layer="layer1"
+     showgrid="true"
+     units="in"
+     inkscape:window-width="1762"
+     inkscape:window-height="952"
+     inkscape:window-x="65"
+     inkscape:window-y="24"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata42079">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-1016.3621)">
+    <path
+       sodipodi:type="star"
+       style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#ff0000;stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="path42622"
+       sodipodi:sides="3"
+       sodipodi:cx="22.589287"
+       sodipodi:cy="1039.2363"
+       sodipodi:r1="18.923758"
+       sodipodi:r2="9.4618778"
+       sodipodi:arg1="0.52359878"
+       sodipodi:arg2="1.5707963"
+       inkscape:flatsided="false"
+       inkscape:rounded="-3.46945e-18"
+       inkscape:randomized="0"
+       d="m 38.977742,1048.6982 -16.388455,0 -16.388455,0 8.194228,-14.1928 8.194227,-14.1928 8.194226,14.1928 z"
+       inkscape:transform-center-y="-4.7308915" />
+    <g
+       id="g42667"
+       transform="translate(-0.13392825,0)">
+      <path
+         d="m 22.647843,1041.6101 a 1.7630391,7.1648431 0 0 1 -1.686422,-7.4269 1.7630391,7.1648431 0 0 1 1.818594,-6.8925 1.7630391,7.1648431 0 0 1 1.705605,7.3541 1.7630391,7.1648431 0 0 1 -1.800603,6.9701"
+         sodipodi:open="true"
+         sodipodi:end="1.5924672"
+         sodipodi:start="1.6135639"
+         sodipodi:ry="7.1648431"
+         sodipodi:rx="1.7630391"
+         sodipodi:cy="1034.4518"
+         sodipodi:cx="22.723221"
+         sodipodi:type="arc"
+         id="path42626"
+         style="opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.1181075;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <path
+         d="m 22.648856,1045.9538 a 1.7393509,1.7393509 0 0 1 -1.663764,-1.8029 1.7393509,1.7393509 0 0 1 1.794159,-1.6733 1.7393509,1.7393509 0 0 1 1.682689,1.7853 1.7393509,1.7393509 0 0 1 -1.776408,1.6921"
+         sodipodi:open="true"
+         sodipodi:end="1.5924663"
+         sodipodi:start="1.6135639"
+         sodipodi:ry="1.7393509"
+         sodipodi:rx="1.7393509"
+         sodipodi:cy="1044.2161"
+         sodipodi:cx="22.723221"
+         sodipodi:type="arc"
+         id="path42628"
+         style="opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.11595672;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+    </g>
+  </g>
+</svg>

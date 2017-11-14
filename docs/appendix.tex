@@ -1,0 +1,304 @@
+\part{Appendix}
+%\appendix
+%\appendixpage
+%\addappheadtotoc
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Troubleshooting
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Troubleshooting} \label{Troubleshooting}
+
+\begin{table}[H]
+  \ers{3}
+  \centering
+  \begin{tabu} { X[3,l,m] | X[2,c,m] | X[5,l,m] }
+    \thrule
+
+    \thbi{Problem} & \thbi{Severity} & \thbi{Solution} \\ \mdrule
+
+    Speaker pops when turning audio on.
+      & Normal
+      & Turn the volume down before turning audio on. \\ \mrule
+
+    Display shows remnants when powered on.
+      & Normal
+      & The display is getting power initially before it can display what
+        it should. \\ \mrule
+
+    Low-battery indicator flickers.
+      & Normal
+      & Try turning the volume down and recharge.
+        See \hyperref[Low Battery Indicator]{Low Battery Indicator}. \\
+
+    \bhrule
+  \end{tabu}
+  \caption{Troubleshooting Common Issues}
+\end{table}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Troubleshooting - Errors
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Errors} \label{Error Codes}
+\ers{3}
+\begin{longtabu} { X[1,c,m] | X[1,c,m] | X[4,l,m] | }
+  \thrule
+
+  \thbi{Error Code} & \thbi{Error String} & \thbi{Description} \\ \mrule
+
+  \sDl{!!!1}
+    & \sDl{C.SEL.}
+    & Problem with Selector Dial \\ \mrule
+
+  \sDl{!!!2}
+    & \sDl{C.SEt.}
+    & Problem with Settings Knob \\ \mrule
+
+  \sDl{!!!3}
+    & \sDl{C.br.!}
+    & Problem with Brightness Knob \\ \mrule
+
+  \sDl{!!!4}
+    & \sDl{C.PLA.}
+    & Problem with Play push-button \\ \mrule
+
+  \sDl{!!!5}
+    & \sDl{C.nE.!}
+    & Problem with Next push-button \\ \mrule
+
+  \sDl{!!!6}
+    & \sDl{C.PrE.}
+    & Problem with Previous push-button \\ \mrule
+
+  \sDl{!!!7}
+    & \sDl{BEEP}
+    & Problem with Beeper \\ \mrule
+
+  \sDl{!!!8}
+    & \sDl{dISP.}
+    & Problem with Display - may not show \\ \mrule
+
+  \sDl{!!!9}
+    & \sDl{LEdS}
+    & Problem with Lighting \\ \mrule
+
+  \sDl{!!10}
+    & \sDl{tUCH}
+    & Problem with Touch Sensor \\ \mrule
+
+  \sDl{!!11}
+    & \sDl{FILE}
+    & Problem with filesystem or SD card \\ \mrule
+
+  \sDl{!!12}
+    & \sDl{Aud.!}
+    & Problem with Audio Decoder \\ \mrule
+
+  \sDl{!!13}
+    & \sDl{PLAY}
+    & Player is disabled - see below \\ \mrule
+
+  \sDl{!!14}
+    & \sDl{P.FIL.}
+    & Problem getting audio files off of disk \\ \mrule
+
+  \sDl{!!15}
+    & \sDl{P.OPE.}
+    & Problem reading or opening audio file on disk \\ \mrule
+
+  \sDl{!!16}
+    & \sDl{P.Aud.}
+    & Problem communicating with Audio \\ \mrule
+
+  \sDl{!!17}
+    & \sDl{T.PIt.}
+    & Problem getting access to hardware timer module \\
+
+  \bhrule
+\caption{Error Codes}
+\end{longtabu}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Hexadecimal
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Hexadecimal} \label{Hexadecimal}
+
+Hexadecimal\footnote{Browse \href{https://en.wikipedia.org/wiki/Hexadecimal}{here}
+for a more detailed explanation.} is a base \num{16} numeral system.  It is
+composed of \num{16} symbols as opposed to decimal (base \num{10}) which is
+composed of \num{10}. The symbols \mono{0-9} in hexadecimal are equivalent to
+the same in decimal.  The values \mono{10-15} in hexadecimal are represented by
+the letters \mono{A}, \mono{B}, \mono{C}, \mono{D}, \mono{E} and \mono{F} (or
+alternatively lower case \mono{a}, \mono{b}, \mono{c}, \mono{d}, \mono{e} and
+\mono{f}).
+
+\begin{table}[H]
+  \begin{tabu}{ X[3,l,m] X[1,c,m] X[1,c,m] X[1,c,m] X[1,c,m] X[1,c,m] X[1,c,m] }
+    \thrule
+    \multicolumn{7}{c}{\thb{Hexadecimal Letter Symbols}} \\ \mdrule
+
+    \thbi{Symbol}
+      & \mono{A}
+      & \mono{B}
+      & \mono{C}
+      & \mono{D}
+      & \mono{E}
+      & \mono{F}
+    \\ \mrule
+    \thbi{Decimal Equivalent}
+      & \num{10}
+      & \num{11}
+      & \num{12}
+      & \num{13}
+      & \num{14}
+      & \num{15}
+    \\ \mrule
+    \thbi{Display}
+      & \sDls{A}
+      & \sDls{b}
+      & \sDls{C}
+      & \sDls{d}
+      & \sDls{E}
+      & \sDls{F}
+    \\ \mrule
+  \end{tabu}
+\end{table}
+
+Some settings use hexadecimal since the \cDi{f} is limited to four digits
+and a larger number can be represented using fewer digits in hexadecimal. The
+maximum decimal number that can be represented with \num{4} digits is
+\num{9999} whereas the maximum hexadecimal is \num{65535}.  There are also
+cases where \num{2} digits are used during configuration - in this case the
+maximum is \num{99} for decimal and \num{255} for hexadecimal.
+
+\begin{table}[H]
+  \centering
+  \begin{tabu}{ X[11,l,m] X[9,r,m] X[9,r,m] X[9,r,m] X[9,r,m] }
+    \thrule
+    \multicolumn{5}{c}{\thb{Maximum Values per Number of Digits}} \\ \mdrule
+    \textit{Number of Digits} & \num{1} & \num{2} & \num{3} & \num{4} \\ \mrule
+    \textit{Decimal} & \num{9} & \num{99} & \num{999} & \num{9999} \\ \drule{5}
+    \textit{Hexadecimal} & \mono{F} = \num{15} & \mono{FF} = \num{255}
+      & \mono{FFF} = \num{4095} & \mono{FFFF} = \num{65535} \\
+    \bhrule
+  \end{tabu}
+  \caption{Maximum Decimal and Hexadecimal Values per Number of Digits}
+\end{table}
+
+To determine the value of a number, you can multiply the digit by the base to
+the power of the digit position minus 1 and add up the results.
+
+\begin{equation}
+  \sum_{n=1}^{Digits} Digit[n] \times Base^{n-1}
+\end{equation}
+
+\par\medskip
+
+In decimal you have the 1's ($10^{0}$), 10's ($10^{1}$), 100's ($10^{2}$),
+1000's ($10^{3}$), 10000's ($10^{4}$), etc. columns or digit positions, and
+in hexadecimal you have 1's ($16^{0}$), 16's ($16^{1}$), 256's ($16^{2}$),
+4096's ($16^{3}$), etc. columns / digit positions.  Take for example, the
+decimal number \num{25341$_{10}$}.\footnote{A subscript attached to a number is used
+to denote the base of that number.} The hexadecimal equivalent is
+\num{62FD$_{16}$} and can be converted to decimal.
+
+\begin{table}[H]
+  \centering
+  \begin{tabu}{ X[1,c,m] | X[2,r,m] | X[3,r,m] | X[3,r,m] | X[2,r,m] }
+    \thrule
+    \multicolumn{5}{c}{\thb{Hexadecimal \num{62FD$_{16}$}
+      $\longrightarrow$ Decimal \num{25341$_{10}$}}} \\
+    \mrule
+    $n$ & $Digit[n]$ & $Base^{n-1}$ & $Digit[n] \times Base^{n-1}$ & Result \\
+    \mrule
+    1 & D $=$ 13 & $16^{1-1} = 16^{0} = 1$ & $13 \times 1$ & 13 \\ \drule{5}
+    2 & F $=$ 15 & $16^{2-1} = 16^{1} = 16$ & $15 \times 16$ & 240 \\ \drule{5}
+    3 & 2 & $16^{3-1} = 16^{2} = 256$ & $2 \times 256$ & 512 \\ \drule{5}
+    4 & 6 & $16^{4-1} = 16^{3} = 4096$ & $6 \times 4096$ & 24576 \\
+    \mrule
+    \multicolumn{4}{r|}{\thi{Total}} & 25341 \\
+    \bhrule
+  \end{tabu}
+\end{table}
+
+The number \num{25341$_{10}$} can only be shown on the \cDi{f} using hexadecimal
+notation and will look like the following.
+
+\begin{center}
+  \sDl{62FD}
+\end{center}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Display Numbers & Letters
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Display Numbers \& Letters} \label{Display Digits}
+
+\section{Numbers}
+
+\ers{3}
+\begin{longtabu}{ X[1,c,m] X[1,c,m] X[1,c,m] }
+  \thrule
+
+  \thbi{Number} & \thbi{Decimal} & \thbi{Hexadecimal} \\ \mrule
+
+  \Large\num{0} & \sDls{0} & \sDls{0} \\ \drule{3}
+  \Large\num{1} & \sDls{1} & \sDls{1} \\ \drule{3}
+  \Large\num{2} & \sDls{2} & \sDls{2} \\ \drule{3}
+  \Large\num{3} & \sDls{3} & \sDls{3} \\ \drule{3}
+  \Large\num{4} & \sDls{4} & \sDls{4} \\ \drule{3}
+  \Large\num{5} & \sDls{5} & \sDls{5} \\ \drule{3}
+  \Large\num{6} & \sDls{6} & \sDls{6} \\ \drule{3}
+  \Large\num{7} & \sDls{7} & \sDls{7} \\ \drule{3}
+  \Large\num{8} & \sDls{8} & \sDls{8} \\ \drule{3}
+  \Large\num{9} & \sDls{9} & \sDls{9} \\ \drule{3}
+  \Large\num{10} & --- & \sDls{A} \\ \drule{3}
+  \Large\num{11} & --- & \sDls{b} \\ \drule{3}
+  \Large\num{12} & --- & \sDls{C} \\ \drule{3}
+  \Large\num{13} & --- & \sDls{d} \\ \drule{3}
+  \Large\num{14} & --- & \sDls{E} \\ \drule{3}
+  \Large\num{15} & --- & \sDls{F} \\
+
+  \bhrule
+  \caption{Number Display Representations}
+\end{longtabu}
+
+\par\bigskip
+\par\bigskip
+\par\bigskip
+
+\section{Letters}
+
+\begin{longtabu}{ X[1,c,m] X[1,c,m] X[1,c,m] }
+  \thrule
+
+  \thbi{Letter} & \thbi{Upper Case} & \thbi{Lower Case} \\ \mrule
+
+  \large\mono{A} / \large\mono{a} & \sDls{A} & --- \\ \drule{3}
+  \large\mono{B} / \large\mono{b} & --- & \sDls{b} \\ \drule{3}
+  \large\mono{C} / \large\mono{c} & \sDls{C} & \sDls{c} \\ \drule{3}
+  \large\mono{D} / \large\mono{d} & --- & \sDls{d} \\ \drule{3}
+  \large\mono{E} / \large\mono{e} & \sDls{E} & --- \\ \drule{3}
+  \large\mono{F} / \large\mono{f} & \sDls{F} & --- \\ \drule{3}
+  \large\mono{G} / \large\mono{g} & --- & \sDls{g} \\ \drule{3}
+  \large\mono{H} / \large\mono{h} & \sDls{H} & \sDls{h} \\ \drule{3}
+  \large\mono{I} / \large\mono{i} & \sDls{I} & \sDls{i} \\ \drule{3}
+  \large\mono{J} / \large\mono{j} & \sDls{J} & --- \\ \drule{3}
+  \large\mono{K} / \large\mono{k} & --- & --- \\ \drule{3}
+  \large\mono{L} / \large\mono{l} & \sDls{L} & \sDls{l} \\ \drule{3}
+  \large\mono{M} / \large\mono{m} & --- & --- \\ \drule{3}
+  \large\mono{N} / \large\mono{n} & --- & \sDls{n} \\ \drule{3}
+  \large\mono{O} / \large\mono{o} & \sDls{O} & \sDls{o} \\ \drule{3}
+  \large\mono{P} / \large\mono{p} & \sDls{P} & --- \\ \drule{3}
+  \large\mono{Q} / \large\mono{q} & --- & --- \\ \drule{3}
+  \large\mono{R} / \large\mono{r} & --- & \sDls{r} \\ \drule{3}
+  \large\mono{S} / \large\mono{s} & \sDls{S} & --- \\ \drule{3}
+  \large\mono{T} / \large\mono{t} & --- & \sDls{t} \\ \drule{3}
+  \large\mono{U} / \large\mono{u} & \sDls{U} & \sDls{u} \\ \drule{3}
+  \large\mono{V} / \large\mono{v} & --- & --- \\ \drule{3}
+  \large\mono{W} / \large\mono{w} & --- & --- \\ \drule{3}
+  \large\mono{X} / \large\mono{x} & --- & --- \\ \drule{3}
+  \large\mono{Y} / \large\mono{y} & --- & \sDls{y} \\ \drule{3}
+  \large\mono{Z} / \large\mono{z} & --- & --- \\
+
+  \bhrule
+  \caption{Letter Display Representations}
+\end{longtabu}

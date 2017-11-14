@@ -1,0 +1,1411 @@
+\documentclass[12pt]{report}
+
+\usepackage{appendix}
+
+\usepackage[margin=2cm]{geometry}
+\geometry{letterpaper}
+\setlength{\parindent}{0em}
+
+\usepackage{array,booktabs}
+
+\newcommand{\wood}{Bubinga}
+\newcommand{\front}{aluminum}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Fonts
+\usepackage{fontspec}
+
+\newfontfamily\qag{TeX Gyre Adventor}
+\newfontfamily\qbk{TeX Gyre Bonum}
+\newfontfamily\ssfont[
+  Path = fonts/,
+  Extension = .ttf,
+  UprightFont = *-Italic,
+  ItalicFont = *-Italic,
+  BoldFont = *-Italic,
+  BoldItalicFont = *-Italic,
+  Scale = 1.5,
+]{DSEG7Classic}
+\newfontfamily\ssfontinline[
+  Path = fonts/,
+  Extension = .ttf,
+  UprightFont = *-Italic,
+  ItalicFont = *-Italic,
+  BoldFont = *-Italic,
+  BoldItalicFont = *-Italic,
+  Scale = 0.8,
+]{DSEG7Classic}
+\newfontfamily\ssfontsym[
+  Path = fonts/,
+  Extension = .ttf,
+  UprightFont = *-Italic,
+  ItalicFont = *-Italic,
+  BoldFont = *-Italic,
+  BoldItalicFont = *-Italic,
+  Scale = 0.65,
+]{DSEG7Classic}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Tables
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{tabu}
+\usepackage{enumitem}
+\usepackage{multirow}
+%\usepackage{colortbl}
+%\setlist{itemsep=1pt}
+\setlist[enumerate]{label=(\textbf{\arabic*})}
+
+%\multirow[vpos]{nrows}[bigstruts]{width}[vmove]{text}
+%\newcolumntype{C}[1]{>{\centering\arraybackslash}m{#1}}
+%\renewcommand{\tabularxcolumn}[1]{>{\small}m{#1}}
+
+\tabcolsep=12pt
+\renewcommand{\arraystretch}{1.3}
+
+\newcommand{\ers}[1]{\extrarowsep=#1mm}
+
+\newtabulinestyle{d=on 1pt off 1pt}
+\newtabulinestyle{ld=on 4pt off 4pt}
+\newcommand{\drule}[1]{\tabucline[d]{1-#1}}
+\newcommand{\dcrule}[2]{\tabucline[d]{#1-#2}}
+\newcommand{\lrule}[1]{\tabucline[ld]{1-#1}}
+\newcommand{\lcrule}[2]{\tabucline[ld]{#1-#2}}
+\newcommand{\thrule}{\toprule \hline}
+\newcommand{\bhrule}{\hline \bottomrule}
+\newcommand{\mdrule}{\hline \hline}
+\newcommand{\mrule}{\hline}
+
+\newcommand{\thm}[1]{\large #1}
+\newcommand{\thb}[1]{\textbf{\large #1}}
+\newcommand{\thi}[1]{\textit{\large #1}}
+\newcommand{\thbi}[1]{\textbf{\textit{\large #1}}}
+\newcommand{\thLb}[1]{\textbf{\Large #1}}
+
+\newcommand{\as}[2]{%
+\begin{table}[H]
+\ers{0.1}
+\centering
+\begin{tabu} #1
+\mrule
+#2
+\mrule
+\end{tabu}
+\end{table}}
+
+\newcommand{\ase}[3]{%
+\begin{table}[H]
+\ers{#1}
+\centering
+\begin{tabu} #2
+\mrule
+#3
+\mrule
+\end{tabu}
+\end{table}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Captions, Footnotes, References, TOC, etc.
+\usepackage{subcaption}
+\usepackage[justification=centering]{caption}
+%\captionsetup{font=scriptsize}
+\captionsetup[sub]{font=scriptsize}
+%\usepackage{footmisc}
+\usepackage{titlesec}
+\usepackage{tocloft}
+%\setlength{\cftpartindent}{0em}
+%\setlength{\cftpartnumwidth}{10em}
+
+\setlength{\cftchapindent}{2.0em}
+\setlength{\cftchapnumwidth}{2.0em}
+\setlength{\cftsecindent}{4.0em}
+\setlength{\cftsecnumwidth}{3.0em}
+\setlength{\cftsubsecindent}{7.0em}
+\setlength{\cftsubsecnumwidth}{3.5em}
+\renewcommand{\cftpartfont}{\bfseries\Large}
+\renewcommand{\cftpartpagefont}{\bfseries\large}
+\renewcommand{\cftchapfont}{\bfseries\large}
+\renewcommand{\cftchappagefont}{\bfseries\normalsize}
+\renewcommand{\cftsecfont}{\normalsize}
+\renewcommand{\cftsubsecfont}{\normalsize}
+\renewcommand{\cftsubsubsecfont}{\small}
+\setlength{\cftbeforesecskip}{0.4em}
+\setlength{\cftbeforesubsecskip}{0.2em}
+\setlength{\cftbeforetabskip}{0.3em}
+\setlength{\cftbeforefigskip}{0.3em}
+
+\usepackage{hyperref}
+\hypersetup {
+colorlinks=true,
+linkcolor=NavyBlue,
+citecolor=blue,
+filecolor=blue,
+urlcolor=blue,
+hyperfootnotes=true
+}
+
+\setcounter{tocdepth}{4}
+%\setcounter{secnumdepth}{4}
+\setcounter{secnumdepth}{3}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Font sizes
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \tiny
+% \scriptsize
+% \footnotesize
+% \small
+% \normalsize
+% \large
+% \Large
+% \LARGE
+% \huge
+% \Huge
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% titlesec
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% \titleformat{<command>}[<shape>]{<format>}{<label>}{<sep>}{<before-code>}[<after-code>]
+%
+% [<shape>] and [<after-code>] are optional parameters
+%
+% <command>
+%   The sectioning command to be redefined:
+%   \part, \chapter, \section, \subsection, \subsubsection, \paragraph or \subparagraph.
+% <shape>
+%   The sectioning paragraph shape. Possible values are:
+%     hang, block, display, runin, leftmargin, rightmargin, drop, wrap, frame
+% <format>
+%   The format to be applied to the title, label, and text.
+%   For example {\normalfont\Large\bfseries}
+% <label>
+%   Specify sectioning label.
+% <sep>
+%   The horizontal separation between label and title body and it must
+%   be a length and not be empty.
+% <before-code>
+%   Code preceding the title body.
+% <after-code>
+%   Code following the title body.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% \titlespacing{<command>}{<left>}{<before-sep>}{<after-sep>}
+%
+% <left>
+%   Increases the left margin.
+% <before-sep>
+%   The vertical space before the title.
+% <after-sep>
+%   The separation between title and non-sectioning text.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{titletoc}
+
+%\titlecontents{part}
+%[3pc]
+%{\addvspace{1.5pc}%
+%\filcenter}
+%{\thecontentslabel\\*[.2pc]%
+%\bfseries\huge}
+%{\bfseries\huge}
+%{}  % That is, without page number
+%[\addvspace{.5pc}]
+
+%\titlecontents{part}
+%[0pt]
+%{\addvspace{1pc}%
+%\itshape}%
+%{\contentsmargin{0pt}%
+%\bfseries
+%\makebox[0pt][r]{\huge\thecontentslabel\enspace}%
+%\large}
+%{\contentsmargin{0pt}%
+%\large}
+%{\quad\thepage}
+%[\addvspace{.5pc}]
+
+\titleformat
+{\part}
+[frame]
+{\bfseries\huge}
+{\thepart}
+{3.0ex}
+{\centering}
+[]
+
+\titleformat
+{\chapter} % command
+%[display] % shape
+[block] % shape
+%{\bfseries\Large\itshape} % format
+{\bfseries\LARGE} % format
+%{Section \ \thechapter} % label
+{\thechapter} % label
+{1.0ex} % sep
+{
+    %\rule{\textwidth}{1pt}
+    %\vspace{1ex}
+    %\centering
+} % before-code
+[
+\vspace{-0.5ex}%
+\rule{\textwidth}{0.3pt}
+] % after-code
+
+\titleformat
+{\section}
+[block]
+{\bfseries\Large}
+{\thesection}
+{0.5em}{}
+
+\titleformat
+{\subsection}
+[block]
+{\bfseries\large}
+{\thesubsection}
+{0.5em}{}
+
+\titleformat
+{\subsubsection}
+[block]
+{\bfseries}
+{\thesubsubsection}
+{0.5em}{}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Graphics
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[dvipsnames]{xcolor}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Symbols
+\usepackage{bbding}  % For hand / Touch symbol
+
+\usepackage{tikz}
+\usetikzlibrary{bending,shapes.geometric}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Commands
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ------------------------------------------------------------------------------
+%  General Options
+% ------------------------------------------------------------------------------
+%  opt:
+%        n  Normal font
+%        s  Small font
+%        f  Footnotesize
+%       ss  Scriptsize font
+%        t  Tiny font
+%      sym  Tikz overlay with Scriptsize font
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Base Commands
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{ifthen}
+
+\newcommand{\fontTGA}[2]{%
+\ifthenelse{\equal{#1}{l}}{{\large \qag #2}}{}%
+\ifthenelse{\equal{#1}{n}}{{\qag #2}}{}%
+\ifthenelse{\equal{#1}{s}}{{\small \qag #2}}{}%
+\ifthenelse{\equal{#1}{f}}{{\footnotesize \qag #2}}{}%
+%\ifthenelse{\equal{#1}{ss}}{{\textbf{\scriptsize \qag #2}}}{}%
+\ifthenelse{\equal{#1}{ss}}{{\scriptsize \qag #2}}{}%
+%\ifthenelse{\equal{#1}{t}}{{\textbf{\tiny \qag #2}}}{}}
+\ifthenelse{\equal{#1}{t}}{{\tiny \qag #2}}{}}
+
+% {fill color}{text color}{text}
+\newcommand{\symTGA}[3]{% <--- XXX Remove space before comment marker to smoosh
+\begin{tikz}[overlay]
+  \node[fill=#1,draw=black,inner sep=1mm,anchor=text,rectangle,rounded corners=0.5mm]
+    %at (0.06,0.03) {\color{#2} \fontTGA{ss}{#3}};
+    at (0.06,0.03) {\color{#2} \fontTGA{ss}{#3}};
+\end{tikz}% <--- XXX Remove space before comment marker to smoosh
+\phantom{\fontTGA{ss}{#3}}}% <--- XXX Remove space before comment marker to smoosh
+
+\newcommand{\symTGAL}[3]{% <--- XXX Remove space before comment marker to smoosh
+\vspace{-5ex}\begin{flushright}
+\begin{tikz}[overlay]
+  \node[fill=#1,draw=black,inner sep=1.5mm,anchor=text,rectangle,rounded corners=1.0mm,thick]
+    %at (0.06,0.03) {\color{#2} \fontTGA{ss}{#3}};
+    at (0.06,0.03) {\color{#2} \textbf{\fontTGA{n}{#3}}};
+\end{tikz}% <--- XXX Remove space before comment marker to smoosh
+\phantom{\fontTGA{n}{#3}}\end{flushright}\vskip 1.5ex}% <--- XXX Remove space before comment marker to smoosh
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Operation
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Controls & Screens
+\newcommand{\control}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{black}{white}{#2}}{\fontTGA{#1}{#2}}}
+
+% Positions, Directions & Times
+\newcommand{\direction}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{black!50}{white}{#2}}{\fontTGA{#1}{#2}}}
+
+% Actions
+\newcommand{\action}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{black!10}{black}{#2}}{\fontTGA{#1}{#2}}}
+% )))2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Operational Elements
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Components & Modes
+\newcommand{\mode}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{black}{white}{#2}}{%
+\ifthenelse{\equal{#1}{syml}}{\symTGAL{black}{white}{#2}}{\fontTGA{#1}{#2}}}}
+
+\newcommand{\symMode}[1]{%
+\begin{tikzpicture}[scale=0.1, minimum height=1.2cm]
+  \draw[fill=black,text=white] (0,0) circle [radius=5] node {\mode{t}{#1}};
+\end{tikzpicture}}
+
+% Menus
+\newcommand{\menu}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{black!50}{white}{#2}}{%
+\ifthenelse{\equal{#1}{syml}}{\symTGAL{black!50}{white}{#2}}{\fontTGA{#1}{#2}}}}
+
+\newcommand{\symMenu}[1]{%
+\begin{tikzpicture}[scale=0.1, minimum height=1.2cm]
+  \draw[fill=black!50,text=white] (0,0) circle [radius=5] node {\menu{t}{#1}};
+\end{tikzpicture}}
+
+% States
+\newcommand{\state}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{black!10}{black}{#2}}{%
+\ifthenelse{\equal{#1}{syml}}{\symTGAL{black!10}{black}{#2}}{\fontTGA{#1}{#2}}}}
+
+\newcommand{\symState}[1]{%
+\begin{tikzpicture}[scale=0.1, minimum height=1.2cm]
+  \draw[fill=black!10,text=black] (0,0) circle [radius=5] node {\state{t}{#1}};
+\end{tikzpicture}}
+
+\newcommand{\symUnidirectional}{%
+\begin{tikzpicture}[scale=0.2]
+  \draw[->,>=stealth,ultra thick] (0,0) -- (10,0);
+\end{tikzpicture}}
+
+\newcommand{\symUniModule}{%
+\begin{tikzpicture}[scale=0.1]
+  \draw[->,>=stealth,thick] (0,0) -- (10,0);
+  \draw[fill=black,text=white] (-5,0) circle [radius=5] node {\state{t}{MODULE}};
+  \draw[fill=black!10,text=black] (15,0) circle [radius=5] node {\state{t}{STATE}};
+\end{tikzpicture}}
+
+\newcommand{\symUniMenu}{%
+\begin{tikzpicture}[scale=0.1]
+  \draw[->,>=stealth,thick] (0,0) -- (10,0);
+  \draw[fill=black!50,text=white] (-5,0) circle [radius=5] node {\state{t}{MENU}};
+  \draw[fill=black!10,text=black] (15,0) circle [radius=5] node {\state{t}{STATE}};
+\end{tikzpicture}}
+
+\newcommand{\symUniState}{%
+\begin{tikzpicture}[scale=0.1]
+  \draw[->,>=stealth,thick] (0,0) -- (10,0);
+  \draw[fill=black!10,text=black] (-5,0) circle [radius=5] node {\state{t}{STATE}};
+  \draw[fill=black!10,text=black] (15,0) circle [radius=5] node {\state{t}{STATE}};
+\end{tikzpicture}}
+
+\newcommand{\symUniStateAction}{%
+\begin{tikzpicture}[scale=0.1]
+  \draw[->,>=stealth,thick] (0,0) -- node[above] {\action{t}{ACTION}} (30,0);
+  \draw[fill=black!10,text=black] (-3,0) circle [radius=3] node {\state{t}{A}};
+  \draw[fill=black!10,text=black] (33,0) circle [radius=3] node {\state{t}{B}};
+\end{tikzpicture}}
+
+\newcommand{\symUniSameState}{%
+\begin{tikzpicture}[scale=0.1]
+  \draw[->,thick] (0,-2.5) arc (-60:-310:3);
+  \path node at (-9,0) {\action{t}{ACTION}};
+  \draw[fill=black!10,text=black] (4,0) circle [radius=4] node {\state{ss}{A}};
+\end{tikzpicture}}
+
+\newcommand{\symBidirectional}{%
+\begin{tikzpicture}[scale=0.2]
+  \draw[<->,>=stealth,ultra thick] (0,0) -- (10,0);
+\end{tikzpicture}}
+
+\newcommand{\symBiState}{%
+\begin{tikzpicture}[scale=0.1]
+  \draw[<->,>=stealth,thick] (0,0) -- (50,0);
+  \path node at (10,2) {\action{t}{ACTION} \raisebox{0.3mm}{\tiny{\scalebox{0.8}{to}}} \state{t}{A}};
+  \path node at (40,2) {\action{t}{ACTION} \raisebox{0.3mm}{\tiny{\scalebox{0.8}{to}}} \state{t}{B}};
+  \draw[fill=black!10,text=black] (-3,0) circle [radius=3] node {\state{t}{A}};
+  \draw[fill=black!10,text=black] (53,0) circle [radius=3] node {\state{t}{B}};
+\end{tikzpicture}}
+
+\newcommand{\symBiStateOne}{%
+  \begin{tikzpicture}[scale=0.1]
+  \draw[<->,>=stealth,thick] (0,0) -- node[above] {\action{t}{ACTION}} (30,0);
+  \draw[fill=black!10,text=black] (-3,0) circle [radius=3] node {\state{t}{A}};
+  \draw[fill=black!10,text=black] (33,0) circle [radius=3] node {\state{t}{B}};
+\end{tikzpicture}}
+
+\newcommand{\symNode}{%
+  \begin{tikzpicture}[scale=0.2]
+  \draw[fill=black] (0,0) circle [radius=0.6];
+  \draw[<-,>=stealth,ultra thick] (0,5) -- (0,-5);
+  \draw[ultra thick] (-5,0) -- (5,0);
+\end{tikzpicture}}
+
+\newcommand{\symNodeState}{%
+  \begin{tikzpicture}[scale=0.1]
+  \draw[fill=black] (0,0) circle [radius=0.6];
+  \draw[<-,>=stealth,thick] (0,10) -- (0,0);
+  \draw[thick] (-30,0) -- node[above]
+    {\action{t}{ACTION} \raisebox{0.3mm}{\tiny{\scalebox{0.8}{to}}} \state{t}{C}} (0,0);
+  \draw[thick] (0,0) -- node[above]
+    {\action{t}{ACTION} \raisebox{0.3mm}{\tiny{\scalebox{0.8}{to}}} \state{t}{C}} (30,0);
+  \draw[fill=black!10,text=black] (0,13) circle [radius=3] node {\state{t}{C}};
+  \draw[fill=black!10,text=black] (-33,0) circle [radius=3] node {\state{t}{A}};
+  \draw[fill=black!10,text=black] (33,0) circle [radius=3] node {\state{t}{B}};
+\end{tikzpicture}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Effects
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\eDi}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{white}{black}{DISPLAY #2}}{\fontTGA{#1}{DISPLAY #2}}}
+
+\newcommand{\eLi}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{white}{black}{LIGHT #2}}{\fontTGA{#1}{LIGHT #2}}}
+
+\newcommand{\ePl}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{green}{black}{PLAY #2}}{\fontTGA{#1}{PLAY #2}}}
+
+\newcommand{\eRewind}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{blue}{white}{REWIND #2}}{\fontTGA{#1}{REWIND #2}}}
+
+\newcommand{\eResume}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{green}{black}{RESUME #2}}{\fontTGA{#1}{RESUME #2}}}
+
+\newcommand{\ePa}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{yellow}{black}{PAUSE #2}}{\fontTGA{#1}{PAUSE #2}}}
+
+\newcommand{\eSt}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{red}{white}{STOP #2}}{\fontTGA{#1}{STOP #2}}}
+
+\newcommand{\eSk}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{blue}{white}{SKIP #2}}{\fontTGA{#1}{SKIP #2}}}
+
+\newcommand{\eAc}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{blue}{white}{#2}}{\fontTGA{#1}{#2}}}
+
+\newcommand{\eNAc}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{red}{white}{#2}}{\fontTGA{#1}{#2}}}
+
+\newcommand{\eStart}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{green}{black}{START #2}}{\fontTGA{#1}{START #2}}}
+
+\newcommand{\eEn}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{green}{black}{ENABLE #2}}{\fontTGA{#1}{ENABLE #2}}}
+
+\newcommand{\eSnooze}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{yellow}{black}{SNOOZE #2}}{\fontTGA{#1}{SNOOZE #2}}}
+
+\newcommand{\eWake}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{green}{black}{WAKE #2}}{\fontTGA{#1}{WAKE #2}}}
+
+\newcommand{\eTo}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{orange}{black}{TOGGLE #2}}{\fontTGA{#1}{TOGGLE #2}}}
+
+\newcommand{\eRe}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{red}{white}{RESET #2}}{\fontTGA{#1}{RESET #2}}}
+
+\newcommand{\eAl}[1]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{red!70}{white}{ALERT}}{\fontTGA{#1}{ALERT}}}
+
+\newcommand{\eSe}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{green}{black}{SET #2}}{\fontTGA{#1}{SET #2}}}
+
+\newcommand{\eSel}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{green!50!blue}{white}{SELECT #2}}{\fontTGA{#1}{SET #2}}}
+
+\newcommand{\eBl}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{white}{black}{BLINK #2}}{\fontTGA{#1}{BLINK #2}}}
+
+\newcommand{\eUp}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{yellow}{black}{UPDATE #2}}{\fontTGA{#1}{UPDATE #2}}}
+
+\newcommand{\eSa}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{blue}{white}{SAVE #2}}{\fontTGA{#1}{SAVE #2}}}
+
+\newcommand{\eCa}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{blue!30}{black}{CACHE #2}}{\fontTGA{#1}{CACHE #2}}}
+
+\newcommand{\eReset}[1]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{red}{white}{RESET}}{\fontTGA{#1}{RESET}}}
+
+\newcommand{\eCM}[1]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{purple!80!black!70}{white}{CHANGE MODE}}{\fontTGA{#1}{CHANGE MODE}}}
+
+\newcommand{\eRu}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{blue!70}{white}{#2 RUN}}{\fontTGA{#1}{#2 RUN}}}
+
+\newcommand{\eCo}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{blue!70}{white}{#2 COMPLETE}}{\fontTGA{#1}{#2 COMPLETE}}}
+
+\newcommand{\eLo}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{blue!70}{white}{LOAD #2}}{\fontTGA{#1}{LOAD #2}}}
+
+\newcommand{\eDisable}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{red}{white}{DISABLE #2}}{\fontTGA{#1}{DISABLE #2}}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Controls & Screens
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\cRs}[1]{\control{#1}{SELECTOR DIAL}}
+\newcommand{\cEs}[1]{\control{#1}{SETTINGS KNOB}}
+\newcommand{\cBr}[1]{\control{#1}{BRIGHTNESS KNOB}}
+\newcommand{\cLB}[1]{\control{#1}{LOW BATTERY INDICATOR}}
+\newcommand{\cPo}[1]{\control{#1}{POWER SWITCH}}
+\newcommand{\cVo}[1]{\control{#1}{VOLUME}}
+\newcommand{\cPl}[1]{\control{#1}{PLAY|PAUSE|STOP}}
+\newcommand{\cNe}[1]{\control{#1}{NEXT}}
+\newcommand{\cPr}[1]{\control{#1}{PREVIOUS}}
+\newcommand{\cTS}[1]{\control{#1}{TOUCH SENSOR}}
+\newcommand{\cDi}[1]{\control{#1}{DISPLAY}}
+\newcommand{\cLi}[1]{\control{#1}{LIGHTING}}
+\newcommand{\cBe}[1]{\control{#1}{BEEPER}}
+\newcommand{\cPA}[1]{\control{#1}{POWER ADAPTER}}
+\newcommand{\cPP}[1]{\control{#1}{POWER / CHARGE PORT}}
+\newcommand{\cUSB}[1]{\control{#1}{USB 2.0 MICRO-B}}
+\newcommand{\cRB}[1]{\control{#1}{RECHARGEABLE BATTERY}}
+\newcommand{\cCC}[1]{\control{#1}{COIN CELL BATTERY}}
+\newcommand{\cMSD}[1]{\control{#1}{MICRO SD CARD}}
+\newcommand{\cEE}[1]{\control{#1}{EEPROM}}
+\newcommand{\cTo}[1]{\control{#1}{TOP}}
+\newcommand{\cFr}[1]{\control{#1}{FRONT}}
+\newcommand{\cSi}[1]{\control{#1}{SIDES}}
+\newcommand{\cLS}[1]{\control{#1}{LEFT SIDE}}
+\newcommand{\cRS}[1]{\control{#1}{RIGHT SIDE}}
+\newcommand{\cBa}[1]{\control{#1}{BACK}}
+\newcommand{\cBo}[1]{\control{#1}{BOTTOM}}
+\newcommand{\cMi}[1]{\control{#1}{MICROCONTROLLER}}
+
+\newcommand{\sBe}{%
+\begin{tikzpicture}[scale=0.1]
+  \draw[fill=black] (0,0) circle [radius=1];
+  \draw[fill=white] (0,0) circle [radius=0.25];
+
+  \draw (1.3,0.75) arc (30:-30:1.5);
+  \draw (1.73,1) arc (30:-30:2);
+  \draw (2.17,1.25) arc (30:-30:2.5);
+
+%  \draw[rotate=90] (1.3,0.75) arc (30:-30:1.5);
+%  \draw[rotate=90] (1.73,1) arc (30:-30:2);
+%  \draw[rotate=90] (2.17,1.25) arc (30:-30:2.5);
+%
+%  \draw[rotate=-90] (1.3,0.75) arc (30:-30:1.5);
+%  \draw[rotate=-90] (1.73,1) arc (30:-30:2);
+%  \draw[rotate=-90] (2.17,1.25) arc (30:-30:2.5);
+
+  \draw[rotate=180] (1.3,0.75) arc (30:-30:1.5);
+  \draw[rotate=180] (1.73,1) arc (30:-30:2);
+  \draw[rotate=180] (2.17,1.25) arc (30:-30:2.5);
+\end{tikzpicture}}
+
+\newcommand{\sNBe}{%
+\begin{tikzpicture}[scale=0.1,baseline=-3.5]
+  \draw[fill=black] (0,0) circle [radius=1];
+
+  \draw (1.3,0.75) arc (30:-30:1.5);
+  \draw (1.73,1) arc (30:-30:2);
+  \draw (2.17,1.25) arc (30:-30:2.5);
+  \draw[rotate=180] (1.3,0.75) arc (30:-30:1.5);
+  \draw[rotate=180] (1.73,1) arc (30:-30:2);
+  \draw[rotate=180] (2.17,1.25) arc (30:-30:2.5);
+
+  \draw[thick] (2,2) -- (-2,-2);
+  \draw[thick] (-2,2) -- (2,-2);
+  \draw[fill=white] (0,0) circle [radius=0.25];
+\end{tikzpicture}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Positions, Directions & Times
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\dLe}[1]{\direction{#1}{LEFT}}
+\newcommand{\dRi}[1]{\direction{#1}{RIGHT}}
+\newcommand{\dMi}[1]{\direction{#1}{MIDDLE}}
+\newcommand{\dTo}[1]{\direction{#1}{TOP}}
+\newcommand{\dFo}[1]{\direction{#1}{FORWARD}}
+\newcommand{\dBa}[1]{\direction{#1}{BACKWARD}}
+\newcommand{\dRe}[1]{\direction{#1}{REWIND}}
+\newcommand{\dCl}[1]{\direction{#1}{CLOCKWISE}}
+\newcommand{\dCC}[1]{\direction{#1}{COUNTER-CLOCKWISE}}
+\newcommand{\secs}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\direction{#1}{#2 SECS}}{\direction{#1}{#2 SECONDS}}}
+\newcommand{\mins}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\direction{#1}{#2 MINS}}{\direction{#1}{#2 MINUTES}}}
+\newcommand{\hours}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\direction{#1}{#2 HRS}}{\direction{#1}{#2 HOURS}}}
+
+\newcommand{\mono}[1]{\texttt{\textbf{#1}}}
+\newcommand{\num}[1]{\mono{#1}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Actions
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\aTu}[1]{\action{#1}{TURN}}
+\newcommand{\sTu}{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=-8.5]
+  \draw[<->] (0,0) arc (70:-250:1.75);
+\end{tikzpicture}}
+
+\newcommand{\aTuN}[1]{\action{#1}{TURN N TIMES}}
+\newcommand{\sTuN}[1]{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=-8.5]
+  \draw[<->] (0,0) arc (70:-250:1.75) node[anchor=west] at (0.5,-1.8) {\fontTGA{ss}{#1}};
+\end{tikzpicture}}
+
+\newcommand{\aCl}[1]{\action{#1}{TURN CLOCKWISE}}
+\newcommand{\sCl}{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=-8.5]
+  \draw[->] (0,0) arc (70:-250:1.75);
+\end{tikzpicture}}
+
+\newcommand{\aCC}[1]{\action{#1}{TURN COUNTER-CLOCKWISE}}
+\newcommand{\sCC}{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=-8.5]
+  \draw[<-] (0,0) arc (70:-250:1.75);
+\end{tikzpicture}}
+
+\newcommand{\sNTu}{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=-9]
+  \draw[<->] (0,0) arc (70:-250:1.75);
+  \draw (-2.65,0.25) -- (1.55,-3.75);
+  \draw (1.55,0.25) -- (-2.65,-3.75);
+\end{tikzpicture}}
+
+\newcommand{\sNTuN}[1]{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=-9]
+  \draw[<->] (0,0) arc (70:-250:1.75) node[anchor=west] at (0.7,-1.8) {\fontTGA{ss}{#1s}};
+  \draw (-2.65,0.25) -- (1.55,-3.75);
+  \draw (1.55,0.25) -- (-2.65,-3.75);
+\end{tikzpicture}}
+
+\newcommand{\aPr}[1]{\action{#1}{PRESS}}
+
+\newcommand{\aRe}[1]{\action{#1}{RELEASE}}
+\newcommand{\sRe}{%
+\begin{tikzpicture}[scale=0.1,thick]
+  \draw[->] (0,0) -- (0,4);
+\end{tikzpicture}}
+
+\newcommand{\aPR}[1]{\action{#1}{PRESS \& RELEASE}}
+\newcommand{\sPR}{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=2]
+  \draw[->] (0,4) -- (0,0);
+  \draw[->] (1.5,0) -- (1.5,4);
+\end{tikzpicture}}
+
+\newcommand{\sPRN}[1]{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=2]
+  \draw[->] (0,4) -- (0,0);
+  %\draw[->] (1.5,0) -- (1.5,4);
+  %\node[anchor=west] (2.5,4) {\fontTGA{ss}{#1}};
+  \draw[->] (1.5,0) -- (1.5,4) node[anchor=west] at (1.1,1.8) {\fontTGA{ss}{#1}};
+\end{tikzpicture}}
+
+\newcommand{\sNPR}{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=2]
+  \draw[->] (0,4) -- (0,0);
+  \draw[->] (1.5,0) -- (1.5,4);
+  \draw (-1.5,4) -- (3,0);
+  \draw (3,4) -- (-1.5,0);
+\end{tikzpicture}}
+
+\newcommand{\sNPRN}[1]{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=2]
+  \draw[->] (0,4) -- (0,0);
+  \draw[->] (1.5,0) -- (1.5,4) node[anchor=west] at (2.0,2) {\fontTGA{ss}{#1s}};
+  \draw (-1.5,4) -- (3,0);
+  \draw (3,4) -- (-1.5,0);
+\end{tikzpicture}}
+
+\newcommand{\aPH}[1]{\action{#1}{PRESS \& HOLD}}
+\newcommand{\sPH}{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=2]
+  \draw (0,0) -- (3,0);
+  \draw[->] (1.5,4) -- (1.5,0.5);
+\end{tikzpicture}}
+
+\newcommand{\sPHN}[1]{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=2]
+  \draw (0,0) -- (3,0);
+  \draw[->] (1.5,4) -- (1.5,0.5) node[anchor=west] at (2.0,2) {\fontTGA{ss}{#1s}};
+\end{tikzpicture}}
+
+\newcommand{\aSC}[1]{\action{#1}{SINGLE-CLICK}}
+\newcommand{\sSC}{\sPR}
+
+\newcommand{\aDC}[1]{\action{#1}{DOUBLE-CLICK}}
+\newcommand{\sDC}{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=2]
+  \draw[->>] (0,4) -- (0,0);
+  \draw[->>] (1.5,0) -- (1.5,4);
+\end{tikzpicture}}
+
+\newcommand{\aSe}[1]{\action{#1}{SELECT}}
+
+\newcommand{\aTo}[1]{\action{#1}{TOUCH}}
+%\newcommand{\sTo}{\HandCuffLeft}
+\newcommand{\sTo}{\raisebox{-0.8mm}{\HandCuffLeft}}
+%\newcommand{\sToN}[1]{\HandCuffLeft\thinspace \raisebox{1.2mm}{\fontTGA{ss}{#1s}}}
+\newcommand{\sToN}[1]{%
+\raisebox{-0.8mm}{\HandCuffLeft}\thinspace \raisebox{0.4mm}{\fontTGA{ss}{#1s}}}
+
+% No Touch
+\newcommand{\sNTo}{%
+\begin{tikzpicture}[scale=0.2,thick,baseline=-3.5]
+  %\node (0,0) {\HandCuffLeft};
+  %\draw[fill=black,rotate=45] (-0.08,-1.4) rectangle (0.08,1.4);
+  %\draw[fill=black,rotate=-45] (-0.08,-1.4) rectangle (0.08,1.4);
+  \node (0,0) {\raisebox{-0.8mm}{\HandCuffLeft}};
+  \draw (-1,-1) -- (1,1);
+  \draw (-1,1) -- (1,-1);
+\end{tikzpicture}}
+
+\newcommand{\sNToN}[1]{%
+%\begin{tikzpicture}[scale=0.2,ultra thin,baseline=-3.5]
+\begin{tikzpicture}[scale=0.2,thick,baseline=-3.5]
+  %\node (0,0) {\raisebox{-0.8mm}{\HandCuffLeft}\thinspace \raisebox{0.4mm}{\fontTGA{ss}{#1s}}};
+  %\draw[fill=black,rotate=45] (-0.08,-1.4) rectangle (0.02,1.4);
+  %\draw[fill=black,rotate=-45] (-0.08,-1.4) rectangle (0.02,1.4);
+  %\draw[fill=black,rotate=45] (-0.10,-1.4) rectangle (0.0,1.4);
+  %\draw[fill=black,rotate=-45] (-0.10,-1.4) rectangle (0.0,1.4);
+  %\draw (-2.25,-1) -- (-0.25,1);
+  %\draw (-2.25,1) -- (-0.25,-1);
+  \node at (-0.5,0) {\raisebox{-0.8mm}{$\hskip -3mm$ \HandCuffLeft}};
+  \node at (1.5,0) {\raisebox{0.4mm}{\fontTGA{ss}{#1s}}};
+  \draw (-2,-1) -- (0,1);
+  \draw (-2,1) -- (0,-1);
+\end{tikzpicture}}
+
+\newcommand{\aReset}[1]{\action{#1}{RESET}}
+
+\newcommand{\sBarOne}{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=2]
+  \draw (0,0) -- (3,0);
+  \draw[->] (1.5,4) -- (1.5,0.5);
+  \draw[->] (4,0) -- (4,4);
+\end{tikzpicture}}
+
+% Press & Hold for 2 Bars
+\newcommand{\sBarTwo}{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=2]
+  \draw (0,0) -- (3,0);
+  \draw (0,0.5) -- (3,0.5);
+  \draw[->] (1.5,4) -- (1.5,1);
+  \draw[->] (4,0) -- (4,4);
+\end{tikzpicture}}
+
+% Press & Hold for 3 Bars
+\newcommand{\sBarThree}{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=2]
+  \draw (0,0) -- (3,0);
+  \draw (0,0.5) -- (3,0.5);
+  \draw (0,1) -- (3,1);
+  \draw[->] (1.5,4) -- (1.5,1.5);
+  \draw[->] (4,0) -- (4,4);
+\end{tikzpicture}}
+
+\newcommand{\sReset}{\sBarOne}
+\newcommand{\sSec}{\sBarTwo}
+\newcommand{\sTer}{\sBarThree}
+
+% Audio
+\newcommand{\sPl}{%
+\begin{tikzpicture}[scale=0.1,rounded corners=1,baseline=-3]
+  \draw[fill=black] (-5.2,-2) -- (-5.2,2) -- (-2.3,0) -- cycle;
+
+  \draw[fill=black] (-1.3,-1.7) rectangle (-0.3,1.7);
+  \draw[fill=black] (0.3,-1.7) rectangle (1.3,1.7);
+
+  \draw[fill=black] (2.5,-1.7) rectangle (5.5,1.7);
+\end{tikzpicture}}
+
+\newcommand{\sNe}{%
+\begin{tikzpicture}[scale=0.1,rounded corners=1,baseline=-3]
+  \draw[fill=black] (-1.5,-2) -- (-1.5,2) -- (1.4,0) -- cycle;
+  \draw[fill=black,rounded corners=0.5] (1.5,-2) rectangle (1.9,2);
+\end{tikzpicture}}
+
+\newcommand{\sPr}{%
+\begin{tikzpicture}[scale=0.1,rounded corners=1,baseline=-3]
+  \draw[fill=black] (1.5,-2) -- (1.5,2) -- (-1.4,0) -- cycle;
+  \draw[fill=black,rounded corners=0.5] (-1.5,-2) rectangle (-1.9,2);
+\end{tikzpicture}}
+
+\newcommand{\aPlay}[1]{\action{#1}{PLAY}}
+\newcommand{\sPlay}{%
+\begin{tikzpicture}[scale=0.1,rounded corners=1,baseline=-4]
+  %\draw[fill=black] (0,0) -- (0,4) -- (3,2) -- cycle;
+  \draw[fill=black!10] (0,0) circle [radius=3.5];
+  \draw[fill=black] (-1.2,-2) -- (-1.2,2) -- (1.7,0) -- cycle;
+\end{tikzpicture}}
+
+\newcommand{\aPause}[1]{\action{#1}{PAUSE}}
+\newcommand{\sPause}{%
+\begin{tikzpicture}[scale=0.1,rounded corners=1,baseline=-4]
+  %\draw (0,0) rectangle (1,4);
+  %\draw (1.75,0) rectangle (2.75,4);
+  \draw[fill=black!10] (0,0) circle [radius=3.5];
+  \draw[fill=black] (-1.3,-1.7) rectangle (-0.3,1.7);
+  \draw[fill=black] (0.3,-1.7) rectangle (1.3,1.7);
+\end{tikzpicture}}
+
+\newcommand{\aStop}[1]{\action{#1}{STOP}}
+\newcommand{\sStop}{%
+\begin{tikzpicture}[scale=0.1,rounded corners=1,baseline=-4]
+  %\draw (0,0) rectangle (4,4);
+  \draw[fill=black!10] (0,0) circle [radius=3.5];
+  \draw[fill=black] (-1.5,-1.5) rectangle (1.5,1.5);
+\end{tikzpicture}}
+
+\newcommand{\aSkip}[1]{\action{#1}{SKIP}}
+
+\newcommand{\aNext}[1]{\action{#1}{NEXT}}
+\newcommand{\sNext}{%
+\begin{tikzpicture}[scale=0.1,rounded corners=1,baseline=-4]
+  %\draw (0,0) -- (0,4) -- (3,2) -- cycle;
+  %\draw (3.25,0) rectangle (4.0,4);
+  \draw[fill=black!10] (0,0) circle [radius=3.5];
+  \draw[fill=black] (-1.6,-2) -- (-1.6,2) -- (1.3,0) -- cycle;
+  \draw[fill=black,rounded corners=0.5] (1.4,-2) rectangle (1.8,2);
+\end{tikzpicture}}
+
+\newcommand{\aPrev}[1]{\action{#1}{PREVIOUS}}
+\newcommand{\sPrev}{%
+\begin{tikzpicture}[scale=0.1,rounded corners=1,baseline=-4]
+  %\draw (0,0) rectangle (0.75,4);
+  %\draw (1.0,2) -- (4.0,4) -- (4.0,0) -- cycle;
+  \draw[fill=black!10] (0,0) circle [radius=3.5];
+  \draw[fill=black] (1.6,-2) -- (1.6,2) -- (-1.3,0) -- cycle;
+  \draw[fill=black,rounded corners=0.5] (-1.4,-2) rectangle (-1.8,2);
+\end{tikzpicture}}
+
+% Display & Lighting (Screen) states
+\newcommand{\sScOn}[1]{\state{#1}{ON}}
+\newcommand{\sScOf}[1]{\state{#1}{OFF}}
+\newcommand{\sScDi}[1]{\state{#1}{DIM}}
+
+\newcommand{\eOn}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{white}{black}{#2 ON}}{\fontTGA{#1}{#2 ON}}}
+
+\newcommand{\eDim}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{white}{black!50}{#2 DIM}}{\fontTGA{#1}{#2 DIM}}}
+
+\newcommand{\eOff}[2]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{black}{white}{#2 OFF}}{\fontTGA{#1}{#2 OFF}}}
+
+\newcommand{\sOn}[1]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{white}{black}{ON}}{\fontTGA{#1}{ON}}}
+
+\newcommand{\sDim}[1]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{black!50}{white}{DIM}}{\fontTGA{#1}{DIM}}}
+
+\newcommand{\sOff}[1]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{black}{white}{OFF}}{\fontTGA{#1}{OFF}}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Components
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Audio
+\newcommand{\mAu}[1]{\mode{#1}{AUDIO}}
+\newcommand{\sAuPl}[1]{\state{#1}{PLAY}}
+\newcommand{\sAuPa}[1]{\state{#1}{PAUSE}}
+\newcommand{\sAuSt}[1]{\state{#1}{STOP}}
+\newcommand{\sAuNe}[1]{\state{#1}{NEXT}}
+\newcommand{\sAuPr}[1]{\state{#1}{PREVIOUS}}
+\newcommand{\sAuSk}[1]{\state{#1}{SKIP}}
+\newcommand{\sAuOc}[1]{\state{#1}{OCCUPIED}}
+
+% Alarm
+\newcommand{\mAl}[1]{\mode{#1}{ALARM}}
+\newcommand{\sAlDi}[1]{\state{#1}{DISABLED}}
+\newcommand{\sAlWa}[1]{\state{#1}{WAKE}}
+\newcommand{\sAlSn}[1]{\state{#1}{SNOOZE}}
+\newcommand{\sAlOf}[1]{\state{#1}{OFF}}
+\newcommand{\sAlSt}[1]{\state{#1}{STOPPED}}
+\newcommand{\sAlIP}[1]{\state{#1}{IN PROGRESS}}
+
+\newcommand{\aTi}[1]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{blue}{white}{TIME $=$ ALARM TIME}}{\fontTGA{#1}{TIME $=$ ALARM TIME}}}
+\newcommand{\aWT}[1]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{red}{white}{WAKE TIME EXCEEDED}}{\fontTGA{#1}{WAKE TIME EXCEEDED}}}
+\newcommand{\aTT}[1]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{red}{white}{TOTAL ALARM TIME EXCEEDED}}{\fontTGA{#1}{TOTAL ALARM TIME EXCEEDED}}}
+\newcommand{\aST}[1]{%
+\ifthenelse{\equal{#1}{sym}}{\symTGA{blue}{white}{SNOOZE TIME EXPIRED}}{\fontTGA{#1}{SNOOZE TIME EXPIRED}}}
+
+% Power
+\newcommand{\mPo}[1]{\mode{#1}{POWER}}
+\newcommand{\sPoAw}[1]{\state{#1}{WAKE}}
+\newcommand{\sPoSl}[1]{\state{#1}{SLEEP}}
+\newcommand{\sPoNa}[1]{\state{#1}{NAP}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Modes, Menus and States
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\mPr}[1]{\mode{#1}{PRIMARY}}
+\newcommand{\mSe}[1]{\mode{#1}{SECONDARY}}
+\newcommand{\mTe}[1]{\mode{#1}{TERTIARY}}
+
+\newcommand{\sON}[1]{\state{#1}{ON}}
+\newcommand{\sOFF}[1]{\state{#1}{OFF}}
+
+% Clock
+\newcommand{\mCl}[1]{\mode{#1}{CLOCK}}
+% States
+\newcommand{\sClTi}[1]{\state{#1}{TIME}}
+\newcommand{\sClMD}[1]{\state{#1}{MONTH \& DAY}}
+\newcommand{\sClYe}[1]{\state{#1}{YEAR}}
+\newcommand{\sClSh}[1]{\state{#1}{SHOW TRACK}}
+\newcommand{\sClSe}[1]{\state{#1}{SET TRACK}}
+
+% Timer
+\newcommand{\mTi}[1]{\mode{#1}{TIMER}}
+% States
+\newcommand{\sTiHM}[1]{\state{#1}{SET H|M}}
+\newcommand{\sTiMS}[1]{\state{#1}{SET M|S}}
+\newcommand{\sTiRu}[1]{\state{#1}{RUN}}
+\newcommand{\sTiPa}[1]{\state{#1}{PAUSE}}
+\newcommand{\sTiAl}[1]{\state{#1}{ALERT}}
+\newcommand{\sTiWa}[1]{\state{#1}{WAIT}}
+
+% Set Alarm
+\newcommand{\mSA}[1]{\mode{#1}{SET ALARM}}
+% States
+\newcommand{\sSAHo}[1]{\state{#1}{HOUR}}
+\newcommand{\sSAMi}[1]{\state{#1}{MINUTE}}
+\newcommand{\sSAWS}[1]{\state{#1}{WAKEUP SOURCE}}
+\newcommand{\sSAST}[1]{\state{#1}{SNOOZE TIME}}
+\newcommand{\sSAWT}[1]{\state{#1}{WAKE TIME}}
+\newcommand{\sSATT}[1]{\state{#1}{TOTAL ALARM TIME}}
+\newcommand{\sSADo}[1]{\state{#1}{DONE}}
+\newcommand{\sSADi}[1]{\state{#1}{DISABLED}}
+
+% Set Clock
+\newcommand{\mSC}[1]{\mode{#1}{SET CLOCK}}
+% States
+\newcommand{\sSCFo}[1]{\state{#1}{FORMAT}}
+\newcommand{\sSCHo}[1]{\state{#1}{HOUR}}
+\newcommand{\sSCMi}[1]{\state{#1}{MINUTE}}
+\newcommand{\sSCYe}[1]{\state{#1}{YEAR}}
+\newcommand{\sSCMo}[1]{\state{#1}{MONTH}}
+\newcommand{\sSCDa}[1]{\state{#1}{DAY}}
+\newcommand{\sSCDS}[1]{\state{#1}{DST}}
+\newcommand{\sSCDo}[1]{\state{#1}{DONE}}
+
+% Power Settings
+\newcommand{\mPS}[1]{\mode{#1}{POWER SETTINGS}}
+% Menu
+\newcommand{\mPSNa}[1]{\menu{#1}{NAP}}
+\newcommand{\mPSSt}[1]{\menu{#1}{STOP}}
+\newcommand{\mPSSl}[1]{\menu{#1}{SLEEP}}
+\newcommand{\mPSTo}[1]{\menu{#1}{TOUCH}}
+% States
+\newcommand{\sPSMe}[1]{\state{#1}{MENU}}
+\newcommand{\sPSHM}[1]{\state{#1}{H|M}}
+\newcommand{\sPSMS}[1]{\state{#1}{M|S}}
+\newcommand{\sPSSe}[1]{\state{#1}{SECONDS}}
+\newcommand{\sPSDo}[1]{\state{#1}{DONE}}
+
+% Touch Settings
+\newcommand{\mTS}[1]{\mode{#1}{TOUCH SETTINGS}}
+% Menu
+\newcommand{\mTSCa}[1]{\menu{#1}{CALIBRATE}}
+\newcommand{\mTSRe}[1]{\menu{#1}{READ}}
+\newcommand{\mTSCo}[1]{\menu{#1}{CONFIGURE}}
+\newcommand{\mTSDe}[1]{\menu{#1}{DEFAULTS}}
+\newcommand{\mTSDi}[1]{\menu{#1}{DISABLE}}
+% States
+\newcommand{\sTSMe}[1]{\state{#1}{MENU}}
+\newcommand{\sTSDi}[1]{\state{#1}{DISABLED}}
+\newcommand{\sTSNS}[1]{\state{#1}{NSCN}}
+\newcommand{\sTSPS}[1]{\state{#1}{PS}}
+\newcommand{\sTSRC}[1]{\state{#1}{REFCHRG}}
+\newcommand{\sTSEC}[1]{\state{#1}{EXTCHRG}}
+\newcommand{\sTSWB}[1]{\state{#1}{WAIT BASELINE}}
+\newcommand{\sTSBR}[1]{\state{#1}{BASELINE RUN}}
+\newcommand{\sTSWT}[1]{\state{#1}{WAIT TOUCH}}
+\newcommand{\sTSTR}[1]{\state{#1}{TOUCH RUN}}
+\newcommand{\sTSRT}[1]{\state{#1}{TOUCH \& READ}}
+\newcommand{\sTSTA}[1]{\state{#1}{TEST \& ADJUST}}
+\newcommand{\sTSDo}[1]{\state{#1}{DONE}}
+
+% Set Night Light
+\newcommand{\mSN}[1]{\mode{#1}{SET NIGHT LIGHT}}
+% Night Light Menu
+\newcommand{\mSNOn}[1]{\menu{#1}{COLOR \#1}}
+\newcommand{\mSNTw}[1]{\menu{#1}{COLOR \#2}}
+\newcommand{\mSNTh}[1]{\menu{#1}{COLOR \#3}}
+% Color Menu
+\newcommand{\mSNCo}[1]{\menu{#1}{PRESET}}
+\newcommand{\mSNRGB}[1]{\menu{#1}{RGB}}
+\newcommand{\mSNHSB}[1]{\menu{#1}{HSB}}
+% States
+\newcommand{\sSNMN}[1]{\state{#1}{COLOR MENU}}
+\newcommand{\sSNMC}[1]{\state{#1}{METHOD MENU}}
+\newcommand{\sSNCI}[1]{\state{#1}{COLOR}}
+\newcommand{\sSNRe}[1]{\state{#1}{RED}}
+\newcommand{\sSNGr}[1]{\state{#1}{GREEN}}
+\newcommand{\sSNBl}[1]{\state{#1}{BLUE}}
+\newcommand{\sSNHu}[1]{\state{#1}{HUE}}
+\newcommand{\sSNSa}[1]{\state{#1}{SATURATION}}
+\newcommand{\sSNBr}[1]{\state{#1}{BRIGHTNESS}}
+\newcommand{\sSNDo}[1]{\state{#1}{DONE}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Rotary Switch
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\sRs}[1]{%
+\begin{tikzpicture}[scale=0.1,thick]
+  \draw[fill=black] (0,0) circle [radius=2];
+  \draw[fill=black,rotate=#1] (2,1.5) arc (30:150:2.25) -- (0,6) -- cycle;
+  \node at (7,7) {};
+  \node at (-7,-7) {};
+\end{tikzpicture}}
+
+\newcommand{\sLe}{\sRs{90}}
+\newcommand{\sMi}{\sRs{180}}
+\newcommand{\sRi}{\sRs{-90}}
+
+\newcommand{\sLM}{%
+\begin{tikzpicture}[scale=0.1,thick]
+  \draw[fill=black] (0,4) circle [radius=2];
+  \draw[fill=black] (-1.5,6) arc (120:240:2.25) -- (-6,4) -- cycle;
+  \draw[fill=black] (0,-4) circle [radius=2];
+  \draw[fill=black] (-2,-5.5) arc (210:330:2.25) -- (0,-10) -- cycle;
+  \node at (-8,8) {};
+  \node at (8,-12) {};
+\end{tikzpicture}}
+
+\newcommand{\sLtoM}{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=4]
+  \draw[fill=black] (0,4) circle [radius=2];
+  \draw[fill=black!20,color=black!20] (-1.5,6) arc (120:240:2.25) -- (-6,4) -- cycle;
+  \draw[fill=black] (-2,2.5) arc (210:330:2.25) -- (0,-2) -- cycle;
+  \draw[->] (-5.5,3.5) arc (180:270:5.0);
+  %\node at (-2,9) {};
+  %\node at (5,-4) {};
+\end{tikzpicture}}
+
+\newcommand{\sMtoL}{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=4]
+  \draw[fill=black] (0,4) circle [radius=2];
+  \draw[fill=black] (-1.5,6) arc (120:240:2.25) -- (-6,4) -- cycle;
+  \draw[fill=black!20,color=black!20] (-2,2.5) arc (210:330:2.25) -- (0,-2) -- cycle;
+  \draw[<-] (-5.5,3.5) arc (180:270:5.0);
+  %\node at (-2,9) {};
+  %\node at (5,-4) {};
+\end{tikzpicture}}
+
+\newcommand{\sMtoR}{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=-6]
+  \draw[fill=black,rotate=90] (0,4) circle [radius=2];
+  \draw[fill=black!20,color=black!20,thick,rotate=90] (-1.5,6) arc (120:240:2.25) -- (-6,4) -- cycle;
+  \draw[fill=black,thick,rotate=90] (-2,2.5) arc (210:330:2.25) -- (0,-2) -- cycle;
+  \draw[->,rotate=90] (-5.5,3.5) arc (180:270:5.0);
+  %\node at (-10,5) {};
+  %\node at (2,-8) {};
+  %\node at (-7,2) {};
+  %\node at (2,2) {};
+\end{tikzpicture}}
+
+\newcommand{\sRtoM}{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=-6]
+  \draw[fill=black,rotate=90] (0,4) circle [radius=2];
+  \draw[fill=black,rotate=90] (-1.5,6) arc (120:240:2.25) -- (-6,4) -- cycle;
+  \draw[fill=black!20,color=black!20,rotate=90] (-2,2.5) arc (210:330:2.25) -- (0,-2) -- cycle;
+  \draw[<-,rotate=90] (-5.5,3.5) arc (180:270:5.0);
+  %\node at (-10,5) {};
+  %\node at (2,-8) {};
+  %\node at (-8,1) {};
+  %\node at (4,-4) {};
+\end{tikzpicture}}
+
+\newcommand{\sRM}{%
+\begin{tikzpicture}[scale=0.1,thick]
+  \draw[fill=black] (0,4) circle [radius=2];
+  \draw[fill=black] (1.5,6) arc (60:-60:2.25) -- (6,4) -- cycle;
+  \draw[fill=black] (0,-4) circle [radius=2];
+  \draw[fill=black] (-2,-5.5) arc (210:330:2.25) -- (0,-10) -- cycle;
+  \node at (-8,8) {};
+  \node at (8,-12) {};
+\end{tikzpicture}}
+
+\newcommand{\sLR}{%
+\begin{tikzpicture}[scale=0.1,thick]
+  \draw[fill=black] (0,4) circle [radius=2];
+  \draw[fill=black] (-1.5,6) arc (120:240:2.25) -- (-6,4) -- cycle;
+  \draw[fill=black] (0,-4) circle [radius=2];
+  \draw[fill=black] (1.5,-2) arc (60:-60:2.25) -- (6,-4) -- cycle;
+  \node at (-8,8) {};
+  \node at (8,-12) {};
+\end{tikzpicture}}
+
+\newcommand{\sLtoR}{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=6]
+  \draw[fill=black] (0,4) circle [radius=2];
+  \draw[fill=black!20,color=black!20] (-1.5,6) arc (120:240:2.25) -- (-6,4) -- cycle;
+  \draw[fill=black] (1.5,6) arc (60:-60:2.25) -- (6,4) -- cycle;
+  \draw[->] (-5.5,3.5) arc (180:360:5.5);
+  %\node at (-6.5,10) {};
+  %\node at (8,-5) {};
+\end{tikzpicture}}
+
+\newcommand{\sRtoL}{%
+\begin{tikzpicture}[scale=0.1,thick,baseline=6]
+  \draw[fill=black] (0,4) circle [radius=2];
+  \draw[fill=black] (-1.5,6) arc (120:240:2.25) -- (-6,4) -- cycle;
+  \draw[fill=black!20,color=black!20] (1.5,6) arc (60:-60:2.25) -- (6,4) -- cycle;
+  \draw[<-] (-5.5,3.5) arc (180:360:5.5);
+  %\node at (-6.5,10) {};
+  %\node at (8,-5) {};
+\end{tikzpicture}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Seven Segment Display
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% {phantom text}{text}
+\newcommand{\sSSD}[2]{%
+\begin{tikzpicture}[baseline]
+\node[anchor=base,fill=black!80,draw=black,inner sep=2.5pt,rounded corners=0.5mm]
+  {\color{white} \phantom{\ssfontinline #1}};
+\node[anchor=base,inner sep=2.5pt,rounded corners=0.5mm]
+  {\color{white} \ssfontinline #2};
+\end{tikzpicture}}
+
+\newcommand{\symSSD}[2]{%
+\begin{tikzpicture}[baseline]
+  \node[anchor=base,fill=black!80,draw=black,inner sep=0.7mm,rounded corners=0.5mm]
+    {\color{white} \phantom{\ssfontsym #1}};
+  \node[anchor=base,inner sep=0.7mm,rounded corners=0.5mm]
+    {\color{white} \ssfontsym #2};
+\end{tikzpicture}}
+
+% {phantom text}{text}
+\newcommand{\sSSDl}[2]{%
+\begin{tikzpicture}[baseline]
+  \node[anchor=base,fill=black!80,draw=black,inner sep=4pt,rounded corners=0.5mm]
+    {\color{white} \phantom{\ssfont #1}};
+  \node[anchor=base,inner sep=4pt,rounded corners=0.5mm]
+    {\color{white} \ssfont #2};
+\end{tikzpicture}}
+
+% For inline text
+\newcommand{\sD}[1]{{\sSSD{8.8.:8.8.}{#1}}}
+\newcommand{\sDs}[1]{{\sSSD{8}{#1}}}
+\newcommand{\symD}[1]{{\symSSD{8.8.:8.8.}{#1}}}
+
+% For figures
+\newcommand{\sDl}[1]{{\sSSDl{8.8.:8.8.}{#1}}}
+\newcommand{\sDls}[1]{{\sSSDl{8}{#1}}}
+\newcommand{\figD}[2]{%
+\begin{table}[H]
+\ers{0.1}
+\centering
+\begin{tabu}{c}
+\sDl{#1} \\
+\scriptsize #2 \\
+\end{tabu}
+\end{table}}
+
+\newcommand{\figDT}[4]{%
+\begin{table}[H]
+\ers{0.1}
+\centering
+\begin{tabu} to 4in {X[1,c,m] X[1,c,m]}
+\sDl{#1} & \sDl{#3} \\
+\scriptsize #2 & \scriptsize #4 \\
+\end{tabu}
+\end{table}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Color Symbols
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\symColor}[3]{% <--- XXX Remove space before comment marker to smoosh
+%\begin{tikzpicture}[overlay]
+\begin{tikzpicture}
+  %\node[fill=#1,draw=black,inner sep=3pt,anchor=text,rectangle,rounded corners=0.5mm]
+    %at (0.06,0.03) {\color{#2} \fontTGA{n}{#3}};
+  \draw[fill=#1,draw=black,inner sep=1mm,rectangle,rounded corners=0.5mm]
+    (0,0) rectangle node {\color{#2} \fontTGA{ss}{#3}} (1.7,0.4);
+\end{tikzpicture} % <--- XXX Remove space before comment marker to smoosh
+%\phantom{\fontTGA{n}{GGGGGG}}} % <--- XXX Remove space before comment marker to smoosh
+} % <--- XXX Remove space before comment marker to smoosh
+
+\newcommand{\cBl}{\symColor{blue}{white}{BLUE}}
+\newcommand{\cGr}{\symColor{green}{black}{GREEN}}
+\newcommand{\cYe}{\symColor{yellow}{black}{YELLOW}}
+\newcommand{\cOr}{\symColor{orange}{black}{ORANGE}}
+\newcommand{\cRe}{\symColor{red}{white}{RED}}
+\newcommand{\cPu}{\symColor{violet}{white}{PURPLE}}
+\newcommand{\cPi}{\symColor{pink}{white}{PINK}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\aside}[1]{%
+\begin{center}
+\par\medskip\rule{\textwidth}{1pt}
+{\parbox[c]{6.6in}{\par\medskip #1 \par\medskip}}
+\par\rule{\textwidth}{1pt}\end{center}\par\medskip}
+
+\newcommand{\ddfrac}[2]{\frac{\displaystyle #1}{\displaystyle #2}}
+
+\setlength{\fboxsep}{12pt}
+
+\newcommand{\danger}[1]{\begin{center}\fbox{%
+\begin{minipage}{0.92\textwidth}%
+{\raisebox{-1mm}{\includegraphics{images/danger.png}} #1}%
+\end{minipage}}\end{center}}
+
+\newcommand{\warning}[1]{\begin{center}\fbox{%
+\begin{minipage}{0.92\textwidth}%
+{\raisebox{-1mm}{\includegraphics{images/warning.png}} #1}%
+\end{minipage}}\end{center}}
+
+\newcommand{\info}[1]{\begin{center}\fbox{%
+\begin{minipage}{0.92\textwidth}%
+{\raisebox{-1mm}{\includegraphics{images/info.png}} #1}%
+\end{minipage}}\end{center}}
+
+%\newcommand{\info}[1]{%
+%\fbox{\parbox{\textwidth}{\raisebox{-1mm}{\includegraphics{images/info.png}} #1}}}
+
+%\newcommand{\steps}[2]{\fbox{%
+%\begin{minipage}{0.95\textwidth}\par\medskip%
+%{\parbox{\textwidth}{\centering \thbi{#1}}} \newline #2%
+%\end{minipage}}}
+
+\newcommand{\steps}[2]{\begin{center}\fbox{%
+\begin{minipage}{0.92\textwidth}\par\medskip%
+{\parbox{\textwidth}{\centering \thbi{#1}}} \newline #2%
+\end{minipage}}\end{center}}
+
+%\newcommand{\ssteps}[3]{%
+%\fbox{\parbox{#1\textwidth}{\parbox{#1\textwidth}{\centering \thbi{#2}} \newline #3}}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Title Info
+\title{}
+\author{}
+\date{\today}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Begin Document %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+%\maketitle
+%\newpage
+
+\tableofcontents
+\listoffigures
+\listoftables
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Getting Started
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\part{Getting Started} \label{Getting Started}
+%
+%\begin{table}[H]
+%\ers{3}
+%\centering
+%\begin{tabu}{ X[2,l,m] | X[1,c,m]  }
+%  \thrule
+%  \thbi{Action} & \thbi{Section} \\ \mrule
+%  Familiarize yourself with the enclosure and controls.
+%    & \hyperref[Enclosure]{Enclosure \& Controls} \\
+%  Familiarize yourself with the general operation of the device.
+%    & \hyperref[Operation]{Operation} \\
+%  Set the clock.
+%    & \hyperref[Set Clock]{\mSC{n}} \\
+%  Enable and calibrate \cTS{f}.
+%    & \hyperref[Touch Settings]{\mTS{n}} \\
+%  \bhrule
+%\end{tabu}
+%\end{table}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Enclosure
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{enclosure.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Operation
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{operation.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Components
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\part{Components} \label{Components}
+\input{audio.tex}
+\input{alarm.tex}
+\input{power.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Primary Modes
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\part{Primary Modes} \label{Primary Modes}
+\input{clock.tex}
+\input{set_alarm.tex}
+\input{timer.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Secondary Modes
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\part{Secondary Modes} \label{Secondary Modes}
+\input{set_clock.tex}
+\input{power_settings.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Tertiary Modes
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\part{Tertiary Modes} \label{Tertiary Modes}
+\input{touch_settings.tex}
+\input{set_night_light.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Maintenance
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{maintenance.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Appendix
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{appendix.tex}
+
+\end{document}
