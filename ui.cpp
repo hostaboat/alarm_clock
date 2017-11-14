@@ -275,19 +275,14 @@ void Controls::reset(void)
 ////////////////////////////////////////////////////////////////////////////////
 UI::UI(void)
 {
-    if (!valid())
-        return;
-
     _display.brightness(_display_brightness);
 
     // Set initial state
     if (_controls.pos() == RSP_NONE)
-    {
         _errno = ERR_HW_RS;
-        return;
-    }
+    else
+        _state = _next_states[UIS_CLOCK][PS_NONE][_controls.pos()];
 
-    _state = _next_states[UIS_CLOCK][PS_NONE][_controls.pos()];
     _states[_state]->uisBegin();
 }
 
@@ -338,6 +333,16 @@ bool UI::valid(void)
 
 void UI::error(void)
 {
+    static uint32_t errors = 0;
+
+    err_e errno = _errno;
+    _errno = ERR_NONE;
+
+    if (errors & (1 << errno))
+        return;
+
+    errors |= (1 << errno);
+
     _player.stop();
     _beeper.stop();
 
@@ -345,24 +350,23 @@ void UI::error(void)
     bool error_str = true;
     _display.showString("Err");
 
-    while (true)
+    do
     {
-        _controls.process();
-        if (_controls.interaction())
-            break;
-
         if (err.toggled())
         {
             if (err.on())
                 _display.showString("Err");
             else if ((error_str = !error_str))
-                _display.showString(_err_strs[_errno]);
+                _display.showString(_err_strs[errno]);
             else
-                _display.showInteger(_errno);
+                _display.showInteger(errno);
         }
-    }
 
-    _errno = ERR_NONE;
+        _controls.process();
+
+    } while (!_controls.interaction());
+
+    _states[_state]->uisRefresh();
 }
 
 void UI::process(void)

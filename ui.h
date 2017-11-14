@@ -206,7 +206,7 @@ class UI
     private:
         UI(void);
 
-        enum err_e
+        enum err_e : uint32_t
         {
             ERR_NONE,
             ERR_HW_RS,
@@ -346,7 +346,7 @@ class UI
             },
         };
 
-        uis_e _state;
+        uis_e _state = UIS_CLOCK;
         err_e _errno = ERR_NONE;
 
         ps_e pressState(uint32_t msecs);
