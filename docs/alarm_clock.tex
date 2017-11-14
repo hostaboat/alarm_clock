@@ -125,6 +125,8 @@
 \setlength{\cftsecnumwidth}{3.0em}
 \setlength{\cftsubsecindent}{7.0em}
 \setlength{\cftsubsecnumwidth}{3.5em}
+\setlength{\cftsubsubsecindent}{10.5em}
+\setlength{\cftsubsubsecnumwidth}{4.5em}
 \renewcommand{\cftpartfont}{\bfseries\Large}
 \renewcommand{\cftpartpagefont}{\bfseries\large}
 \renewcommand{\cftchapfont}{\bfseries\large}
@@ -567,6 +569,29 @@ hyperfootnotes=true
 
 \newcommand{\eDisable}[2]{%
 \ifthenelse{\equal{#1}{sym}}{\symTGA{red}{white}{DISABLE #2}}{\fontTGA{#1}{DISABLE #2}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Error Severity Levels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\symSevTGA}[3]{% <--- XXX Remove space before comment marker to smoosh
+\begin{tikz}[overlay]
+  \node[fill=#1,draw=black,inner sep=1mm,anchor=text,rectangle,rounded corners=0.5mm]
+    %at (0.06,0.03) {\color{#2} \fontTGA{ss}{#3}};
+    at (0.06,0.03) {\color{#2} \fontTGA{s}{#3}};
+\end{tikz}% <--- XXX Remove space before comment marker to smoosh
+\phantom{\fontTGA{s}{#3}}}% <--- XXX Remove space before comment marker to smoosh
+
+\newcommand{\sNormal}[1]{%
+\ifthenelse{\equal{#1}{sym}}{\symSevTGA{blue}{white}{NORMAL}}{\fontTGA{#1}{NORMAL}}}
+
+\newcommand{\sLow}[1]{%
+\ifthenelse{\equal{#1}{sym}}{\symSevTGA{green}{black}{LOW}}{\fontTGA{#1}{LOW}}}
+
+\newcommand{\sMedium}[1]{%
+\ifthenelse{\equal{#1}{sym}}{\symSevTGA{yellow}{black}{MEDIUM}}{\fontTGA{#1}{MEDIUM}}}
+
+\newcommand{\sHigh}[1]{%
+\ifthenelse{\equal{#1}{sym}}{\symSevTGA{red}{white}{HIGH}}{\fontTGA{#1}{HIGH}}}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1402,6 +1427,11 @@ hyperfootnotes=true
 % Maintenance
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \input{maintenance.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Troubleshooting
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{troubleshooting.tex}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Appendix
