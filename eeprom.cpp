@@ -241,16 +241,6 @@ bool Eeprom::getClock(eClock & clock) const
     return true;
 }
 
-bool Eeprom::setClockMinYear(uint16_t year)
-{
-    return write(EEI_CLOCK_MIN_YEAR, year);
-}
-
-bool Eeprom::getClockMinYear(uint16_t & year) const
-{
-    return read(EEI_CLOCK_MIN_YEAR, year);
-}
-
 bool Eeprom::setTrack(uint16_t track)
 {
     return write(EEI_TRACK, track);

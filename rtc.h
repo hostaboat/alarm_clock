@@ -70,8 +70,6 @@ class Rtc : public Module
         uint8_t clockType(void) const { return _clock_type; }
         bool clockIs12H(void) const { return _clock_type == clock12H(); }
         bool clockIs24H(void) const { return _clock_type == clock24H(); }
-        uint16_t clockMinYear(void) const { return _s_clock_min_year; }
-        uint16_t clockMaxYear(void) const { return _s_clock_min_year + _s_clock_max_years; }
 
         static bool isValidClock(tClock const & clock);
         static uint8_t clock12H(void) { return EE_CLOCK_TYPE_12_HOUR; }
@@ -134,7 +132,6 @@ class Rtc : public Module
         void reset(void);
 
         bool defaultClock(tClock & clock);
-        bool defaultClockMinYear(uint16_t & clock_min_year);
         bool defaultAlarm(tAlarm & alarm);
 
         // Daylight Saving Time routines
@@ -143,8 +140,7 @@ class Rtc : public Module
 
         static uint32_t volatile _s_isr_seconds;
         static uint32_t volatile _s_alarm_start;
-        static uint16_t _s_clock_min_year;
-        static constexpr uint16_t _s_clock_max_years = 300;
+        static constexpr uint16_t const _s_clock_default_year = 2017;
 
         uint32_t _clock_second = 0;
         uint32_t _clock_minute = 0;

@@ -29,7 +29,6 @@
 // More likely for it to be 0 than this
 #define RTC_TSR_INVALID  UINT32_MAX
 
-uint16_t Rtc::_s_clock_min_year = 2017;
 constexpr uint8_t const Rtc::_s_days_in_month[12];
 
 #ifdef ZELLERS_RULE
@@ -83,21 +82,16 @@ Rtc::Rtc(void)
 {
     tAlarm alarm;
     tClock clock;
-    uint16_t clock_min_year;
 
 #ifdef RTC_INIT
     (void)defaultAlarm(alarm);
     (void)defaultClock(clock);
-    (void)defaultClockMinYear(clock_min_year);
 #else
     if (!_eeprom.getAlarm(alarm) || !isValidAlarm(alarm))
         (void)defaultAlarm(alarm);
 
     if (!_eeprom.getClock(clock) || !isValidClock(clock))
         (void)defaultClock(clock);
-
-    if (!_eeprom.getClockMinYear(clock_min_year))
-        (void)defaultClockMinYear(clock_min_year);
 #endif
 
     _tsr = RTC_TSR_INVALID;
@@ -106,7 +100,6 @@ Rtc::Rtc(void)
 
     _clock_dst = clock.dst;
     _clock_type = clock.type;
-    _s_clock_min_year = clock_min_year;
 
     _clock_second = _s_isr_seconds = clock.second;
     _clock_minute = clock.minute;
@@ -115,7 +108,6 @@ Rtc::Rtc(void)
     _clock_month = clock.month;
     _clock_year = clock.year;
 
-    Module::enable(MOD_RTC);
     start();
 
 #ifdef RTC_VBAT
@@ -530,7 +522,7 @@ bool Rtc::isValidClock(tClock const & clock)
             || (clock.day > days_in_month))
         return false;
 
-    if ((clock.month == 0) || (clock.month > 12) || (clock.year < _s_clock_min_year))
+    if ((clock.month == 0) || (clock.month > 12))
         return false;
 
     if (clock.type > EE_CLOCK_TYPE_MAX)
@@ -583,17 +575,11 @@ bool Rtc::defaultClock(tClock & clock)
     clock.hour = 0;
     clock.day = 1;
     clock.month = 1;
-    clock.year = _s_clock_min_year;
+    clock.year = _s_clock_default_year;
     clock.type = EE_CLOCK_TYPE_12_HOUR; 
     clock.dst = true;
 
     return _eeprom.setClock(clock);
-}
-
-bool Rtc::defaultClockMinYear(uint16_t & clock_min_year)
-{
-    clock_min_year = _s_clock_min_year;
-    return _eeprom.setClockMinYear(clock_min_year);
 }
 
 bool Rtc::isValidAlarm(tAlarm const & alarm)

@@ -20,17 +20,14 @@ enum eei_e : uint8_t
     EEI_CLOCK_TYPE_DST,     // Type & DST
 
     // 10
-    EEI_CLOCK_MIN_YEAR,     // Minumum clock year
-
-    // 11
     EEI_TRACK,
 
-    // 12-14
+    // 11-13
     EEI_TOUCH_NSCN_PS,          // NSCN & PS
     EEI_TOUCH_REFCHRG_EXTCHRG,  // REFCHRG & EXTCHRG
     EEI_TOUCH_THRESHOLD,
 
-    // 15-21
+    // 14-20
     EEI_POWER_NAP_SECS_HIGH,   // Nap Time high 16 bits
     EEI_POWER_NAP_SECS_LOW,    // Nap Time low 16 bits
     EEI_POWER_STOP_SECS_HIGH,  // Player Stop Time high 16 bits
@@ -39,7 +36,7 @@ enum eei_e : uint8_t
     EEI_POWER_SLEEP_SECS_LOW,  // Sleep Time low 16 bits
     EEI_POWER_TOUCH_SECS,      // Touch Time to sleep
 
-    // 22-27
+    // 21-26
     EEI_NLC_01_LOW,  // Night Light Color
     EEI_NLC_01_HIGH,
     EEI_NLC_02_LOW,
@@ -47,9 +44,9 @@ enum eei_e : uint8_t
     EEI_NLC_03_LOW,
     EEI_NLC_03_HIGH,
 
-    // Num entries : 27
+    // Num entries : 26
 // Used to determine the EEPROM size
-#define EEI_CNT  27
+#define EEI_CNT  26
 };
 
 #define EE_ALARM_TYPE_BEEP   0x00
@@ -126,9 +123,6 @@ class Eeprom : public Module
 
         bool setClock(eClock const & clock);
         bool getClock(eClock & clock) const;
-
-        bool setClockMinYear(uint16_t year);
-        bool getClockMinYear(uint16_t & year) const;
 
         bool setTrack(uint16_t track);
         bool getTrack(uint16_t & track) const;

@@ -1188,7 +1188,7 @@ void UI::SetClock::updateMinute(ev_e ev)
 
 void UI::SetClock::updateYear(ev_e ev)
 {
-    evUpdate < uint16_t > (_clock.year, ev, _ui._rtc.clockMinYear(), _ui._rtc.clockMaxYear());
+    evUpdate < uint16_t > (_clock.year, ev, 0, 9999);
 }
 
 void UI::SetClock::updateMonth(ev_e ev)
