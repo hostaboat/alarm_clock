@@ -8,6 +8,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Modules} \label{Modules}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Modules - Introduction
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+
 There are a number of functions that the device performs.  Each set of
 functionality will be called a \textit{module}.  There are some modules that are
 always active and some that can only be active at one time.  Those that are
@@ -37,7 +42,7 @@ at one time will be called \textit{modes}.
 \end{table}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% State Diagrams
+% Modules - State Diagrams
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{State Diagrams}
 
@@ -110,7 +115,7 @@ movement.  The following table shows and describes the diagram elements.
 \end{longtabu}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Components
+% Modules - Components
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Components}
 
@@ -143,7 +148,7 @@ There are \num{3} components each described in individual sections.
 \end{table}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Modes
+% Modules - Modes
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Modes}
 
@@ -207,7 +212,7 @@ turned, the \mPr{f} mode is automatically selected.  The \cEs{f} is then used
 to select \mSe{f} and \mTe{f} modes.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Modes - Settings Modes
+% Modules - Modes - Settings Modes
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Settings Modes}
 
@@ -217,7 +222,7 @@ case of setting a time or date, the one currently being set will be
 \textit{blinking} on the \cDi{f}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Modes - Modes Diagram
+% Modules - Modes - Modes Diagram
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Modes Diagram}
 
@@ -242,8 +247,6 @@ determines which modes are available.
 \ers{2}
   \begin{tabu}{ X[1,c,m] | X[1,c,m] | X[1,c,m] | X[1,c,m] }  
     \thrule
-    \multicolumn{4}{c}{\thLb{Positions \& Modes}} \\ \mrule
-
     \multirow{2}{*}[-1mm]{\thbi{Position}}
       & \multicolumn{3}{c}{\thbi{Modes}} \\ \tabucline{2-4}
 
@@ -585,7 +588,7 @@ events.  There are a number of functions that the \cTS{f} provides.
 \begin{table}[H]
 \centering
 \ers{0.1}
-\begin{tabu} { X[3,l,m] | X[1,c,m] }
+\begin{tabu} { X[3,l,m] | X[2,c,m] }
   \thrule
   \thbi{Function} & \thbi{Module} \\ \mrule
   Snooze alarm. & \hyperref[Alarm]{\mAl{f}} \\ \drule{2}
@@ -672,9 +675,22 @@ Often, an \textit{effect} will be grouped with the \textit{action}:
   & \sTu & \sPR & \multirow{2}{*}{\sSCMi{sym}} \\
 & \eUp{sym}{} & \eCa{sym}{} & \\}
 
+And sometimes multiple actions will be grouped into one column indicating
+that \textit{any} one of the actions can bring about the change.  For example,
+the following is used in \mCl{f} to indicate any of three actions, or rather
+inactions, that will cause the \sClSh{f} state to go back to the \sClTi{f}
+state.
+
+\as{{ c l l }}{%
+& \sNTuN{3} & \\ \dcrule{2}{2}
+\sClSh{sym} & \sNToN{3} & \sClTi{sym} \\ \dcrule{2}{2}
+& \sNPRN{15} & \\}
+
+\pagebreak
+
 The table below sums up all of the symbols described in the previous sections.
 
-\ers{2.6}
+\ers{3}
 \begin{longtabu}{ X[1,c,m] | X[4,l,m] }
   \thrule
   \multicolumn{2}{c}{\textbf{\cRs{n}}} \\ \mrule
@@ -683,9 +699,6 @@ The table below sums up all of the symbols described in the previous sections.
   $\hskip -5.5mm$ \sLtoM & Turn from \dLe{f} to \dMi{f}. \\ \drule{2}
   $\hskip 2.5mm$ \sMtoR & Turn from \dMi{f} to \dRi{f}. \\ \drule{2}
   $\hskip 2.5mm$ \sRtoM & Turn from \dRi{f} to \dMi{f}. \\ \drule{2}
-
-  \pagebreak
-  \drule{2}
 
   \sLtoR & Turn from \dLe{f} to \dRi{f}. \\ \drule{2}
   \sRtoL & Turn from \dRi{f} to \dLe{f}. \\
@@ -699,25 +712,27 @@ The table below sums up all of the symbols described in the previous sections.
   \sCC & Turn \textit{counter-clockwise}. \\ \drule{2}
   \multirow{2}{*}[-1mm]{$\hskip 3.3mm$ \sTuN{$N$}}
     & Turn for at least $N$ detents in any direction. \\
-  & \quad \sTuN{3} $\longrightarrow$ Turn until at least \num{3} detents are felt. \\ \drule{2}
+    & \quad \sTuN{3} $\longrightarrow$ Turn until at least \num{3} detents are felt. \\ \drule{2}
+
+  \pagebreak
+  \drule{2}
+
   \sNTu & Do \textit{not} turn. \\ \drule{2}
   \multirow{2}{*}[-1mm]{$\hskip 4.4mm$ \sNTuN{$N$}}
     & Failure to turn \textit{within} $N$ seconds. \\
-  & \quad \sNTuN{15} $\longrightarrow$ Failure to turn within \num{15} seconds. \\ \mrule
+    & \quad \sNTuN{15} $\longrightarrow$ Failure to turn within \num{15} seconds. \\ \drule{2}
 
   \sPR & Press \& release \textit{once}. \\ \drule{2}
   \multirow{2}{*}[-1mm]{$\hskip 3.3mm$ \sPRN{$N$}} & Press \& release $N$ times. \\
     & \quad \sPRN{4} $\longrightarrow$ Press \& release \num{4} times. \\ \drule{2}
   \sNPR & Do \textit{not} press \& release. \\ \drule{2}
 
-  \pagebreak
-  \drule{2}
-
   \multirow{2}{*}[-1mm]{$\hskip 4.3mm$ \sNPRN{$N$}}
     & Failure to press \& release \textit{within} $N$ seconds. \\
-    & \quad \sNPRN{3} $\longrightarrow$ Failure to press \& release within \num{3} seconds. \\ \mrule
+    & \quad \sNPRN{3} $\longrightarrow$ Failure to
+      press \& release within \num{3} seconds. \\ \drule{2}
 
-  \sDC & Press \& release \textit{twice} in quick succession. \\ \mrule
+  \sDC & Press \& release \textit{twice} in quick succession. \\ \drule{2}
 
   \multirow{2}{*}[-1mm]{$\hskip 3.3mm$ \sPHN{$N$}}
     & Press \& hold for $N$ seconds then release. \\
@@ -726,11 +741,15 @@ The table below sums up all of the symbols described in the previous sections.
   \sSec & Press \& hold until \symD{====} is displayed, then release. \\ \drule{2}
   \sTer & Press \& hold until \symD{>>>>} is displayed, then release. \\
 
+  \mrule
+  \pagebreak
+
   \thrule
   \multicolumn{2}{c}{\textbf{\cTS{n}}} \\ \mrule
   \thbi{Symbol} & \thbi{Description} \\ \mrule
 
   \sTo & Touch the top of the enclosure with palm of hand. \\ \drule{2}
+
   \multirow{2}{*}[-1mm]{$\hskip 3.0mm$ \sToN{$N$}} & Touch for $N$ seconds. \\
     & \quad \sToN{5} $\longrightarrow$ Touch for \num{5} seconds. \\ \drule{2}
   \sNTo & Do \textit{not} touch. \\ \drule{2}
