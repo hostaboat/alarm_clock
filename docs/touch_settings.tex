@@ -375,7 +375,7 @@ Disable touch capability.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Menu
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Menu} \sTSMe{syml}
+\section{Menu} \sTSMe{syml} \label{Touch - Menu}
 
 Select one of the \num{5} menu options.
 
@@ -390,7 +390,7 @@ Select one of the \num{5} menu options.
     then test and adjust to set the final touch threshold value. \\ \drule{3}
   \mTSCo{sym} & \sDl{ConF.} & Configure various settings relevant to touch
     sensitivity before going through the calibration process. \\ \drule{3}
-  \mTSDe{sym} & \sDl{dEF.!} & Reload default touch sensitivity and
+  \mTSDe{sym} & \sDl{dEF.!} & Load default touch sensitivity and
     threshold values. \\ \drule{3}
   \mTSDi{sym} & \sDl{OFF!} & Disable touch - all touch capability on the
     device will be disabled. \\
@@ -659,7 +659,7 @@ and the number on the \textit{right} side of the \textit{colon} will be
 \par\medskip
 
 To select the number of scans per reading, \aTu{f} the \cEs{f} then \aPR{f}
-to cache the setting and move on to the next.
+to cache the setting and move on to \sTSPS{f}.
 
 \as{{c c c c}}{%
 \multirow{2}{*}{\sTSNS{sym}}
@@ -701,7 +701,7 @@ and the number on the \textit{right} side of the \textit{colon} will be
 \par\medskip
 
 To select the prescaler, \aTu{f} the \cEs{f} then \aPR{f} to cache the setting
-and move on to the next.
+and move on to \sTSRC{f}.
 
 \as{{c c c c}}{%
 \multirow{2}{*}{\sTSPS{sym}}
@@ -736,7 +736,7 @@ and the number on the \textit{right} side of the \textit{colon} will be
 \par\medskip
 
 To select the reference charge, \aTu{f} the \cEs{f} then \aPR{f} to cache the
-setting and move on to the next.
+setting and move on to \sTSEC{f}.
 
 \as{{c c c c}}{%
 \multirow{2}{*}{\sTSRC{sym}}
@@ -780,6 +780,32 @@ phase.
 \multirow{2}{*}{\sTSEC{sym}}
   & \sTu & \sPR & \multirow{2}{*}{\sTSWB{sym}} \\
 & \eUp{sym}{} & \eCa{sym}{} & \\}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Defaults
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Defaults} \mTSDe{syml}
+
+Loads "safe" default touch sensitivity and threshold values.
+
+\par\medskip
+
+Selecting the \mTSDe{f} menu option loads touch sensitivity and threshold
+values that have been tested with this device.  This doesn't mean that they are
+necessarily going to just work since as mentioned, location, environmental
+factors, touching force, etc. are factors that can influence readings.
+However, they can provide a sane starting point if "bad" values have been set
+via \mTSCo{f}.  It's recommended that after loading the \mTSDe{f} that you
+follow the \hyperref[Touch Calibration]{\mTSCa{f}} procedure.
+
+\par\medskip
+
+To load the \mTSDe{f}, from the \hyperref[Touch - Menu]{\sTSMe{f}}, \aTu{f}
+the \cEs{f} to select the option which is shown on the \cDi{f} as
+\symD{dEF.!}, then \aPR{f} to finish.
+
+\as{{ c c c c c c}}{\sTSMe{sym} & \sTu & \eSel{sym}{} \mTSDe{sym}
+  & \sPR & \eLo{sym}{DEFAULTS} & \sTSDo{sym} \\}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Test & Adjust
@@ -876,7 +902,6 @@ To go to, say \mCl{f} mode, \aTu{f} the \cRs{f} to the \dMi{f}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Disabled
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\pagebreak
 \section{Disabled} \sTSDi{syml}
 
 Touch capability is completely disabled on the device.
@@ -896,14 +921,18 @@ and will \textit{not} be blinking.  To re-enable touch, and return to the
 
 \as{{ c c c c }}{\sTSDi{sym} & \sPR & \eEn{sym}{TOUCH} & \sTSMe{sym} \\}
 
-To disable touch, from the \sTSMe{f}, select the \mTSDi{f} menu option which
-is shown on the \cDi{f} as \symD{OFF!} and \textit{will} be blinking.
+To disable touch, from the \hyperref[Touch - Menu]{\sTSMe{f}}, \aTu{f} the
+\cEs{f} to select the \mTSDi{f} menu option, which
+is shown on the \cDi{f} as \symD{OFF!} and \textit{will} be blinking, then
+\aPR{f} to disable touch capability on the device.
 
-\as{{ c c c c c }}{\sTSMe{sym} & \sTu & \eSel{sym}{} \mTSDi{sym} & \sPR & \sTSDi{sym} \\}
+\as{{ c c c c c c}}{\sTSMe{sym} & \sTu & \eSel{sym}{} \mTSDi{sym}
+  & \sPR & \eDisable{sym}{TOUCH} & \sTSDi{sym} \\}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Power
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagebreak
 \section{Power}
 
 The screens will either \sScDi{f} or turn \sScOf{f} depending on the current
