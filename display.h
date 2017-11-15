@@ -310,7 +310,6 @@ DevHT16K33 < ADDR, I2C, SDA, SCL >::DevHT16K33(void)
     : Seg7Display(HT16K33_COLON, HT16K33_DECIMAL)
 {
     this->_frequency = 400000;
-    brightness(_brightness);
 }
 
 template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >
