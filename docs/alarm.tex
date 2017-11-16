@@ -75,10 +75,10 @@ when either of the two above actions are taken.
 \par\medskip
 
 If a \sSAWT{f} has been configured and the alarm has been in the \sAlWa{f}
-state for longer than that time, the alarm will stop and go to the \sAlOf{f}
-state.
+state for longer than that time, the alarm will stop, reset for the next day
+and go to the \sAlOf{f} state.
 
-\as{{c c c}}{\sAlWa{sym} & \aWT{sym} & \sAlOf{sym} \\}
+\as{{c c c c}}{\sAlWa{sym} & \aWT{sym} & \eSt{sym}{ALARM} & \sAlOf{sym} \\}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Snooze
@@ -114,7 +114,7 @@ when the above action is taken.
 If a \sSATT{f} has been configured and the alarm has been \sAlIP{f} for
 more than this time, it will turn off and go to the \sAlOf{f} state.
 
-\as{{c c c}}{\sAlIP{sym} & \aTT{sym} & \sAlOf{sym} \\}
+\as{{c c c c}}{\sAlIP{sym} & \aTT{sym} & \eSt{sym}{ALARM} & \sAlOf{sym} \\}
 
 In either case, the alarm will automatically reset for the next day.
 
@@ -126,7 +126,7 @@ In either case, the alarm will automatically reset for the next day.
 \ers{2}
 \begin{longtabu}{ X[2,c,m] | X[2,c,m] | X[3,c,m] | X[2,c,m] }
   \thrule
-  \thbi{State} & \thbi{Action} & \thbi{Effect} & \thbi{Next} \\ \mdrule
+  \thbi{State} & \thbi{Action} & \thbi{Effect} & \thbi{Next} \\ \mrule
 
   \sAlDi{sym} & --- & --- & --- \\ \mrule
 

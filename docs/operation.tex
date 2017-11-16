@@ -27,7 +27,7 @@ at one time will be called \textit{modes}.
 
   & \hyperref[Audio]{\mAu{s}} \\
   \thbi{Components} & \hyperref[Alarm]{\mAl{s}} \\
-  & \hyperref[Power]{\mPo{s}} \\ \drule{2}
+  & \hyperref[Power]{\mPo{s}} \\ \mrule
 
   & \hyperref[Clock]{\mCl{s}} \\
   & \hyperref[Set Alarm]{\mSA{s}}  \\
@@ -119,9 +119,8 @@ movement.  The following table shows and describes the diagram elements.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Components}
 
-A component is a module that is enabled and running at all times unless
-explicitly disabled.  Components all run and function concurrently and are
-independent of any mode the device might be in.
+Components run and function concurrently and independent of any \textit{mode}
+the device might be in.
 
 \par\medskip
 
@@ -193,11 +192,11 @@ into \mPr{f}, \mSe{f} and \mTe{f}.
 
   & \hyperref[Clock]{\mCl{s}} \\
   \hyperref[Primary Modes]{\mPr{s}} & \hyperref[Set Alarm]{\mSA{s}} \\
-  & \hyperref[Timer]{\mTi{s}} \\ \drule{2}
+  & \hyperref[Timer]{\mTi{s}} \\ \mrule
 
   \multirow{2}{*}[-1mm]{\hyperref[Secondary Modes]{\mSe{s}}}
     & \hyperref[Set Clock]{\mSC{s}} \\
-  & \hyperref[Power Settings]{\mPS{s}} \\ \drule{2}
+  & \hyperref[Power Settings]{\mPS{s}} \\ \mrule
 
   \multirow{2}{*}[-1mm]{\hyperref[Tertiary Modes]{\mTe{s}}}
     & \hyperref[Touch Settings]{\mTS{s}} \\
@@ -216,10 +215,10 @@ to select \mSe{f} and \mTe{f} modes.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Settings Modes}
 
-Settings that can change value will be \textit{blinking} on the \cDi{f}. If
-there is more than one setting to configure on the \cDi{f} at a time as in the
-case of setting a time or date, the one currently being set will be
-\textit{blinking} on the \cDi{f}.
+Settings that can change value will, in general, be \textit{blinking} on the
+\cDi{f}. If there is more than one setting to configure on the \cDi{f} at a time,
+as in the case of setting a time (hour and minute) or date (month and day), the
+current setting will be \textit{blinking}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Modules - Modes - Modes Diagram
@@ -287,6 +286,7 @@ There are a number of symbols used to indicate turning actions.
     \sRtoL & Turn from \dRi{f} to \dLe{f}. \\
     \bhrule
   \end{tabu}
+\caption {Selector Dial - Symbols}
 \end{table}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -329,7 +329,7 @@ wrap or cycle.
 \begin{figure}[H]
 \centering
   \includegraphics{images/settings_knob_wrap.png}
-\caption{Settings Knob Turning}
+\caption{Settings Knob - Turning}
 \end{figure}
 
 Note that the above figure is not a literal representation of where values will
@@ -414,7 +414,7 @@ There are \num{3} main pressing actions.
     then release. \\
   \bhrule
 \end{tabu}
-\caption {Settings Knob Pressing Actions}
+\caption {Settings Knob - Pressing Actions}
 \end{table}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -595,7 +595,7 @@ events.  There are a number of functions that the \cTS{f} provides.
   Show current track number. & \hyperref[Clock]{\mCl{f}} \\ \drule{2}
   Stop timer alerting. & \hyperref[Timer]{\mTi{f}} \\ \drule{2}
   Wake the device from nap or sleep. & \hyperref[Power]{\mPo{f}} \\ \drule{2}
-  Toggle timer lighting on/off. & \hyperref[Timer]{\mTi{f}} \\ \drule{2}
+  Toggle timer countdown lighting on/off. & \hyperref[Timer]{\mTi{f}} \\ \drule{2}
   Forcibly put the device to sleep. & \hyperref[Power]{\mPo{f}} \\
   \bhrule
 \end{tabu}
@@ -642,7 +642,7 @@ palm of the hand or a majority of the fingers must be used.}
     & \quad \sNToN{3} $\longrightarrow$ Failure to touch within \num{3} seconds. \\ \drule{2}
   \bhrule
 \end{tabu}
-\caption {Touch Sensor Symbols}
+\caption {Touch Sensor - Symbols}
 \end{table}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
