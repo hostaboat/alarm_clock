@@ -1,6 +1,6 @@
 \documentclass[12pt]{report}
 
-\usepackage{appendix}
+%\usepackage{appendix}
 
 \usepackage[margin=2cm]{geometry}
 \geometry{letterpaper}
@@ -10,6 +10,7 @@
 
 \newcommand{\wood}{Bubinga}
 \newcommand{\front}{aluminum}
+\newcommand{\project}{Boogie Box}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Fonts
@@ -320,6 +321,7 @@ hyperfootnotes=true
 \usepackage{ifthen}
 
 \newcommand{\fontTGA}[2]{%
+\ifthenelse{\equal{#1}{h}}{{\huge \qag #2}}{}%
 \ifthenelse{\equal{#1}{l}}{{\large \qag #2}}{}%
 \ifthenelse{\equal{#1}{n}}{{\qag #2}}{}%
 \ifthenelse{\equal{#1}{s}}{{\small \qag #2}}{}%
@@ -1342,9 +1344,9 @@ hyperfootnotes=true
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Title Info
-\title{}
-\author{}
-\date{\today}
+%\title{}
+%\author{}
+%\date{\today}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1352,13 +1354,122 @@ hyperfootnotes=true
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 
+\thispagestyle{empty}
+
+\begin{table}[H]
+\begin{tabu}{X[1,l,m] X[1,r,m]}
+  %\fontTGA{h}{\bfseries Boogie Box}
+  \fontTGA{h}{\bfseries \project{}}
+    & \fontTGA{ss}{Designed and Assembled by Todd Wease} \\
+\end{tabu}
+\end{table}
+
+\begin{table}[H]
+\ers{3}
+\begin{tabu}{X[1,l,m] X[1,l,m]}
+  \multirow{4}{*}{\includegraphics{images/alarm_clock.png}}
+    & \fontTGA{n}{Portable with Rechargeable Lithium Ion Battery} \\
+  & \fontTGA{n}{Micro USB connection for Powering and Charging} \\
+  & \fontTGA{n}{Low Battery Indicator} \\
+  & \fontTGA{n}{Controllable Display and Lighting Brightness} \\
+\end{tabu}
+\end{table}
+
+\begin{table}[H]
+\begin{tabu}{X[1,l,p] X[1,l,p]}
+  \fontTGA{s}{\bfseries Clock}
+  \footnotesize \qag
+  \begin{itemize}[label=, leftmargin=1pt, itemsep=1pt]
+    \item Date \& Time
+    \item 12 or 24 Hour Time Format
+    \item Configurable Daylight Saving Time
+    \item Coin Cell Battery backup keeps time when device is unpowered
+  \end{itemize}
+  &
+  \fontTGA{s}{\bfseries Alarm}
+  \footnotesize \qag
+  \begin{itemize}[label=, leftmargin=1pt, itemsep=1pt]
+    \item Wake to Beeper or Audio
+    \item Touch to Snooze
+    \item Configurable Snooze Time
+    \item Configurable Auto-Stop Timers
+  \end{itemize}
+\end{tabu}
+\end{table}
+
+\begin{table}[H]
+\begin{tabu}{X[1,l,p] X[1,l,p]}
+  \fontTGA{s}{\bfseries Audio}
+  \footnotesize \qag
+  \begin{itemize}[label=, leftmargin=1pt, itemsep=1pt]
+    \item Play up to 4096 songs
+    \item Dedicated Conrols
+      \begin{itemize}[label=-, leftmargin=*, topsep=0mm, itemsep=0mm]
+        \item Play \& Pause
+        \item Skip Forward Tracks
+        \item Skip Back \& Rewind Tracks
+      \end{itemize}
+    \item Stop function for extra power savings
+    \item Direct track selection using Touch
+  \end{itemize}
+  &
+  \fontTGA{s}{\bfseries Timer}
+  \footnotesize \qag
+  \begin{itemize}[label=, leftmargin=1pt, itemsep=1pt]
+    \item Up to \textasciitilde100 hours
+    \item Touch to stop alerting when done
+    \item Countdown LED lighting
+    \item Toggle display between Timer / Clock
+  \end{itemize}
+
+\end{tabu}
+\end{table}
+
+\begin{table}[H]
+\begin{tabu}{X[1.3,l,p] X[1,l,p] X[1.5,l,p]}
+  \fontTGA{s}{\bfseries Touch}
+  \footnotesize \qag
+  \begin{itemize}[label=, leftmargin=1pt, itemsep=1pt]
+    \item Capacitive Touch Sensing
+    \item Calibration and Tuning
+    \item Configurable Sensitivity
+  \end{itemize}
+  &
+  \fontTGA{s}{\bfseries Night Light}
+  \footnotesize \qag
+  \begin{itemize}[label=, leftmargin=1pt, itemsep=1pt]
+    \item Up to 4 colors
+      \begin{itemize}[label=-, leftmargin=*, topsep=0mm, itemsep=0mm]
+        \item One White
+        \item 3 Configurable
+      \end{itemize}
+    \item Lighting Animations
+  \end{itemize}
+  &
+  \fontTGA{s}{\bfseries Power}
+  \footnotesize \qag
+  \begin{itemize}[label=, leftmargin=1pt, itemsep=1pt]
+    \item Prolong battery charge when idle
+      \begin{itemize}[label=-, leftmargin=*, topsep=0mm, itemsep=0mm]
+        \item Two low power states
+        \item Auto-stop Audio
+      \end{itemize}
+    \item All idle timers configurable
+    \item Touch to force into Sleep state
+  \end{itemize}
+
+\end{tabu}
+\end{table}
+
+\fontTGA{t}{\today}
+
 %\maketitle
-%\newpage
+
+\pagebreak
 
 \tableofcontents
 \listoffigures
 \listoftables
-\newpage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Getting Started
