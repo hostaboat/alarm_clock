@@ -219,18 +219,18 @@ and \sClYe{f}.  To do so, \aTo{f} the \cTo{f} of the enclosure for
 
 \info{For \aTo{f} to work, make sure you have enabled it via
 \hyperref[Touch Settings]{\mTS{f}} and that the palm of your hand or
-most of your fingers lay across the top of the enclosure.}
+most of your fingers lay across the \cTo{f} of the enclosure.}
 
 If you don't \aPR{f} or \aTu{f} the \cEs{f} within \num{3} seconds after
-showing the track or aren't touching the top, the time will automatically
-redisplay.  If you \aPR{f} before a \aTu{f},
-it will immediately go back to \sClTi{f}.
+showing the track or aren't touching the \cTo{f} of the enclosure, the time
+will automatically redisplay.  If you \aPR{f} before a \aTu{f}, it will
+immediately go back to \sClTi{f}.
 
-\ase{1}{{ c c c }}{%
+\as{{ c c c }}{%
 \multirow{4}{*}{\sClSh{sym}} & \sPR & \multirow{4}{*}{\sClTi{sym}} \\ \dcrule{2}{2}
-& \sNTuN{3} & \\ \dcrule{2}{2}
-& \sNPRN{3} & \\ \dcrule{2}{2}
-& \sNToN{3} & \\}
+& $\hskip 3mm$ \sNTuN{3} & \\ \dcrule{2}{2}
+& $\hskip 3mm$ \sNToN{3} & \\ \dcrule{2}{2}
+& $\hskip 3mm$ \sNPRN{3} & \\}
 
 It will stay in this state as long as touch is detected\footnote{ If you have
 enabled a \textit{Touch Time} via \hyperref[Power Settings]{\mPS{ss}}, the screens
@@ -256,8 +256,8 @@ need to \aTu{f} the \cEs{f} within \num{3} seconds else it will go back to
 \as{{c c c}}{\sClSh{sym} & \sTuN{3s} & \sClSe{sym} \\}
 
 The idle timeout will be updated to \num{15} seconds after which it will go back
-to \sClTi{f}. As long as you are turning the \cEs{f} or touching the top of the
-enclosure the timeout will not occur - it is reset with each turn and while
+to \sClTi{f}. As long as you are turning the \cEs{f} or touching the \cTo{f} of
+the enclosure the timeout will not occur - it is reset with each turn and while
 detecting touch.
 
 \as{{l l l}}{%
@@ -304,17 +304,21 @@ of this so make sure the \cBr{ss} is turned up.} and if on, it will turn off.
 
 \info{Toggling the night light on/off can be done from \textit{any} state
 and will not affect, most importantly, track selection.}
+
 In addition to a white light, up to \num{3} additional colors are configurable
 via \hyperref[Set Night Light]{\mSN{f}}.  To select a different night light
 color, with the night light on, \aTu{f} the \cEs{f}.
 
-\as{{c c c}}{%
-\eOn{sym}{NIGHT LIGHT} & \sTu & \eAc{sym}{CYCLE COLORS} \\}
+\par\medskip
 
 Because this requires turning the \cEs{f}, it can only be done in \sClTi{f},
 \sClMD{f} and \sClYe{f} states.
 
-\par\medskip
+\as{{c c c c}}{%
+\sClTi{sym} & & \\ \dcrule{1}{1}
+\sClMD{sym} & \eOn{sym}{NIGHT LIGHT}
+  & \sTu & \eAc{sym}{CYCLE COLORS} \\ \dcrule{1}{1}
+\sClYe{sym} & & \\}
 
 Note that only unique colors are considered, so if you haven't
 configured any of the additional colors there will be no effect.  Also,
@@ -341,7 +345,7 @@ because of the on/off toggle, then turn back on.
 \as{{c c c}}{\state{sym}{ANY STATE} & \sPHN{4} & \eTo{sym}{ANIMATION|COLOR} \\}
 
 After toggling the animations on, you can cycle through the different ones in
-the same way you can cycle through the solid colors.
+the same way you can cycle through the solid colors by turning the \cEs{f}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Coin Cell Battery
@@ -350,8 +354,8 @@ the same way you can cycle through the solid colors.
 
 There is a \mono{CR2032} coin cell battery, apart from the rechargeable
 battery, attached to the \dTo{f} that continues to keep time even when the
-device if turned \sOff{f} via the \cPo{f} switch.  If the time is incorrect
-when powering the device \sOn{f}, the battery may need replacement.  For more
+device if switched \sOff{f} via the \cPo{f} switch.  If the time is incorrect
+when switching the device \sOn{f}, the battery may need replacement.  For more
 information see \hyperref[Replacing Battery]{Replacing the Coin Cell Battery}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -360,12 +364,12 @@ information see \hyperref[Replacing Battery]{Replacing the Coin Cell Battery}.
 \section{Power}
 
 In \sClTi{f}, \sClMD{f} and \sClYe{f}, the screens will \sDim{f} when the device
-is in a \sPoNa{f} power state.
+enters a \sPoNa{f} power state.
 
 \par\medskip
 
 In \sClTi{f}, \sClMD{f}, \sClYe{f} and \sClSh{f}, the screens will turn \sOff{f}
-when the device is in a \sPoSl{f} power state.
+when the device enters a \sPoSl{f} power state.
 
 \par\medskip
 

@@ -81,8 +81,8 @@ corresponding parts of the device.
 \end{figure}
 
 Since humans are electrical conductors, the hand forms the other plate of the
-capacitor model.  As the hand approaches and lies on top of the enclosure, the
-capacitance, or charge capacity of the electrode will \textit{increase}.
+capacitor model.  As the hand approaches and lies on \cTo{f} of the enclosure,
+the capacitance, or charge capacity of the electrode will \textit{increase}.
 
 \par\medskip
 
@@ -289,10 +289,10 @@ Set the touch threshold via a calibration process.
 \par\medskip
 
 Calibration involves \num{3} phases.  First is a \sTSBR{f}, where a number of
-readings are taken \textit{without} touching the top of the enclosure.  After
-completion, the same process is done \textit{touching} the top of the enclosure.
-Finally, a \sTSTA{f} adjust phase is performed to tune the final touch threshold
-value.
+readings are taken \textit{without} touching the \cTo{f} of the enclosure.
+After completion, the same process is done \textit{touching} the \cTo{f} of the
+enclosure.  Finally, a \sTSTA{f} adjust phase is performed to tune the final
+touch threshold value.
 
 \as{{ c c c c c c c }}{%
 \mono{Phase 1}
@@ -314,9 +314,9 @@ Set the touch threshold through touch readings.
 
 \par\medskip
 
-Reading involves \num{2} phases.  The first is simply touching the top of the
-device which will display readings when touched. Then \aPR{f} the \cEs{f} to
-carry a reading value over into \sTSTA{f} where you will tune the final touch
+Reading involves \num{2} phases.  The first is simply touching the \cTo{f} of
+the enclosure which will display readings when touched. Then \aPR{f} the \cEs{f}
+to carry a reading value over into \sTSTA{f} where you will tune the final touch
 threshold value.
 
 \as{{ c c c c c }}{%
@@ -417,8 +417,8 @@ want to select is displayed.
 \section{Calibrate} \label{Touch Calibration} \mTSCa{syml}
 
 Calibration involves \num{3} phases.  First is a \sTSBR{f}, where a number of
-readings are taken \textit{without} touching the top of the enclosure.
-After completion, the same process is done \textit{touching} the top of the
+readings are taken \textit{without} touching the \cTo{f} of the enclosure.
+After completion, the same process is done \textit{touching} the \cTo{f} of the
 enclosure which is the \sTSTR{f}.  Finally, a \sTSTA{f} phase is performed to
 tune the final touch threshold value.
 
@@ -510,8 +510,8 @@ and the lighting area will be lit red.
 \subsection{Touch Run} \sTSTR{syml}
 
 The device will again proceed to take \num{65535} readings.  Remember to keep
-your hand lightly on top of the enclosure while this is running.  Progress can
-be seen by the lighting area cycling through the colors of the rainbow
+your hand lightly on \cTo{f} of the enclosure while this is running.  Progress
+can be seen by the lighting area cycling through the colors of the rainbow
 
 \begin{table}[H] \ers{0.1} \begin{tabu} { c }
   \cRe \cOr \cYe \cGr \cBl \cPu \cRe
@@ -541,8 +541,8 @@ This average value will be the starting value used during
 
 This is the easiest procedure for setting the touch threshold, however, it
 is not as robust as \hyperref[Touch Calibration]{\mTSCa{f}} and may result in
-false positive touch events, i.e., a touch event being detected when the top is
-\textit{not} being touched.  This is because a proper baseline is not
+false positive touch events, i.e., a touch event being detected when the \cTo{f}
+is \textit{not} being touched.  This is because a proper baseline is not
 established, making it possible to set the threshold too low.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -550,17 +550,17 @@ established, making it possible to set the threshold too low.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Touch \& Read} \sTSRT{syml}
 
-Obtain a threshold starting point by lightly laying your hand across the top of
-the enclosure.
+Obtain a threshold starting point by lightly laying your hand across the \cTo{f}
+of the enclosure.
 
 \par\medskip
 
 After selecting the \mTSRe{f} menu option, readings from the touch sensor will
 appear on the \cDi{f} and a color will light up in the \cLi{f} window.  The
 values on the \cDi{f} will likely be the same or fluctuate slightly in either
-direction when \textit{not} touching the top.  As your hand approaches and lies
-flat across the top, the value will increase and the color in the \cLi{f}
-window will change.
+direction when \textit{not} touching the \cTo{f}.  As your hand approaches and
+lies flat across the \cTo{f}, the value will increase and the color in the
+\cLi{f} window will change.
 
 \par\medskip
 
