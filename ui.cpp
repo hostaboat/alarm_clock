@@ -1595,8 +1595,7 @@ void UI::Clock::uisRefresh(void)
 
 bool UI::Clock::uisPower(pwr_e pwr)
 {
-    if ((_state == CS_SET_TRACK)
-            || ((pwr == PWR_NAP) && (_state == CS_SHOW_TRACK)))
+    if (_state == CS_SET_TRACK)
         return false;
     else if (pwr == PWR_NAP)
         _ui.dimScreens();
