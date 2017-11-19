@@ -22,7 +22,7 @@ consumption and auto-stop the \mAu{f} if it isn't being used.  See
 
 This is the normal operating state and also is the most power consumptive.
 The \cDi{f} is \sScOn{f} and the \cLi{f} window is potentially lit, both at the
-brightness level as determined by the \cBr{f}.
+brightness level as determined by the \hyperref[Brightness Knob]{\cBr{f}}.
 
 \par\medskip
 
@@ -82,42 +82,45 @@ is the \mAu{f}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Nap} \label{Power - Nap} \sPoNa{syml}
 
-The device will \sPoNa{f} if a nap timer has been enabled via
+The device will \sPoNa{f} if a \textit{nap timer} has been enabled via
 \hyperref[Power Settings]{\mPS{f}} and the following conditions are met:
 
 \begin{itemize}
   \item You are \textit{not} actively using the device, i.e. not interacting
     with it or fiddling with the controls.
-  \item The nap timer is enabled and the configured nap timer has elapsed.
+  \item The \textit{nap timer} is enabled and the configured \textit{nap timer}
+    has elapsed.
 \end{itemize}
 
-The nap timer is started from the last time the device was interacted with. For
-example, if the \cEs{f} was just turned, the timer will start from that point.
-As long as you are interacting with the device, it will \textit{not} \sPoNa{f}.
+The \textit{nap timer} is started from the last time the device was interacted
+with. For example, if the \cEs{f} was just turned, the timer will start from
+that point.  As long as you are interacting with the device, it will
+\textit{not} \sPoNa{f}.
 
 \par\medskip
 
 The screens will either \sDim{f} or turn \sOff{f} depending on the current mode
-and state.
+and state except in the \sClSe{f} state in \mCl{f} mode where the device will
+\textit{not} \sPoNa{f}.
 
 \begin{table}[H]
   \begin{tabu} { X[1,c,m] | X[1,c,m] | X[1,c,m] }
   \thrule
-  \thbi{Mode} & \thbi{State} & \thbi{Screens} \\ \mrule
+  \thbi{Mode} & \thbi{State} & \thbi{Screens} \\ \mdrule
 
-  \hyperref[Clock]{\mCl{s}} & \state{f}{ANY} & \sDim{sym} \\ \mrule
+  \multirow{2}{*}{\hyperref[Clock]{\mCl{s}}}
+    & \sClSe{sym} & \sOn{sym} \\ \dcrule{2}{3}
+  & \fontTGA{ss}{ALL OTHER STATES} & \sDim{sym} \\ \mrule
 
-  \multirow{3}{*}[-2.0mm]{\hyperref[Timer]{\mTi{s}}}
-    & \sTiRu{f} & \multirow{2}{*}{\sDim{sym}} \\
-    & \sTiAl{f} & \\ \dcrule{2}{3}
-    & \fontTGA{ss}{ALL OTHER STATES} & \sOff{sym} \\ \mrule
+  \multirow{2}{*}{\hyperref[Timer]{\mTi{s}}}
+    & {\ers{0.1}\begin{tabu}{c}\sTiRu{sym}\\\sTiAl{sym}\end{tabu}}
+    & \sDim{sym} \\ \dcrule{2}{3}
+  & \fontTGA{ss}{ALL OTHER STATES} & \sOff{sym} \\ \mrule
 
-  \multirow{5}{*}[-2.0mm]{\hyperref[Touch Settings]{\mTS{s}}}
-    & \sTSBR{f} & \multirow{4}{*}{\sDim{sym}} \\
-    & \sTSTR{f} & \\
-    & \sTSRT{f} & \\
-    & \sTSTA{f} & \\ \dcrule{2}{3}
-    & \fontTGA{ss}{ALL OTHER STATES} & \sOff{sym} \\ \mrule
+  \multirow{2}{*}[6mm]{\hyperref[Touch Settings]{\mTS{s}}}
+    & {\ers{0.1}\begin{tabu}{c}\sTSBR{sym}\\\sTSTR{sym}\\\sTSRT{sym}\\\sTSTA{sym}\end{tabu}}
+    & \sDim{sym} \\ \dcrule{2}{3}
+  & \fontTGA{ss}{ALL OTHER STATES} & \sOff{sym} \\ \mrule
 
   \fontTGA{f}{ALL OTHER MODES} & \state{f}{ANY} & \sOff{sym} \\
 
@@ -137,7 +140,7 @@ the \sAuSt{f} state and all processing stops affording more power savings over
 
 \par\medskip
 
-The device will \sPoSl{f} if a sleep timer has been enabled via
+The device will \sPoSl{f} if a \textit{sleep timer} has been enabled via
 \hyperref[Power Settings]{\mPS{f}} and \textit{all} of the following conditions
 are met:
 
@@ -148,12 +151,13 @@ are met:
   \item The \mAl{f} is \textit{not} in the \sAlWa{f} state.
   \item The \mAl{f} is \textit{not} \sAlIP{f} when the wakeup source is \mAu{f}.
   \item The current state in the current mode allows \sPoSl{f}.
-  \item The sleep timer is enabled and the configured sleep timer has elapsed.
+  \item The \textit{sleep timer} is enabled and the configured
+    \textit{sleep timer} has elapsed.
 \end{itemize}
 
-The sleep timer is started from the last time the device was interacted with.
-For example, if the \cNe{f} push-button is being pressed, the timer will start
-from that point.  As long as you are interacting with the device, it will
+The \textit{sleep timer} is started from the last time the device was interacted
+with.  For example, if the \cNe{f} push-button is being pressed, the timer will
+start from that point.  As long as you are interacting with the device, it will
 \textit{not} \sPoSl{f}.
 
 \par\medskip
@@ -186,21 +190,24 @@ cannot enter a \sPoSl{f} state.
 \begin{table}[H]
   \begin{tabu} { X[1,c,m] | X[1,c,m] | X[1,c,m] }
   \thrule
-  \thbi{Mode} & \thbi{State} & \thbi{Can Sleep?} \\ \mrule
+  \thbi{Mode} & \thbi{State} & \thbi{Can Sleep?} \\ \mdrule
 
-  \multirow{3}{*}[-2.0mm]{\hyperref[Timer]{\mTi{s}}}
-    & \sTiRu{f} & \multirow{2}{*}{\fontTGA{f}{NO}} \\
-    & \sTiAl{f} & \\ \dcrule{2}{3}
-    & \fontTGA{ss}{ALL OTHER STATES} & \fontTGA{f}{YES} \\ \mrule
+  \multirow{2}{*}{\hyperref[Clock]{\mCl{s}}}
+    & \sClSe{sym} & \fontTGA{f}{NO} \\ \dcrule{2}{3}
+  & \fontTGA{ss}{ALL OTHER STATES} & \fontTGA{f}{YES} \\ \mrule
 
-  \multirow{5}{*}[-2.0mm]{\hyperref[Touch Settings]{\mTS{s}}}
-    & \sTSBR{f} & \multirow{4}{*}{\fontTGA{f}{NO}} \\
-    & \sTSTR{f} & \\
-    & \sTSRT{f} & \\
-    & \sTSTA{f} & \\ \dcrule{2}{3}
-    & \fontTGA{ss}{ALL OTHER STATES} & \fontTGA{f}{YES} \\ \mrule
+  \multirow{2}{*}{\hyperref[Timer]{\mTi{s}}}
+    & {\ers{0.1}\begin{tabu}{c}\sTiRu{sym}\\\sTiAl{sym}\end{tabu}}
+    & \fontTGA{f}{NO} \\ \dcrule{2}{3}
+  & \fontTGA{ss}{ALL OTHER STATES} & \fontTGA{f}{YES} \\ \mrule
+
+  \multirow{2}{*}[6mm]{\hyperref[Touch Settings]{\mTS{s}}}
+    & {\ers{0.1}\begin{tabu}{c}\sTSBR{sym}\\\sTSTR{sym}\\\sTSRT{sym}\\\sTSTA{sym}\end{tabu}}
+    & \fontTGA{f}{NO} \\ \dcrule{2}{3}
+  & \fontTGA{ss}{ALL OTHER STATES} & \fontTGA{f}{YES} \\ \mrule
 
   \fontTGA{f}{ALL OTHER MODES} & \state{f}{ANY} & \fontTGA{f}{YES} \\
+
   \bhrule
   \end{tabu}
 \caption{Power - Sleep per Mode \& State}
@@ -209,26 +216,26 @@ cannot enter a \sPoSl{f} state.
 \pagebreak
 
 Any mode or state that can not \sPoSl{f} will instead \sPoNa{f} and \sDim{f}
-the screens.
+the screens except for the \sClSe{f} state in \mCl{f} mode.
 
 \begin{table}[H]
   \begin{tabu} { X[1,c,m] | X[1,c,m] | X[1,c,m] }
   \thrule
-  \thbi{Mode} & \thbi{State} & \thbi{Action} \\ \mrule
+  \thbi{Mode} & \thbi{State} & \thbi{Action} \\ \mdrule
 
-  \multirow{2}{*}[-1.0mm]{\hyperref[Timer]{\mTi{s}}}
-    & \sTiRu{f} & \multirow{6}{*}{\sPoSl{f} $\longrightarrow$ \sPoNa{f}} \\
-    & \sTiAl{f} & \\ \dcrule{1}{2}
+  \hyperref[Clock]{\mCl{s}} & \sClSe{sym} & --- \\ \mrule
 
-  \multirow{4}{*}[-1.5mm]{\hyperref[Touch Settings]{\mTS{s}}}
-    & \sTSBR{f} & \\
-    & \sTSTR{f} & \\
-    & \sTSRT{f} & \\
-    & \sTSTA{f} & \\
+  \hyperref[Timer]{\mTi{s}}
+    & {\ers{0.1}\begin{tabu}{c}\sTiRu{sym}\\\sTiAl{sym}\end{tabu}}
+    & \multirow{2}{*}[-5mm]{\sPoSl{f} $\longrightarrow$ \sPoNa{f}} \\ \dcrule{1}{2}
+
+  \hyperref[Touch Settings]{\mTS{s}}
+    & {\ers{0.1}\begin{tabu}{c}\sTSBR{sym}\\\sTSTR{sym}\\\sTSRT{sym}\\\sTSTA{sym}\end{tabu}}
+    & \\
 
   \bhrule
   \end{tabu}
-\caption{Power - Sleep to Nap}
+\caption{Power - Sleep to Nap} \label{tab:Sleep to Nap}
 \end{table}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -238,10 +245,17 @@ the screens.
 
 The device can be \textit{forced} into a \sPoSl{f} state by
 \textit{continuously} touching the \cTo{f} of the device for a configurable
-amount of time set via \hyperref[Power Settings]{\mPS{f}}.  Though the sleep
-timer is reset when touched, it is irrelevant if this touch time is exceeded.
-Since the device is forced into a \sPoSl{f} state, the \mAu{f} will be
-\textit{forced} into the \sAuSt{f} state.
+amount of time set via \hyperref[Power Settings]{\mPS{f}}.  Though the
+\textit{sleep timer} is reset when touched, it is irrelevant if this
+\textit{touch time} is exceeded.  Since the device is forced into a \sPoSl{f}
+state, the \mAu{f} will be forced into the \sAuSt{f} state.
+
+\par\medskip
+
+States that do not allow a \sPoSl{f} state to be entered, may enter a
+\sPoNa{f} state instead.  If this isn't possible, \textit{Touch Sleep} will
+have no effect - see \hyperref[tab:Sleep to Nap]{Table \ref*{tab:Sleep to Nap}}
+previously mentioned.
 
 \info{For touch induced sleep to work, \aTo{f} must be enabled via
 \hyperref[Touch Settings]{\mTS{f}} and the palm of your hand or
@@ -252,8 +266,8 @@ most of your fingers must lay on \cTo{f} of the enclosure.}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Audio Auto-Stop} \label{Power - Stop}
 
-The \mAu{f} component will automatically \sAuSt{f} if a stop timer has been
-enabled via \hyperref[Power Settings]{\mPS{f}} and \textit{all} of the
+The \mAu{f} component will automatically \sAuSt{f} if a \textit{stop timer} has
+been enabled via \hyperref[Power Settings]{\mPS{f}} and \textit{all} of the
 following conditions are met:
 
 \begin{itemize}
@@ -262,12 +276,13 @@ following conditions are met:
   \item The \mAu{f} is in the \sAuPa{f} state.
   \item The \mAl{f} is \textit{not} \sAlIP{f} \textit{or} is \textit{not} using
     the \mAu{f} as the wakeup source.
-  \item The stop timer is enabled and the configured stop timer has elapsed.
+  \item The \textit{stop timer} is enabled and the configured
+    \textit{stop timer} has elapsed.
 \end{itemize}
 
-The stop timer is started from the last time the device was interacted with.
-For example, if the \cBr{f} was just turned, the timer will start from that
-point.  As long as you are interacting with the device, the \mAu{f} will
+The \textit{stop timer} is started from the last time the device was interacted
+with.  For example, if the \cBr{f} was just turned, the timer will start from
+that point.  As long as you are interacting with the device, the \mAu{f} will
 \textit{not} be auto-stopped.
 
 \par\medskip

@@ -14,8 +14,8 @@ the device.  It can also be disabled here.
 
 \par\medskip
 
-In this mode, the main goal is to come up with a number called a touch
-threshold.  When a reading is taken, if its value is greater than the threshold,
+In this mode, the main goal is to come up with a number called a \textit{touch
+threshold}.  When a reading is taken, if its value is greater than the threshold,
 a touch event is registered.  It's recommended that you first select the
 \mTSCa{f} menu option and follow the instructions for that.  If you are unable
 to get a consistent beep without chirping when touching during \sTSTA{f}, try
@@ -32,6 +32,10 @@ other means.  There are a few exceptions:
   \item Toggling the timer lighting - see \hyperref[Timer - Lighting]{Lighting}
     in \hyperref[Timer]{\mTi{f}}.
 \end{itemize}
+
+It is the \mTe{f} mode when the \cRs{f} is in the \dLe{f} position.
+
+\par\medskip
 
 There are a few ways to get to \mTS{f} depending on which direction the \cRs{f}
 is pointing and which mode the device is currently in.  The most straightforward
@@ -153,29 +157,29 @@ $\textrm{\sTSNS{f}} \times \textrm{\sTSPS{f}} = 6$.
 \end{figure}
 
 When touched, the higher capacitance created means that it will take longer to
-charge and discharge resulting in more reference oscillations per electrode scan
-and therefore a higher reading.
+charge and discharge the electrode.  This results in more reference
+charges/discharges or oscillations and therefore a higher reading.
 
 \par\medskip
 
 Despite the fact that a reading can be calculated, the device still has to be
 told when a reading should be considered as a legitimate touch event.  As
-initially mentioned, the main goal of \mTS{f} is to come up with a touch
-\textit{threshold} value.  This is a value for which a touch event is registered
+initially mentioned, the main goal of \mTS{f} is to come up with a \textit{touch
+threshold} value.  This is a value for which a touch event is registered
 when the value of a reading equals or exceeds it.
 
 \par\medskip
 
 In the above example, if the threshold value was between \num{16} and \num{28}
 inclusive, a touch event would \textit{not} have been registered in the
-\fontTGA{f}{NO TOUCH} case and \textit{would} have been registered in the
-\fontTGA{f}{TOUCH} case, as expected.
+\fontTGA{f}{NOT TOUCHED} case and \textit{would} have been registered in the
+\fontTGA{f}{TOUCHED} case, as expected.
 
 \par\medskip
 
 However, if the threshold value was set to \num{15} or less, a touch event
-\textit{would} have been registered in the \fontTGA{f}{NO TOUCH} case as well
-as the \fontTGA{f}{TOUCH} case.  And if the threshold value was greater than
+\textit{would} have been registered in the \fontTGA{f}{NOT TOUCHED} case as well
+as the \fontTGA{f}{TOUCHED} case.  And if the threshold value was greater than
 \num{28}, \textit{no} touch event would have be registered in either case.
 These outcomes are unexpected and undesirable.
 
@@ -213,18 +217,21 @@ sections.
   \sTSWT{sym} & Wait before touch calibration run. \\ \drule{2}
   \sTSTR{sym} & Touch calibration run. \\ \mrule
   \multicolumn{2}{c}{\mTSRe{sym}} \\ \mrule
-  \sTSRT{sym} & Set initial touch threshold by touching and reading value. \\ \mrule
+  \sTSRT{sym} & Set initial touch threshold by touching and reading. \\ \mrule
   \multicolumn{2}{c}{\mTSCo{sym}} \\ \mrule
-  \sTSNS{sym} & Configure the number of scans per reading. \\ \drule{2}
+  \sTSNS{sym} & Configure the base number of scans per reading. \\ \drule{2}
   \sTSPS{sym} & Configure the prescaler - the multiplier applied to \sTSNS{f}. \\ \drule{2}
-  \sTSRC{sym} & Configure the reference charge per reading. \\ \drule{2}
-  \sTSEC{sym} & Configure the external\slash electrode charge per reading. \\ \mrule
+
+  \pagebreak \drule{2}
+
+  \sTSRC{sym} & Configure the reference charge rate per reading. \\ \drule{2}
+  \sTSEC{sym} & Configure the external\slash electrode charge rate per reading. \\ \mrule
   \multicolumn{2}{c}{\mTSCa{sym} \mTSRe{sym} \mTSCo{sym}} \\ \mrule
-  \sTSTA{sym} & Test and adjust touch threshold value. \\ \mrule
+  \sTSTA{sym} & Test and adjust final touch threshold value. \\ \mrule
   \multicolumn{2}{c}{\mTSCa{sym} \mTSRe{sym} \mTSCo{sym} \mTSDe{sym}} \\ \mrule
   \sTSDo{sym} & Display settings. \\ \mrule
   \multicolumn{2}{c}{\mTSDi{sym}} \\ \mrule
-  \sTSDi{sym} & Touch disabled. \\
+  \sTSDi{sym} & Touch is disabled. \\
   \bhrule
 \caption{Touch Settings - States}
 \end{longtabu}
@@ -265,19 +272,6 @@ the \sTSDi{f} state.
 \mTSCo{sym} & & \\ \drule{3}
 \mTSDe{sym} & $\longrightarrow$ & \sTSDo{sym} \\ \drule{3}
 \mTSDi{sym} & $\longrightarrow$ & \sTSDi{sym} \\}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Overview - Test & Adjust
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\sTSTA{sym} \par\medskip
-
-This state involves tuning the final threshold value after calibrating, reading
-or configuring.  The \cTo{f} of the enclosure is touched while the \cEs{f} is
-turned until a solid beep from the \cBe{f} is heard.  When satisfied, \aPR{f}
-the \cEs{f} to finish.
-
-\as{{c c c c}}{%
-\sTSTA{sym} & \sTo\enspace \fontTGA{f}{\&}\enspace \sTu & \sPR & \sTSDo{sym} \\}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Overview - Calibration
@@ -355,6 +349,20 @@ option.
   & \sPR & \sTSDo{sym} \\}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Overview - Test & Adjust
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\sTSTA{sym} \par\medskip
+
+This state involves tuning the final threshold value after calibrating, reading
+or configuring.  The \cTo{f} of the enclosure is touched while the \cEs{f} is
+turned until a solid beep from the \cBe{f} is heard.  When satisfied, \aPR{f}
+the \cEs{f} to finish.
+
+\as{{c c c c}}{%
+\sTSTA{sym} & \sTo\enspace \fontTGA{f}{\&}\enspace \sTu & \sPR & \sTSDo{sym} \\}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Overview - Defaults
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \mTSDe{sym} \par\medskip
@@ -413,7 +421,6 @@ want to select is displayed.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Calibrate
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\pagebreak
 \section{Calibrate} \label{Touch Calibration} \mTSCa{syml}
 
 Calibration involves \num{3} phases.  First is a \sTSBR{f}, where a number of
@@ -812,6 +819,7 @@ the \cEs{f} to select the option which is shown on the \cDi{f} as
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Test & Adjust
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagebreak
 \section{Test \& Adjust} \label{Test and Adjust} \sTSTA{syml}
 
 Test and adjust the final threshold value.
@@ -831,7 +839,8 @@ This number will ultimately, after adjustment, be the threshold value used when
 detecting touch events so it's important to get this the way you want it.  If
 things don't seem to be working as described, try starting over, and if that
 doesn't work, try doing the configuration first, before calibration.  If all
-else fails, you can disable touch altogether.
+else fails, you can \hyperref[Touch Settings - Disabled]{\mTSDi{f}} touch
+altogether.
 
 \par\medskip
 
@@ -849,9 +858,9 @@ your hand off to make sure it's \textit{not} beeping.  If it is, \aTu{f} the
 
 How sensitive you want it is up to you, but a good point of reference is that
 it should start beeping with only a light touch.  Continue this process
-\textit{with} and \textit{without} \mAu{f} playing.  For some reason, the
-amplifier causes a higher degree of fluctuation in readings and you don't want
-it beeping when not touching in either situation.
+\textit{with} and \textit{without} \mAu{f} playing.  When the \cAm{f} is on, it
+causes a higher degree of fluctuation in readings and you don't want it beeping
+when not touching in either situation.
 
 \warning{If it's beeping at all when \textit{not} touching, with or without the
 \mAu{f} playing, the device may malfunction.  For example if you've set a touch
@@ -859,8 +868,8 @@ time for forced sleep, it may constantly sleep because it thinks it's being
 touched.  Or when the alarm wakes, it may immediately snooze without actually
 being touched.}
 
-To reiterate, the beeper should continuously sound when touched with your preference of
-touching force.
+To reiterate, the \cBe{f} should \textit{continuously} sound when touched with
+your preference of touching force.
 
 \as{{ c c c }}{\sTo & $\longrightarrow$ & \sBe \\}
 
@@ -904,7 +913,7 @@ To go to, say \mCl{f} mode, \aTu{f} the \cRs{f} to the \dMi{f}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Disabled
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Disabled} \sTSDi{syml}
+\section{Disabled} \sTSDi{syml} \label{Touch Settings - Disabled}
 
 Touch capability is completely disabled on the device.
 

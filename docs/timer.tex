@@ -27,6 +27,10 @@ The clock can also be displayed while the timer is active by using the \cEs{f}.
 
 \par\medskip
 
+It is the \mPr{f} mode when the \cRs{f} is in the \dRi{f} position.
+
+\par\medskip
+
 There are a few ways to get to \mTi{f} mode depending on which direction the
 \cRs{f} is pointing and which mode the device is currently in.
 
@@ -69,12 +73,12 @@ sections.
     \thrule
     \thbi{State} & \thbi{Description} \\ \mrule
 
-    \sTiHM{sym} & Set hours | minutes field. \\ \drule{2}
-    \sTiMS{sym} & Set minutes if \sTiHM{f} is in hours or
-      seconds if in minutes.  \\ \drule{2}
+    \sTiHM{sym} & Set the hours or minutes. \\ \drule{2}
+    \sTiMS{sym} & Set the minutes if \sTiHM{f} is in hours or
+      the seconds if in minutes.  \\ \drule{2}
     \sTiRu{sym} & Timer is actively counting down.  \\ \drule{2}
     \sTiPa{sym} & Timer countdown is paused.  \\ \drule{2}
-    \sTiAl{sym} & Timer expired and is alerting\slash beeping.  \\ \drule{2}
+    \sTiAl{sym} & Timer has expired and is alerting\slash beeping.  \\ \drule{2}
     \sTiWa{sym} & State after alerting is stopped or first state if
         a time has previously been set. \\
     \bhrule
@@ -105,16 +109,15 @@ alerting, and then stopping the alerting by either \action{f}{TURNING} the
 & & & & & & & & & \sTo & \\}
 \tabcolsep=12pt
 
-\info{For touch to work, make sure you have enabled it via
+\info{For \aTo{f} to work, make sure you have enabled it via
 \hyperref[Touch Settings]{\mTS{f}} and that the palm of your hand or most of
-your fingers touch the \cTo{f} of the enclosure - it won't likely be enough
-to just touch or tap the \cTo{f} with one finger.}
+your fingers touch the \cTo{f} of the enclosure.}
 
 Subsequent entries into \mTi{f} mode will load the previously set time and the
 first state will be \sTiWa{f}\footnote{ The time isn't saved when the device is
 powered \sOff{f} via the \cPo{ss} switch, so each time the device is powered
 \sOn{f} it will start in \sTiHM{ss} state and you will have to set the time.}
-from which you can either start the timer by pressing and releasing the \cEs{f}.
+from which you can either start the timer by pressing and releasing the \cEs{f}
 
 \as{{c c c c c}}{\mTi{sym} & \sTiWa{sym} & \sPR & \sTiRu{sym} & $\cdots$ \\}
 

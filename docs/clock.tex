@@ -24,7 +24,7 @@ position.
 To get to \mCl{f} mode simply \aTu{f} the \cRs{f} to the \dMi{f}.
 
 \begin{table}[H]
-\ers{2}
+\ers{3}
 \centering
 \begin{tabu} { X[1,c,m] | X[1,c,m] | X[1,c,m] }
   \thrule
@@ -56,7 +56,7 @@ following sections.
   \sClTi{sym} & Display the current time. \\ \drule{2}
   \sClMD{sym} & Display the month \& day. \\ \drule{2}
   \sClYe{sym} & Display the year.  \\ \drule{2}
-  \sClSh{sym} & Display the current track. \\ \drule{2}
+  \sClSh{sym} & Display the current track number. \\ \drule{2}
   \sClSe{sym} & Select a track for playback. \\
   \bhrule
 \end{tabu}
@@ -70,10 +70,11 @@ To progress through the states, \aPR{f} the \cEs{f}.  The basic progression from
 \sClTi{sym} & \sPR & \sClMD{sym} & \sPR & \sClYe{sym} & \sPR & \sClSh{sym}
   & \sPR & \sClTi{sym} \\}
 
-\aTo{f} can also be used to show the current track.  From \sClTi{f}, \sClMD{f}
-or \sClYe{f}, you will \aTo{f} the \cTo{f} of the enclosure for \num{1} second
-to show the current track.\footnote{ Touch must be enabled and configured for
-this to work - see \hyperref[Touch Settings]{\mTS{ss}} for more information.}
+\aTo{f} can also be used to show the current track number.  From \sClTi{f},
+\sClMD{f} or \sClYe{f}, you will \aTo{f} the \cTo{f} of the enclosure for
+\num{1} second to show the current track number.\footnote{ Touch must be enabled
+and configured for this to work - see \hyperref[Touch Settings]{\mTS{ss}} for
+more information.}
 
 \as{{ c c c }}{%
 \sClTi{sym} & & \\ \drule{1}
@@ -145,6 +146,7 @@ immediately.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Month & Day
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagebreak
 \section{Month \& Day} \sClMD{syml}
 
 Displays the month and day, delimited by a \textit{decimal}.
@@ -198,7 +200,7 @@ paused or stopped.
 
 \figDT{!!!1}{Track \#1}{4096}{Track \#4096}
 
-To display the current track from \sClYe{f}, simply \aPR{f} the \cEs{f}.
+To display the current track number from \sClYe{f}, simply \aPR{f} the \cEs{f}.
 Additionally, after \sClSe{f}, the state goes back to \sClSh{f}.
 From other states, you need to \aPR{f} the \cEs{f} multiple times.
 
@@ -208,8 +210,8 @@ From other states, you need to \aPR{f} the \cEs{f} multiple times.
 \sClMD{sym} & \sPRN{2} & \\ \drule{2}
 \sClTi{sym} & \sPRN{3} & \\}
 
-\aTo{f} can also be used to display the current track from \sClTi{f}, \sClMD{f}
-and \sClYe{f}.  To do so, \aTo{f} the \cTo{f} of the enclosure for
+\aTo{f} can also be used to display the current track number from \sClTi{f},
+\sClMD{f} and \sClYe{f}.  To do so, \aTo{f} the \cTo{f} of the enclosure for
 \num{1} second.
 
 \as{{ c c c }}{%
@@ -286,6 +288,16 @@ to displaying the time.  To go back to \sClTi{f}, either
   \item Wait \num{3} seconds.
 \end{enumerate}
 
+\info{You must \aTu{f} the \cEs{f} to be able to select a track for playback
+even if the current track initially displayed in \sClSh{f} is the track you
+want to play since a \aPR{f} of the \cEs{f} will go back to \sClTi{f}.  If the
+\mAu{f} is paused or stopped and you want to play the current track that is
+poised to play, either
+\begin{enumerate}
+  \item Press \& Release the \cPl{f} push-button, \textit{or}
+  \item \aTu{f} the \cEs{f}, then \aTu{f} back to the current track and \aPR{f}.
+\end{enumerate}}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Night Light
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -352,10 +364,10 @@ the same way you can cycle through the solid colors by turning the \cEs{f}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Coin Cell Battery}
 
-There is a \mono{CR2032} coin cell battery, apart from the rechargeable
-battery, attached to the \dTo{f} that continues to keep time even when the
-device if switched \sOff{f} via the \cPo{f} switch.  If the time is incorrect
-when switching the device \sOn{f}, the battery may need replacement.  For more
+There is a \mono{CR2032} \hyperref[Coin Cell Battery]{\cCC{f}}, apart from the
+\cRB{f} battery, attached to the \dTo{f} that continues to keep time even when
+the device if switched \sOff{f} via the \cPo{f}.  If the time is incorrect when
+switching the device \sOn{f}, the battery likely needs replacement.  For more
 information see \hyperref[Replacing Battery]{Replacing the Coin Cell Battery}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -363,8 +375,8 @@ information see \hyperref[Replacing Battery]{Replacing the Coin Cell Battery}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Power}
 
-In \sClTi{f}, \sClMD{f} and \sClYe{f}, the screens will \sDim{f} when the device
-enters a \sPoNa{f} power state.
+In \sClTi{f}, \sClMD{f}, \sClYe{f} and \sClSh{f}, the screens will \sDim{f} when
+the device enters a \sPoNa{f} power state.
 
 \par\medskip
 
@@ -382,8 +394,9 @@ In \sClSe{f}, the device will neither \sPoNa{f} nor \sPoSl{f}.
   \thbi{Power State} & \thbi{Clock State} & \thbi{Screens} \\ \mrule
 
   \multirow{2}{*}[-1mm]{\sPoNa{sym}} 
-    & \sClTi{sym} \sClMD{sym} \sClYe{sym} & \sDim{sym} \\ \dcrule{2}{3}
-  & \sClSh{sym} \sClSe{sym} & \sOn{sym} \\ \mrule
+    & \sClTi{sym} \sClMD{sym} \sClYe{sym} \newline \sClSh{sym}
+    & \sDim{sym} \\ \dcrule{2}{3}
+  & \sClSe{sym} & \sOn{sym} \\ \mrule
 
   \multirow{2}{*}[-1mm]{\sPoSl{sym}} 
     & \sClTi{sym} \sClMD{sym} \sClYe{sym} \newline \sClSh{sym}
@@ -398,6 +411,7 @@ In \sClSe{f}, the device will neither \sPoNa{f} nor \sPoSl{f}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Reference
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagebreak
 \section{Reference} \label{Clock - Reference}
 
 \ers{3}
@@ -416,15 +430,15 @@ In \sClSe{f}, the device will neither \sPoNa{f} nor \sPoSl{f}.
   & \sNPRN{3} & \eDi{sym}{TIME} & \sClTi{sym} \\ \dcrule{2}{4}
   & \sTu & \eAc{sym}{CYCLE NL} & --- \\ \mrule
 
-  \pagebreak
-  \mrule
-
   \multirow{4}{*}[-1.5mm]{\sClYe{sym}}
     & \sPR & \multirow{2}{*}[-1mm]{\eDi{sym}{TRACK}}
     & \multirow{2}{*}[-1mm]{\sClSh{sym}} \\ \dcrule{2}{2}
   & \sToN{1} & & \\ \dcrule{2}{4}
   & \sNPRN{3} & \eDi{sym}{TIME} & \sClTi{sym} \\ \dcrule{2}{4}
   & \sTu & \eAc{sym}{CYCLE NL} & --- \\ \mrule
+
+  \pagebreak
+  \mrule
 
   & \sTu & \eUp{sym}{TRACK} & \sClSe{sym} \\ \dcrule{2}{4}
   & \sPR & \multirow{4}{*}[-1.5mm]{\eDi{sym}{TIME}}
@@ -438,9 +452,6 @@ In \sClSe{f}, the device will neither \sPoNa{f} nor \sPoSl{f}.
   \sClSe{sym} & \sNTuN{15} & & \\ \dcrule{2}{2}
   & \sNPRN{15} & \eDi{sym}{TIME} & \sClTi{sym} \\ \dcrule{2}{2}
   & \sNToN{15} & & \\ \mrule
-
-  \pagebreak
-  \mrule
 
   \multirow{4}{*}{\state{f}{ANY}}
     & $\hskip 2.5mm$ \sPHN{2} & \eTo{sym}{NL ON|OFF} & --- \\ \dcrule{2}{4}

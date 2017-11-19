@@ -59,15 +59,15 @@ A few items of note:
 
 \begin{itemize}
   \item All previously saved settings will initially be loaded.
-  \item After setting the time of day, you can change mode, and the settings
+  \item After setting the time of day, you can change mode and the settings
     will be saved and the \mAl{f} will be set.  This allows for setting the time
     without having to go through the rest of the settings.
   \item To \aReset{f}, \aPH{f} the \cEs{f} until \symD{<<<<} is blinking on
     the \cDi{f}.
     \begin{enumerate}
-      \item If the \aReset{f} is done from \sSAHo{f}, the alarm will be
+      \item If \aReset{f} from the \sSAHo{f} state, the alarm will be
         \sSADi{f} and display \symD{OFF!}.
-      \item If done from any other state, it will start over from \sSAHo{f}.
+      \item From any other state, it will start over from the \sSAHo{f} state.
     \end{enumerate}
   \item When the alarm is \sSADi{f}, \aPR{f} the \cEs{f} to enable the alarm.
 \end{itemize}
@@ -92,8 +92,8 @@ sections.
   \sSAMi{sym} & Set the minute. \\ \drule{2}
   \sSAWS{sym} & Set the wakeup source - either \cBe{f} or \mAu{f}. \\ \drule{2}
   \sSAST{sym} & Set the amount of time the alarm will snooze. \\ \drule{2}
-  \sSAWT{sym} & Set the amount of time the alarm can be alerting before
-    automatically turning off. \\ \drule{2}
+  \sSAWT{sym} & Set the amount of time the alarm can be alerting, i.e. in the
+    \sAlWa{f} state, before automatically turning off. \\ \drule{2}
   \sSATT{sym} & Set the amount of time the alarm can be \sAlIP{f} 
                 before automatically turning off. \\ \drule{2}
   \sSADo{sym} & Display alarm settings. \\ \drule{2}
@@ -163,6 +163,7 @@ changing mode and the alarm will be set and saved.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Time
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagebreak
 \section{Time} \label{Set Alarm - Time}
 
 Setting the alarm \textit{time of day} happens on one screen of the \cDi{f} and
@@ -263,7 +264,7 @@ and the alarm will be set and saved.}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Wakeup Source} \sSAWS{syml}
 
-Set the wakeup source when the alarm alerts.
+Set the wakeup source when the alarm starts and wakes.
 
 \par\medskip
 
@@ -372,7 +373,7 @@ and the number on the \textit{right} side of the \textit{colon} will be
 \par\medskip
 
 To select the \sSATT{f} in hours, \aTu{f} the \cEs{f} then \aPR{f} to finish.
-At this point, the \mAl{f} is \textit{set and saved}.
+At this point, the \mAl{f} is set and saved.
 
 \as{{c c c c c}}{%
 \multirow{2}{*}{\sSATT{sym}}
@@ -505,7 +506,8 @@ states.
 
   \multirow{4}{*}[-4mm]{\ers{0.1}\begin{tabu}{c}\sSAHo{sym}\\\sSAMi{sym}\\
       \enspace\sSADo{sym}\thinspace
-      \footnote{ The alarm has already been set when \sSADo{ss}.}\\\sSADi{sym}\end{tabu}}
+      \footnote{ The alarm has already been set and saved when
+      \sSADo{ss}.}\\\sSADi{sym}\end{tabu}}
     & \sSec & \multirow{4}{*}[5mm]{\eCM{sym}} & \mSC{sym} \\ \dcrule{2}{2} \dcrule{4}{4}
     & \sTer & & \mTS{sym} \\ \dcrule{2}{2} \dcrule{4}{4}
     & $\hskip -5mm$ \sLtoM & & \mCl{sym} \\ \dcrule{2}{2} \dcrule{4}{4}
@@ -526,7 +528,7 @@ states.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % State Diagram
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%\pagebreak
+\pagebreak
 \section{State Diagram} \label{Set Alarm State Diagram}
 
 \begin{figure}[H]

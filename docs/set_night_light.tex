@@ -29,6 +29,10 @@ Hue, Saturation and Brightness.
 
 \par\medskip
 
+It is the \mTe{f} mode when the \cRs{f} is in the \dRi{f} position.
+
+\par\medskip
+
 There are a few ways to get to \mSN{f} depending on which direction the
 \cRs{f} is pointing and which mode the device is currently in.  The most
 straightforward way is:
@@ -151,8 +155,8 @@ Select a preset color.
 \par\medskip
 
 This menu option is probably the easiest to use for setting the color.  There
-are over \num{100} colors to choose from in a somewhat random order.  There is
-one state - \sSNCI{f} - when taking this path before finishing.
+are over \num{100} colors to choose from.  There is one state - \sSNCI{f} - when
+taking this path before finishing.
 
 \as{{ c c c c }}{ \sSNCI{sym} & \sTu & \sPR & \sSNDo{sym} \\}
 
@@ -180,6 +184,7 @@ and \sSNBl{f} pixels of the LEDs.
   & \multirow{2}{*}{\sTu} & \sPR & \sSNRe{sym} \\ \dcrule{9}{10}
 & & & & & & & & \sDC & \sSNDo{sym} \\}
 
+\pagebreak
 At any time you can \aDC{f} to finish.
 
 \ase{1}{{ c c c c c c c c c c }}{%
@@ -251,6 +256,7 @@ the \cLi{f} window.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Method Menu
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagebreak
 \section{Method Menu} \sSNMC{syml}
 
 Select a method for setting a night light's color.
@@ -346,10 +352,12 @@ intensity of the RGB pixel being set and turning \textit{clockwise} will
 A few items of note:
 
 \begin{itemize}
-  \item Setting all three to \mono{FF} will give you \textit{white}.
-  \item Setting all three to \mono{00} will give you \textit{black}.  This can
-    be utilized in \mCl{f} mode so you can \aTu{f} the \cEs{f} instead of having
-    to \aPR{f} the \cEs{f} to turn the night light off.
+  \item Setting \sSNRe{f}, \sSNGr{f} and \sSNBl{f} to \mono{FF} will give you
+    \textit{white}.
+  \item Setting \sSNRe{f}, \sSNGr{f} and \sSNBl{f} to \mono{00} will give you
+    \textit{black}.  This can be utilized in \mCl{f} mode so you can \aTu{f}
+    the \cEs{f} instead of having to \aPR{f} the \cEs{f} to turn the night
+    light off.
   \item As you change an \mSNRGB{f} value, the color will be updated in the
     \cLi{f} area.
   \item To finish, you will \aDC{f} the \cEs{f}.  This can be done in any of the
@@ -366,8 +374,7 @@ to go through the process again and tune the values to get the color you want.  
 \info{Depending on the color set, there may be some desyncing between the
 \cDi{f} and \cLi{f} at low brightness levels.  This is because given different
 values for the pixels, they may drop out before the \cDi{f} turns off and
-may take an extra turn or two to come back on after the \cDi{f} has
-turned on.}
+may be slightly delayed after the \cDi{f} turns on when turning the \cBr{f}.}
 
 \info{Depending on the color set, you may notice that at low brightness levels
 the color changes.  This is because at some point one of the RGB pixels drops
@@ -431,7 +438,8 @@ and the number on the \textit{right} side of the \textit{colon} will be
 either:
 
 \begin{enumerate}
-  \item \aPR{f} the \cEs{f} to cache the value and move on to \sSNBl{f}, or
+  \item \aPR{f} the \cEs{f} to cache the value and move on to \sSNBl{f},
+    \textit{or}
   \item \aDC{f} the \cEs{f} to set, save and finish.
 \end{enumerate}
 
@@ -467,8 +475,9 @@ and the number on the \textit{right} side of the \textit{colon} will be
 either:
 
 \begin{enumerate}
-\item \aPR{f} the \cEs{f} to cache the value and cycle back to \sSNRe{f}, or
-\item \aDC{f} the \cEs{f} to set, save and finish.
+  \item \aPR{f} the \cEs{f} to cache the value and cycle back to \sSNRe{f},
+    \textit{or}
+  \item \aDC{f} the \cEs{f} to set, save and finish.
 \end{enumerate}
 
 \as{{m{1.25in} m{2.1in}}}{%
@@ -510,8 +519,7 @@ A few items of note:
     using this method easier than the \mSNRGB{f} method.
   \item Lowering the \sSNSa{f} value will \textit{whiten} the \sSNHu{f}.
   \item Try not to change the \sSNBr{f} from \mono{FF} since the
-    brightness is adjustable via the \cBr{f} and may desync the \cLi{f} and
-    \cDi{f}.
+    brightness of the \cLi{f} is adjustable via the \cBr{f}.
   \item As you change an \mSNHSB{f} value, the color will be updated in the
     \cLi{f} area.
   \item To finish, you will \aDC{f} the \cEs{f}.  This can be done
@@ -525,10 +533,10 @@ through the process again and tune the values to get the color you want.  A
 
 \par\medskip
 
-\info{Depending on the values set, there may be some desyncing between the
+\info{Depending on the color set, there may be some desyncing between the
 \cDi{f} and \cLi{f} at low brightness levels.  This is because given different
-values for the pixels, they may drop out before the \cDi{f} turns off and may
-take an extra turn or two to come back on after the \cDi{f} has turned on.}
+values for the pixels, they may drop out before the \cDi{f} turns off and
+may be slightly delayed after the \cDi{f} turns on when turning the \cBr{f}.}
 
 \info{Depending on the values set, you may notice that at low brightness levels
 the color changes.  This is because at some point one of the RGB pixels drops
@@ -555,7 +563,8 @@ and the number on the \textit{right} side of the \textit{colon} will be
 either:
 
 \begin{enumerate}
-  \item \aPR{f} the \cEs{f} to cache the value and move on to \sSNSa{f}, or
+  \item \aPR{f} the \cEs{f} to cache the value and move on to \sSNSa{f},
+    \textit{or}
   \item \aDC{f} the \cEs{f} to set, save and finish.
 \end{enumerate}
 
@@ -573,6 +582,7 @@ either:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % HSB - Saturateion
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagebreak
 \subsection{Saturation} \sSNSa{syml}
 
 Select a \sSNSa{f} value.
@@ -591,7 +601,8 @@ and the number on the \textit{right} side of the \textit{colon} will be
 either:
 
 \begin{enumerate}
-  \item \aPR{f} the \cEs{f} to cache the value and move on to \sSNBr{f}, or
+  \item \aPR{f} the \cEs{f} to cache the value and move on to \sSNBr{f},
+    \textit{or}
   \item \aDC{f} the \cEs{f} to set, save and finish.
 \end{enumerate}
 
@@ -627,7 +638,8 @@ and the number on the \textit{right} side of the \textit{colon} will be
 either:
 
 \begin{enumerate}
-  \item \aPR{f} the \cEs{f} to cache the value and cycle back to \sSNHu{f}, or
+  \item \aPR{f} the \cEs{f} to cache the value and cycle back to \sSNHu{f},
+    \textit{or}
   \item \aDC{f} the \cEs{f} to set, save and finish.
 \end{enumerate}
 
@@ -652,7 +664,7 @@ This state allows for review of the settings which are shown on the \cDi{f}.
 \par\medskip
 
 At this point you can start over or go to some other mode.  To start over and go
-back to \sSNMN{f}, \aPR{f} the \cEs{f}.
+back to the \sSNMN{f}, \aPR{f} the \cEs{f}.
 
 \as{{c c c}}{\sSNDo{sym} & \sPR & \sSNMN{sym} \\}
 
@@ -663,7 +675,6 @@ To go to, say \mCl{f} mode, \aTu{f} the \cRs{f} to the \dMi{f}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Power
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\pagebreak
 \section{Power}
 
 The screens will turn \sOff{f} when the device is in \sPoNa{f} or \sPoSl{f} states.
@@ -700,6 +711,8 @@ The screens will turn \sOff{f} when the device is in \sPoNa{f} or \sPoSl{f} stat
   \eSel{sym}{} \mSNTw{sym} & \eBl{sym}{METHOD} \\
   \eSel{sym}{} \mSNTh{sym} & \end{tabu}} & \sSNMC{sym} \\ \mrule
 
+  \pagebreak \mrule
+
   \multirow{3}{*}[-15mm]{\sSNMC{sym}}
     & \sTu & \eUp{sym}{MENU OPTION} & --- \\ \dcrule{2}{4}
   & &
@@ -716,8 +729,6 @@ The screens will turn \sOff{f} when the device is in \sPoNa{f} or \sPoSl{f} stat
     & \sTu & \eUp{sym}{COLOR} & --- \\ \dcrule{2}{4}
   & \sPR & \eSe{sym}{COLOR} \eSa{sym}{COLOR} \eDi{sym}{SETTINGS}
     & \sSNDo{sym} \\ \mrule
-
-  \pagebreak \mrule
 
   \multirow{3}{*}[-1.5mm]{\sSNRe{sym}}
     & \sTu & \eUp{sym}{RED} & --- \\ \dcrule{2}{4}
@@ -737,6 +748,8 @@ The screens will turn \sOff{f} when the device is in \sPoNa{f} or \sPoSl{f} stat
   & \sDC & \eSe{sym}{COLOR} \eSa{sym}{COLOR} \eDi{sym}{SETTINGS}
     & \sSNDo{sym} \\ \mrule
 
+  \pagebreak \mrule
+
   \multirow{3}{*}[-1.5mm]{\sSNHu{sym}}
     & \sTu & \eUp{sym}{HUE} & --- \\ \dcrule{2}{4}
   & \sPR & \eCa{sym}{HUE} \eBl{sym}{SATURATION} & \sSNSa{sym} \\ \dcrule{2}{4}
@@ -748,8 +761,6 @@ The screens will turn \sOff{f} when the device is in \sPoNa{f} or \sPoSl{f} stat
   & \sPR & \eCa{sym}{SATURATION} \eBl{sym}{BRIGHTNESS} & \sSNBr{sym} \\ \dcrule{2}{4}
   & \sDC & \eSe{sym}{COLOR} \eSa{sym}{COLOR} \eDi{sym}{SETTINGS}
     & \sSNDo{sym} \\ \mrule
-
-  \pagebreak \mrule
 
   \multirow{3}{*}[-1.5mm]{\sSNBr{sym}}
     & \sTu & \eUp{sym}{BRIGHTNESS} & --- \\ \dcrule{2}{4}
