@@ -1289,7 +1289,7 @@ hyperfootnotes=true
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newcommand{\symColor}[3]{% <--- XXX Remove space before comment marker to smoosh
 %\begin{tikzpicture}[overlay]
-\begin{tikzpicture}
+\begin{tikzpicture}[baseline=2]
   %\node[fill=#1,draw=black,inner sep=3pt,anchor=text,rectangle,rounded corners=0.5mm]
     %at (0.06,0.03) {\color{#2} \fontTGA{n}{#3}};
   \draw[fill=#1,draw=black,inner sep=1mm,rectangle,rounded corners=0.5mm]
@@ -1306,31 +1306,30 @@ hyperfootnotes=true
 \newcommand{\cPu}{\symColor{violet}{white}{PURPLE}}
 \newcommand{\cPi}{\symColor{pink}{white}{PINK}}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newcommand{\aside}[1]{%
-\begin{center}
-\par\medskip\rule{\textwidth}{1pt}
-{\parbox[c]{6.6in}{\par\medskip #1 \par\medskip}}
-\par\rule{\textwidth}{1pt}\end{center}\par\medskip}
+\newcommand{\cCol}[3]{\symColor{#1}{#2}{#3}}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newcommand{\ddfrac}[2]{\frac{\displaystyle #1}{\displaystyle #2}}
 
 \setlength{\fboxsep}{12pt}
 
 \newcommand{\danger}[1]{\begin{center}\fbox{%
-\begin{minipage}{0.92\textwidth}%
-{\raisebox{-1mm}{\includegraphics{images/danger.png}} #1}%
+\begin{minipage}{0.94\textwidth}%
+{\raisebox{-1.1mm}{\includegraphics{images/danger.png}} #1}%
 \end{minipage}}\end{center}}
 
 \newcommand{\warning}[1]{\begin{center}\fbox{%
-\begin{minipage}{0.92\textwidth}%
-{\raisebox{-1mm}{\includegraphics{images/warning.png}} #1}%
+\begin{minipage}{0.94\textwidth}%
+{\raisebox{-1.1mm}{\includegraphics{images/warning.png}} #1}%
 \end{minipage}}\end{center}}
 
 \newcommand{\info}[1]{\begin{center}\fbox{%
-\begin{minipage}{0.92\textwidth}%
-{\raisebox{-1mm}{\includegraphics{images/info.png}} #1}%
+\begin{minipage}{0.94\textwidth}%
+{\raisebox{-1.2mm}{\includegraphics{images/info.png}} #1}%
 \end{minipage}}\end{center}}
+
+\newcommand{\cbox}[1]{\begin{center}\fcolorbox{black!20}{black!2}{%
+\begin{minipage}{0.95\textwidth}#1\end{minipage}}\end{center}}
 
 %\newcommand{\info}[1]{%
 %\fbox{\parbox{\textwidth}{\raisebox{-1mm}{\includegraphics{images/info.png}} #1}}}
@@ -1341,7 +1340,7 @@ hyperfootnotes=true
 %\end{minipage}}}
 
 \newcommand{\steps}[2]{\begin{center}\fbox{%
-\begin{minipage}{0.92\textwidth}\par\medskip%
+\begin{minipage}{0.94\textwidth}\par\medskip%
 {\parbox{\textwidth}{\centering \thbi{#1}}} \newline #2%
 \end{minipage}}\end{center}}
 

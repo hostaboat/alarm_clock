@@ -367,7 +367,7 @@ the \cEs{f} to finish.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \mTSDe{sym} \par\medskip
 
-Reset the touch sensitivity and threshold values to "safe" defaults.
+Reset the touch sensitivity and threshold values to ``safe'' defaults.
 
 \as{{ c c c }}{\mTSDe{sym} & \sPR & \sTSDo{sym} \\}
 
@@ -456,7 +456,7 @@ proceed.  The \cDi{f} will be blinking
   \sDl{bASE}
 \end{figure}
 
-and the lighting area will be lit red.
+and the \cLi{f} window will be lit \cRe{}.
 
 \begin{enumerate}
   \item Make sure you are \textit{not} touching the \cTo{f} of the enclosure
@@ -473,7 +473,7 @@ and the lighting area will be lit red.
 
 The device will proceed to take \num{65535} readings.  This phase of calibration
 requires no user action so remember \textit{not} to touch the device while this
-is happening.  Progress can be seen by the lighting area cycling through the
+is happening.  Progress can be seen by the \cLi{f} window cycling through the
 colors of the rainbow
 
 \begin{table}[H] \ers{0.1} \begin{tabu} { c }
@@ -498,7 +498,7 @@ After the \sTSBR{f} run is complete, the display will be blinking
   \sDl{tUCH}
 \end{figure}
 
-and the lighting area will be lit red.
+and the \cLi{f} window will be lit \cRe{}.
 
 \begin{enumerate}
   \item Make sure you that you are \textit{touching} the \cTo{f} of the
@@ -518,7 +518,7 @@ and the lighting area will be lit red.
 
 The device will again proceed to take \num{65535} readings.  Remember to keep
 your hand lightly on \cTo{f} of the enclosure while this is running.  Progress
-can be seen by the lighting area cycling through the colors of the rainbow
+can be seen by the \cLi{f} window cycling through the colors of the rainbow
 
 \begin{table}[H] \ers{0.1} \begin{tabu} { c }
   \cRe \cOr \cYe \cGr \cBl \cPu \cRe
@@ -612,17 +612,19 @@ There are \num{4} configurable values and related states.
 \end{tabu}
 \end{table}
 
-The values as they relate to touch sensitivity can basically be described with
-the following equation:
+The values as they relate to touch sensitivity can more or less be described
+with the following equation:
 
+\cbox{%
 \begin{equation}
 Sensitivity = \ddfrac{\textrm{\sTSEC{f}}}
   {\textrm{\sTSRC{f}} \times \textrm{\sTSNS{f}} \times \textrm{\sTSPS{f}}}
-\end{equation}
+\end{equation}}
 
-The \textit{smaller} the value, the \textit{more} sensitive.
-
-\par\medskip
+\begin{itemize}[leftmargin=*,label=\guilsinglright]
+  \item The \textit{larger} the value, the \textit{less} sensitive.
+  \item The \textit{smaller} the value, the \textit{more} sensitive.
+\end{itemize}
 
 After the settings are configured, the calibration process must be done. Refer
 to \hyperref[Touch Calibration]{\mTSCa{f}} upon completion.
@@ -795,7 +797,7 @@ phase.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Defaults} \mTSDe{syml}
 
-Loads "safe" default touch sensitivity and threshold values.
+Loads ``safe'' default touch sensitivity and threshold values.
 
 \par\medskip
 
@@ -803,7 +805,7 @@ Selecting the \mTSDe{f} menu option loads touch sensitivity and threshold
 values that have been tested with this device.  This doesn't mean that they are
 necessarily going to just work since as mentioned, location, environmental
 factors, touching force, etc. are factors that can influence readings.
-However, they can provide a sane starting point if "bad" values have been set
+However, they can provide a sane starting point if ``bad'' values have been set
 via \mTSCo{f}.  It's recommended that after loading the \mTSDe{f} that you
 follow the \hyperref[Touch Calibration]{\mTSCa{f}} procedure.
 
