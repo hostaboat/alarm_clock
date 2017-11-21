@@ -19,11 +19,138 @@
    inkscape:version="0.91 r13725"
    sodipodi:docname="front_panel.svg"
    style="enable-background:new"
-   inkscape:export-filename="/home/twease/alarm_clock_docs/images/front_panel.png"
+   inkscape:export-filename="/home/twease/alarm_clock/docs/images/front_panel.png"
    inkscape:export-xdpi="200"
    inkscape:export-ydpi="200">
   <defs
      id="defs4">
+    <marker
+       inkscape:stockid="Arrow1Lstart"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker7558"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path7560"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(0.8,0,0,0.8,10,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker7332"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lstart"
+       inkscape:collect="always">
+      <path
+         inkscape:connector-curvature="0"
+         transform="matrix(0.8,0,0,0.8,10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path7334" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lstart"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker7106"
+       style="overflow:visible"
+       inkscape:isstock="true"
+       inkscape:collect="always">
+      <path
+         id="path7108"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(0.8,0,0,0.8,10,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker6886"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lstart"
+       inkscape:collect="always">
+      <path
+         inkscape:connector-curvature="0"
+         transform="matrix(0.8,0,0,0.8,10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path6888" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lstart"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker6498"
+       style="overflow:visible"
+       inkscape:isstock="true"
+       inkscape:collect="always">
+      <path
+         id="path6500"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(0.8,0,0,0.8,10,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker6284"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lstart"
+       inkscape:collect="always">
+      <path
+         inkscape:connector-curvature="0"
+         transform="matrix(0.8,0,0,0.8,10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path6286" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lstart"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker5336"
+       style="overflow:visible"
+       inkscape:isstock="true"
+       inkscape:collect="always">
+      <path
+         id="path5338"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(0.8,0,0,0.8,10,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker4972"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lstart"
+       inkscape:collect="always">
+      <path
+         inkscape:connector-curvature="0"
+         transform="matrix(0.8,0,0,0.8,10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path4974" />
+    </marker>
     <marker
        inkscape:isstock="true"
        style="overflow:visible"
@@ -38,22 +165,6 @@
          style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
          d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
          id="path5894" />
-    </marker>
-    <marker
-       inkscape:stockid="Arrow1Lend"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="marker5997"
-       style="overflow:visible"
-       inkscape:isstock="true"
-       inkscape:collect="always">
-      <path
-         id="path5999"
-         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
-         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
-         transform="matrix(-0.8,0,0,-0.8,-10,0)"
-         inkscape:connector-curvature="0" />
     </marker>
     <marker
        inkscape:stockid="Arrow1Lend"
@@ -118,22 +229,6 @@
     <marker
        inkscape:isstock="true"
        style="overflow:visible"
-       id="marker5101"
-       refX="0"
-       refY="0"
-       orient="auto"
-       inkscape:stockid="Arrow1Lend"
-       inkscape:collect="always">
-      <path
-         inkscape:connector-curvature="0"
-         transform="matrix(-0.8,0,0,-0.8,-10,0)"
-         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
-         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
-         id="path5103" />
-    </marker>
-    <marker
-       inkscape:isstock="true"
-       style="overflow:visible"
        id="marker4947"
        refX="0"
        refY="0"
@@ -145,38 +240,6 @@
          style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
          d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
          id="path4949" />
-    </marker>
-    <marker
-       inkscape:isstock="true"
-       style="overflow:visible"
-       id="marker4799"
-       refX="0"
-       refY="0"
-       orient="auto"
-       inkscape:stockid="Arrow1Lend"
-       inkscape:collect="always">
-      <path
-         inkscape:connector-curvature="0"
-         transform="matrix(-0.8,0,0,-0.8,-10,0)"
-         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
-         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
-         id="path4801" />
-    </marker>
-    <marker
-       inkscape:isstock="true"
-       style="overflow:visible"
-       id="marker4721"
-       refX="0"
-       refY="0"
-       orient="auto"
-       inkscape:stockid="Arrow1Lend"
-       inkscape:collect="always">
-      <path
-         inkscape:connector-curvature="0"
-         transform="matrix(-0.8,0,0,-0.8,-10,0)"
-         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
-         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
-         id="path4723" />
     </marker>
     <marker
        inkscape:isstock="true"
@@ -206,22 +269,6 @@
          d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
          style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
          transform="matrix(0.4,0,0,0.4,4,0)"
-         inkscape:connector-curvature="0" />
-    </marker>
-    <marker
-       inkscape:stockid="Arrow1Lend"
-       orient="auto"
-       refY="0"
-       refX="0"
-       id="Arrow1Lend"
-       style="overflow:visible"
-       inkscape:isstock="true"
-       inkscape:collect="always">
-      <path
-         id="path6219"
-         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
-         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
-         transform="matrix(-0.8,0,0,-0.8,-10,0)"
          inkscape:connector-curvature="0" />
     </marker>
     <marker
@@ -290,7 +337,8 @@
        refX="0"
        id="Arrow1Lstart"
        style="overflow:visible"
-       inkscape:isstock="true">
+       inkscape:isstock="true"
+       inkscape:collect="always">
       <path
          id="path6216"
          d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
@@ -507,7 +555,7 @@
        x2="531.95032"
        y2="716.78564"
        gradientUnits="userSpaceOnUse"
-       gradientTransform="matrix(0.672,0,0,0.672,137.77693,-197.93629)" />
+       gradientTransform="matrix(0.672,0,0,0.672,129.69571,-197.93629)" />
     <linearGradient
        inkscape:collect="always"
        xlink:href="#linearGradient5803"
@@ -517,7 +565,7 @@
        x2="508.67554"
        y2="825.36719"
        gradientUnits="userSpaceOnUse"
-       gradientTransform="matrix(0.672,0,0,0.672,137.86605,-206.55602)" />
+       gradientTransform="matrix(0.672,0,0,0.672,129.78483,-206.55602)" />
     <linearGradient
        inkscape:collect="always"
        xlink:href="#linearGradient5803"
@@ -604,7 +652,7 @@
        x2="396.89957"
        y2="832.23926"
        gradientUnits="userSpaceOnUse"
-       gradientTransform="matrix(0.672,0,0,0.672,118.76584,-197.0525)" />
+       gradientTransform="matrix(0.672,0,0,0.672,110.68462,-197.0525)" />
     <radialGradient
        inkscape:collect="always"
        xlink:href="#linearGradient6186"
@@ -614,7 +662,7 @@
        fx="275.36298"
        fy="715.56641"
        r="90.449997"
-       gradientTransform="matrix(1.7828986,-1.0252563,0.59710704,1.0383563,-611.93163,-176.61222)"
+       gradientTransform="matrix(1.7828986,-1.0252563,0.59710704,1.0383563,-620.01285,-176.61222)"
        gradientUnits="userSpaceOnUse" />
     <radialGradient
        inkscape:collect="always"
@@ -625,7 +673,7 @@
        fx="272.23618"
        fy="939.73016"
        r="90.900002"
-       gradientTransform="matrix(2.5090647,-1.2624577,0.81834755,1.6264203,-1145.8016,-749.42646)"
+       gradientTransform="matrix(2.5090647,-1.2624577,0.81834755,1.6264203,-1153.8828,-749.42646)"
        gradientUnits="userSpaceOnUse" />
     <marker
        inkscape:stockid="Arrow1Mend"
@@ -747,6 +795,38 @@
          style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
          transform="matrix(-0.4,0,0,-0.4,-4,0)" />
     </marker>
+    <marker
+       inkscape:stockid="Arrow1Lstart"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker5336-8"
+       style="overflow:visible"
+       inkscape:isstock="true"
+       inkscape:collect="always">
+      <path
+         id="path5338-0"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(0.8,0,0,0.8,10,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lstart"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker5336-6"
+       style="overflow:visible"
+       inkscape:isstock="true"
+       inkscape:collect="always">
+      <path
+         id="path5338-9"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(0.8,0,0,0.8,10,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
   </defs>
   <sodipodi:namedview
      id="base"
@@ -755,9 +835,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.98994949"
-     inkscape:cx="309.48441"
-     inkscape:cy="133.19028"
+     inkscape:zoom="1.4"
+     inkscape:cx="305.92667"
+     inkscape:cy="214.00248"
      inkscape:document-units="in"
      inkscape:current-layer="layer3"
      showgrid="false"
@@ -800,11 +880,10 @@
      inkscape:label="LED Digits"
      transform="translate(0,-179.99999)">
     <g
-       id="g6094"
-       transform="translate(-8.0812204,0)">
+       id="g10006">
       <rect
          y="239.02548"
-         x="147.52238"
+         x="139.44116"
          height="241.92"
          width="317.51999"
          id="rect4136"
@@ -812,172 +891,162 @@
       <path
          inkscape:connector-curvature="0"
          id="path6926"
-         d="m 157.08753,283.91008 -29.88568,0"
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.56700003;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker4721);enable-background:new" />
+         d="m 150.34746,283.91008 -34.76236,0"
+         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.53252232;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#marker4972);enable-background:new" />
       <text
          sodipodi:linespacing="125%"
          id="text6952"
          y="287.78983"
-         x="75.990906"
+         x="67.909683"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.50000095px;line-height:125%;font-family:'TeX Gyre Adventor';-inkscape-font-specification:'TeX Gyre Adventor, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;enable-background:new"
          xml:space="preserve"><tspan
            y="287.78983"
-           x="75.990906"
+           x="67.909683"
            id="tspan4497"
            sodipodi:role="line">VOLUME</tspan></text>
       <path
          inkscape:connector-curvature="0"
          id="path6926-9"
-         d="m 166.34842,348.61034 -39.44447,0"
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.53903061px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker4799);enable-background:new" />
+         d="m 160.4527,348.61034 -44.8676,0"
+         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.57489276px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-start:url(#marker5336);enable-background:new" />
       <text
          sodipodi:linespacing="125%"
          id="text6952-9"
          y="351.90207"
-         x="12.713637"
+         x="4.6324139"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.50000095px;line-height:125%;font-family:'TeX Gyre Adventor';-inkscape-font-specification:'TeX Gyre Adventor, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;enable-background:new"
          xml:space="preserve"><tspan
            y="351.90207"
-           x="12.713637"
+           x="4.6324139"
            id="tspan4505"
            sodipodi:role="line">PLAY | PAUSE | STOP</tspan></text>
-      <path
-         inkscape:connector-curvature="0"
-         id="path6926-9-3"
-         d="m 166.34842,395.0683 -39.44447,0"
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.53903061px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker4947);enable-background:new" />
       <text
          sodipodi:linespacing="125%"
          id="text6952-9-7"
          y="398.94806"
-         x="94.042549"
+         x="85.961327"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.50000095px;line-height:125%;font-family:'TeX Gyre Adventor';-inkscape-font-specification:'TeX Gyre Adventor, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;enable-background:new"
          xml:space="preserve"><tspan
            y="398.94806"
-           x="94.042549"
+           x="85.961327"
            id="tspan4507"
            sodipodi:role="line">NEXT</tspan></text>
-      <path
-         inkscape:connector-curvature="0"
-         id="path6926-9-3-0"
-         d="m 166.34842,441.52625 -39.44447,0"
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.53903061px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5101);enable-background:new" />
       <text
          sodipodi:linespacing="125%"
          id="text6952-9-7-6"
          y="445.40601"
-         x="69.285835"
+         x="61.204617"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.50000095px;line-height:125%;font-family:'TeX Gyre Adventor';-inkscape-font-specification:'TeX Gyre Adventor, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;enable-background:new"
          xml:space="preserve"><tspan
            y="445.40601"
-           x="69.285835"
+           x="61.204617"
            id="tspan4509"
            sodipodi:role="line">PREVIOUS</tspan></text>
       <path
          inkscape:connector-curvature="0"
          id="path9179"
-         d="m 450.54183,283.94598 32.8875,0 0,0"
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.51476133;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker5997);enable-background:new" />
+         d="m 440.07326,283.94598 37.80023,0 0,0"
+         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.55187112;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#marker6498);enable-background:new" />
       <text
          sodipodi:linespacing="125%"
          id="text6952-0"
          y="287.82571"
-         x="490.89783"
+         x="482.81662"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.50000095px;line-height:125%;font-family:'TeX Gyre Adventor';-inkscape-font-specification:'TeX Gyre Adventor, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;enable-background:new"
          xml:space="preserve"><tspan
            y="287.82571"
-           x="490.89783"
+           x="482.81662"
            id="tspan4455"
            sodipodi:role="line">SETTINGS KNOB</tspan></text>
       <path
          inkscape:connector-curvature="0"
          id="path9179-2"
-         d="m 446.02957,347.38841 37.2854,0 0,0"
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.54809999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker5813);enable-background:new" />
+         d="m 433.70128,347.38841 44.17221,0 0,0"
+         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.54000002;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#marker6886);enable-background:new" />
       <text
          sodipodi:linespacing="125%"
          id="text6952-0-6"
          y="351.26816"
-         x="490.33081"
+         x="482.2496"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.50000095px;line-height:125%;font-family:'TeX Gyre Adventor';-inkscape-font-specification:'TeX Gyre Adventor, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;enable-background:new"
          xml:space="preserve"><tspan
            y="351.26816"
-           x="490.33081"
+           x="482.2496"
            id="tspan4453"
            sodipodi:role="line">BRIGHTNESS KNOB</tspan></text>
       <path
          inkscape:connector-curvature="0"
          id="path9179-2-4"
-         d="m 444.64118,393.0903 38.64199,0 0,0"
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.55798209;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker5635);enable-background:new" />
+         d="m 431.36105,393.0903 46.51244,0 0,0"
+         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.53715086;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#marker7106);enable-background:new" />
       <text
          sodipodi:linespacing="125%"
          id="text6952-0-6-2"
          y="396.97006"
-         x="490.33081"
+         x="482.2496"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.50000095px;line-height:125%;font-family:'TeX Gyre Adventor';-inkscape-font-specification:'TeX Gyre Adventor, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;enable-background:new"
          xml:space="preserve"><tspan
            y="396.97006"
-           x="490.33081"
+           x="482.2496"
            id="tspan4451"
            sodipodi:role="line">LOW BATTERY INDICATOR</tspan></text>
       <path
          inkscape:connector-curvature="0"
          id="path9179-2-4-3"
-         d="m 452.53817,437.20445 30.84154,0 0,0"
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.56700003;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker5463);enable-background:new" />
+         d="m 440.68206,437.20445 37.19143,0 0,0"
+         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.53646159;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#marker7332);enable-background:new" />
       <text
          sodipodi:linespacing="125%"
          id="text6952-0-6-2-2"
          y="441.0842"
-         x="490.33081"
+         x="482.2496"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.50000095px;line-height:125%;font-family:'TeX Gyre Adventor';-inkscape-font-specification:'TeX Gyre Adventor, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;enable-background:new"
          xml:space="preserve"><tspan
            y="441.0842"
-           x="490.33081"
+           x="482.2496"
            id="tspan4449"
            sodipodi:role="line">POWER SWITCH</tspan></text>
       <path
          inkscape:connector-curvature="0"
          id="path10588"
-         d="m 306.25755,255.03318 0,-31.19405"
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.56700003;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Lend);enable-background:new" />
+         d="m 298.17633,258.37272 0,-37.56405"
+         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.54000002;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#Arrow1Lstart);enable-background:new" />
       <text
          sodipodi:linespacing="125%"
          id="text6952-0-0"
          y="215.06255"
-         x="285.83185"
+         x="277.75064"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.50000095px;line-height:125%;font-family:'TeX Gyre Adventor';-inkscape-font-specification:'TeX Gyre Adventor, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;enable-background:new"
          xml:space="preserve"><tspan
            y="215.06255"
-           x="285.83185"
+           x="277.75064"
            id="tspan4457"
            sodipodi:role="line">DISPLAY</tspan></text>
       <path
          inkscape:connector-curvature="0"
          id="path10588-0"
-         d="m 306.28236,496.63622 0,-31.66173"
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.54000002;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#Arrow1Lstart);enable-background:new" />
+         d="m 298.20114,499.66668 0,-39.01538"
+         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.54000002;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker5892);enable-background:new" />
       <text
          sodipodi:linespacing="125%"
          id="text6952-0-0-3"
          y="513.60242"
-         x="282.37656"
+         x="274.29535"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.50000095px;line-height:125%;font-family:'TeX Gyre Adventor';-inkscape-font-specification:'TeX Gyre Adventor, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;enable-background:new"
          xml:space="preserve"><tspan
            y="513.60242"
-           x="282.37656"
+           x="274.29535"
            id="tspan4465"
            sodipodi:role="line">LIGHTING</tspan></text>
       <path
          inkscape:connector-curvature="0"
          id="path11389"
-         d="m 277.33458,350.08959 -25.07311,0 0,14.4015"
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.56700003;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker5261);enable-background:new" />
+         d="m 274.14398,350.4703 -29.9495,0 0,16.01401"
+         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.54000002;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#marker6284);enable-background:new" />
       <g
          id="g4491"
          style="enable-background:new"
-         transform="matrix(1.05,0,0,1.05,-35.208855,74.227357)">
+         transform="matrix(1.05,0,0,1.05,-43.290075,74.227357)">
         <text
            xml:space="preserve"
            style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.00000095px;line-height:125%;font-family:'TeX Gyre Adventor';-inkscape-font-specification:'TeX Gyre Adventor, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
@@ -1004,17 +1073,17 @@
       <circle
          r="21.167999"
          cy="284.08313"
-         cx="424.86484"
+         cx="416.78363"
          id="path4140"
-         style="opacity:1;fill:url(#linearGradient5811);fill-opacity:1;stroke:#bebebe;stroke-width:0.60479999;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;enable-background:new" />
+         style="opacity:1;fill:url(#linearGradient5811);fill-opacity:1;stroke:#bebebe;stroke-width:0.60479999;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;enable-background:new;marker-start:" />
       <circle
          r="15.12"
          cy="347.41199"
-         cx="424.86484"
+         cx="416.78363"
          id="path4142"
-         style="fill:url(#linearGradient5813);fill-opacity:1;stroke:#bebebe;stroke-width:0.60479999;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;enable-background:new" />
+         style="fill:url(#linearGradient5813);fill-opacity:1;stroke:#bebebe;stroke-width:0.60479999;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;enable-background:new;marker-start:" />
       <g
-         transform="matrix(0.672,0,0,0.672,135.87391,-203.84072)"
+         transform="matrix(0.672,0,0,0.672,127.79269,-203.84072)"
          id="g5840"
          style="enable-background:new">
         <circle
@@ -1033,7 +1102,7 @@
       <g
          id="g11123"
          style="enable-background:new"
-         transform="matrix(1.05,0,0,1.05,-35.208855,-558.25289)">
+         transform="matrix(1.05,0,0,1.05,-43.290075,-558.25289)">
         <circle
            style="fill:url(#linearGradient5824);fill-opacity:1;stroke:#000000;stroke-width:0.0576;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
            id="path4152"
@@ -1061,7 +1130,7 @@
            r="12.96" />
       </g>
       <g
-         transform="matrix(0.672,0,0,0.672,115.61772,-203.96292)"
+         transform="matrix(0.672,0,0,0.672,107.5365,-203.96292)"
          id="g5849"
          style="enable-background:new">
         <circle
@@ -1078,7 +1147,7 @@
            r="22.5" />
       </g>
       <g
-         transform="matrix(0.672,0,0,0.672,124.39048,-211.98661)"
+         transform="matrix(0.672,0,0,0.672,116.30926,-211.98661)"
          id="g5924"
          style="enable-background:new">
         <circle
@@ -1096,7 +1165,7 @@
       </g>
       <g
          id="g5924-9"
-         transform="matrix(0.672,0,0,0.672,124.39048,-165.63054)"
+         transform="matrix(0.672,0,0,0.672,116.30926,-165.63054)"
          style="enable-background:new">
         <circle
            style="opacity:1;fill:url(#linearGradient5965);fill-opacity:1;stroke:#000000;stroke-width:0.09;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
@@ -1113,7 +1182,7 @@
       </g>
       <g
          id="g5924-1"
-         transform="matrix(0.672,0,0,0.672,124.39048,-119.27447)"
+         transform="matrix(0.672,0,0,0.672,116.30926,-119.27447)"
          style="enable-background:new">
         <circle
            style="opacity:1;fill:url(#linearGradient5987);fill-opacity:1;stroke:#000000;stroke-width:0.09;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
@@ -1130,25 +1199,25 @@
       </g>
       <rect
          y="261.40317"
-         x="245.80237"
+         x="237.72115"
          height="45.360001"
          width="120.96"
          id="rect5991"
          style="opacity:1;fill:url(#radialGradient6192);fill-opacity:1;stroke:#a0a0a0;stroke-width:0.60479999;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;enable-background:new" />
       <rect
          y="412.60318"
-         x="245.80237"
+         x="237.72115"
          height="45.360001"
          width="120.96"
          id="rect5991-9"
          style="opacity:1;fill:url(#radialGradient6208);fill-opacity:1;stroke:#bebebe;stroke-width:0.60479999;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;enable-background:new" />
       <path
          inkscape:connector-curvature="0"
-         d="m 306.2729,393.09874 -8.81816,-15.27351 -8.81816,-15.2735 17.63632,0 17.63633,0 -8.81817,15.2735 z m 20.83073,-41.63045 a 20.821256,20.821256 0 0 1 -20.82126,20.82124 20.821256,20.821256 0 0 1 -20.82125,-20.82124 20.821256,20.821256 0 0 1 20.82125,-20.82126 20.821256,20.821256 0 0 1 20.82126,20.82126 z"
-         style="opacity:1;fill:url(#linearGradient6045);fill-opacity:1;stroke:none;stroke-width:0.89999998;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;enable-background:new"
+         d="m 298.19168,393.09874 -8.81816,-15.27351 -8.81816,-15.2735 17.63632,0 17.63633,0 -8.81817,15.2735 z m 20.83073,-41.63045 a 20.821256,20.821256 0 0 1 -20.82126,20.82124 20.821256,20.821256 0 0 1 -20.82125,-20.82124 20.821256,20.821256 0 0 1 20.82125,-20.82126 20.821256,20.821256 0 0 1 20.82126,20.82126 z"
+         style="opacity:1;fill:url(#linearGradient6045);fill-opacity:1;stroke:none;stroke-width:0.89999998;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;enable-background:new;marker-start:"
          id="path6020" />
       <path
-         transform="matrix(0.18314096,-0.26577429,-0.05588296,-0.08044423,199.45162,306.21468)"
+         transform="matrix(0.18314096,-0.26577429,-0.05588296,-0.08044423,191.3704,306.21468)"
          inkscape:transform-center-y="-0.95466413"
          inkscape:transform-center-x="-1.2149893"
          d="m -52.871439,232.14148 -13.024053,-9.47204 14.715052,-6.54314 14.715052,-6.54314 -1.691,16.01518 -1.691,16.01518 z"
@@ -1163,10 +1232,10 @@
          sodipodi:cx="-47.402756"
          sodipodi:sides="3"
          id="path6956"
-         style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1.91403937;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;enable-background:new"
+         style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1.91403937;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;enable-background:new;marker-start:"
          sodipodi:type="star" />
       <g
-         transform="matrix(1.05,0,0,1.05,81.198608,162.42609)"
+         transform="matrix(1.05,0,0,1.05,73.117388,162.42609)"
          style="fill:#3c3c00;fill-opacity:0.50196078"
          id="g5653">
         <circle
@@ -1213,145 +1282,155 @@
            r="1.4285717" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="2,0 8,0 9,1 8,2 2,2 1,1 "
+           points="9,1 8,2 2,2 1,1 2,0 8,0 "
            id="a"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,165.39737,97.66397)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="10,2 10,8 9,9 8,8 8,2 9,1 "
+           points="9,9 8,8 8,2 9,1 10,2 10,8 "
            id="b"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,165.39737,97.66397)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="10,10 10,16 9,17 8,16 8,10 9,9 "
+           points="9,17 8,16 8,10 9,9 10,10 10,16 "
            id="c"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,165.39737,97.66397)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="8,18 2,18 1,17 2,16 8,16 9,17 "
+           points="1,17 2,16 8,16 9,17 8,18 2,18 "
            id="d"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,165.39737,97.66397)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="0,16 0,10 1,9 2,10 2,16 1,17 "
+           points="1,9 2,10 2,16 1,17 0,16 0,10 "
            id="e"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,165.39737,97.66397)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="0,8 0,2 1,1 2,2 2,8 1,9 "
+           points="1,1 2,2 2,8 1,9 0,8 0,2 "
            id="f"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,165.39737,97.66397)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="2,8 8,8 9,9 8,10 2,10 1,9 "
+           points="9,9 8,10 2,10 1,9 2,8 8,8 "
            id="g"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,165.39737,97.66397)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="8,2 2,2 1,1 2,0 8,0 9,1 "
+           points="1,1 2,0 8,0 9,1 8,2 2,2 "
            id="a-7"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,192.78816,98.050294)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="8,8 8,2 9,1 10,2 10,8 9,9 "
+           points="9,1 10,2 10,8 9,9 8,8 8,2 "
            id="b-4"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,192.78816,98.050294)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="8,16 8,10 9,9 10,10 10,16 9,17 "
+           points="9,9 10,10 10,16 9,17 8,16 8,10 "
            id="c-4"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,192.78816,98.050294)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="2,16 8,16 9,17 8,18 2,18 1,17 "
+           points="9,17 8,18 2,18 1,17 2,16 8,16 "
            id="d-3"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,192.78816,98.050294)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="2,10 2,16 1,17 0,16 0,10 1,9 "
+           points="1,17 0,16 0,10 1,9 2,10 2,16 "
            id="e-0"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,192.78816,98.050294)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="2,2 2,8 1,9 0,8 0,2 1,1 "
+           points="1,9 0,8 0,2 1,1 2,2 2,8 "
            id="f-7"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,192.78816,98.050294)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="8,10 2,10 1,9 2,8 8,8 9,9 "
+           points="1,9 2,8 8,8 9,9 8,10 2,10 "
            id="g-8"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,192.78816,98.050294)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="8,2 2,2 1,1 2,0 8,0 9,1 "
+           points="1,1 2,0 8,0 9,1 8,2 2,2 "
            id="a-4"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,220.25596,97.832505)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="8,8 8,2 9,1 10,2 10,8 9,9 "
+           points="9,1 10,2 10,8 9,9 8,8 8,2 "
            id="b-3"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,220.25596,97.832505)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="8,16 8,10 9,9 10,10 10,16 9,17 "
+           points="9,9 10,10 10,16 9,17 8,16 8,10 "
            id="c-1"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,220.25596,97.832505)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="2,16 8,16 9,17 8,18 2,18 1,17 "
+           points="9,17 8,18 2,18 1,17 2,16 8,16 "
            id="d-4"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,220.25596,97.832505)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="2,10 2,16 1,17 0,16 0,10 1,9 "
+           points="1,17 0,16 0,10 1,9 2,10 2,16 "
            id="e-9"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,220.25596,97.832505)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="2,2 2,8 1,9 0,8 0,2 1,1 "
+           points="1,9 0,8 0,2 1,1 2,2 2,8 "
            id="f-2"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,220.25596,97.832505)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="8,10 2,10 1,9 2,8 8,8 9,9 "
+           points="1,9 2,8 8,8 9,9 8,10 2,10 "
            id="g-0"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,220.25596,97.832505)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="1,1 2,0 8,0 9,1 8,2 2,2 "
+           points="8,0 9,1 8,2 2,2 1,1 2,0 "
            id="a-6"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,247.70452,97.765746)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="9,1 10,2 10,8 9,9 8,8 8,2 "
+           points="10,8 9,9 8,8 8,2 9,1 10,2 "
            id="b-6"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,247.70452,97.765746)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="9,9 10,10 10,16 9,17 8,16 8,10 "
+           points="10,16 9,17 8,16 8,10 9,9 10,10 "
            id="c-49"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,247.70452,97.765746)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="9,17 8,18 2,18 1,17 2,16 8,16 "
+           points="2,18 1,17 2,16 8,16 9,17 8,18 "
            id="d-5"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,247.70452,97.765746)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="1,17 0,16 0,10 1,9 2,10 2,16 "
+           points="0,10 1,9 2,10 2,16 1,17 0,16 "
            id="e-04"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,247.70452,97.765746)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="1,9 0,8 0,2 1,1 2,2 2,8 "
+           points="0,2 1,1 2,2 2,8 1,9 0,8 "
            id="f-8"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,247.70452,97.765746)" />
         <polygon
            style="fill:#3c3c00;fill-opacity:0.50196078;fill-rule:evenodd;stroke:#000000;stroke-width:0.05563667;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-           points="1,9 2,8 8,8 9,9 8,10 2,10 "
+           points="8,8 9,9 8,10 2,10 1,9 2,8 "
            id="g-7"
            transform="matrix(2.0123401,-0.00489443,-0.25231065,1.9795572,247.70452,97.765746)" />
       </g>
+      <path
+         inkscape:connector-curvature="0"
+         id="path6926-9-5"
+         d="m 160.4527,395.06831 -44.8676,0"
+         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.57489276px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-start:url(#marker5336-8);enable-background:new" />
+      <path
+         inkscape:connector-curvature="0"
+         id="path6926-9-8"
+         d="m 160.4527,441.52626 -44.8676,0"
+         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.57489276px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-start:url(#marker5336-6);enable-background:new" />
     </g>
   </g>
 </svg>
