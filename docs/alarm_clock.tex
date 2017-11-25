@@ -290,6 +290,7 @@ hyperfootnotes=true
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage[dvipsnames]{xcolor}
+\usepackage[most]{tcolorbox}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1331,21 +1332,11 @@ hyperfootnotes=true
 \newcommand{\cbox}[1]{\begin{center}\fcolorbox{black!20}{black!2}{%
 \begin{minipage}{0.95\textwidth}#1\end{minipage}}\end{center}}
 
-%\newcommand{\info}[1]{%
-%\fbox{\parbox{\textwidth}{\raisebox{-1mm}{\includegraphics{images/info.png}} #1}}}
-
-%\newcommand{\steps}[2]{\fbox{%
-%\begin{minipage}{0.95\textwidth}\par\medskip%
-%{\parbox{\textwidth}{\centering \thbi{#1}}} \newline #2%
-%\end{minipage}}}
-
-\newcommand{\steps}[2]{\begin{center}\fbox{%
-\begin{minipage}{0.94\textwidth}\par\medskip%
+\newcommand{\steps}[2]{\begin{center}\begin{tcolorbox}[breakable, enhanced]%
+\par\medskip%
 {\parbox{\textwidth}{\centering \thbi{#1}}} \newline #2%
-\end{minipage}}\end{center}}
+\end{tcolorbox}\end{center}}
 
-%\newcommand{\ssteps}[3]{%
-%\fbox{\parbox{#1\textwidth}{\parbox{#1\textwidth}{\centering \thbi{#2}} \newline #3}}}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
