@@ -180,6 +180,7 @@ class DevVS1053B :
         void loadPlugin(uint16_t const * plugin, uint16_t plugin_size);
 
         uint32_t _stop_time = 0;
+        int16_t _efb_bytes = -1;
 };
 
 template < pin_t CS, pin_t DCS, pin_t DREQ, pin_t RST,
@@ -233,6 +234,8 @@ void DevVS1053B < CS, DCS, DREQ, RST, SPI, MOSI, MISO, SCK >::start(void)
     TCtrl::_cta = spi_cta(6000000, 5, 24, 48);
 
     loadPlugin(vs1053b_patches_plugin, VS1053B_PATCH_PLUGIN_SIZE);
+
+    _efb_bytes = -1;
 }
 
 template < pin_t CS, pin_t DCS, pin_t DREQ, pin_t RST,
@@ -266,6 +269,8 @@ void DevVS1053B < CS, DCS, DREQ, RST, SPI, MOSI, MISO, SCK >::softReset(void)
     //while (!ready());
 
     loadPlugin(vs1053b_patches_plugin, VS1053B_PATCH_PLUGIN_SIZE);
+
+    _efb_bytes = -1;
 }
 
 template < pin_t CS, pin_t DCS, pin_t DREQ, pin_t RST,
@@ -322,6 +327,12 @@ bool DevVS1053B < CS, DCS, DREQ, RST, SPI, MOSI, MISO, SCK >::send(File * fp, ui
     if ((fp == nullptr) || !fp->valid() || fp->eof())
         return false;
 
+    if (_efb_bytes != -1)
+    {
+        finish();
+        return true;
+    }
+
     static uint8_t buf[32];
 
     uint8_t const * p;
@@ -333,7 +344,7 @@ bool DevVS1053B < CS, DCS, DREQ, RST, SPI, MOSI, MISO, SCK >::send(File * fp, ui
         send(buf, read);
 
     if ((read > 0) && fp->eof())
-        finish();
+        _efb_bytes = 0;
 
     return read > 0;
 }
@@ -389,46 +400,48 @@ void DevVS1053B < CS, DCS, DREQ, RST, SPI, MOSI, MISO, SCK >::send(uint8_t byte,
     TData::_spi.end(TData::_pin);
 }
 
-// Use this since finish seems to take longer than a reset since it often
-// ends up calling softReset() anyway
-//#define VS_FINISH_SOFT_RESET
-
 template < pin_t CS, pin_t DCS, pin_t DREQ, pin_t RST,
     template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
 void DevVS1053B < CS, DCS, DREQ, RST, SPI, MOSI, MISO, SCK >::finish(void)
 {
-#ifdef VS_FINISH_SOFT_RESET
-    softReset();
-#else
-    // Get endFillByte
-    uint8_t efb = getEFB();
+    // (1) Get endFillByte.
+    // (2) Send at least 2052 bytes of endFillByte - sending 2080 bytes.
+    // (3) Set SM_CANCEL.
+    // (4) Send endFillByte 32 bytes at a time checking SM_CANCEL
+    //     after each send.
+    //   (a) If SM_CANCEL is cleared, check HDAT0 and HDAT1.  If they aren't
+    //       both 0, then do softReset(), otherwise finished okay.
+    //   (b) If 2048 bytes or more are sent and SM_CANCEL still isn't clear
+    //       do a softReset().
 
-    // Need to send at least 2052 bytes of endFillByte
-    send(efb, 2052);
+    static uint8_t efb = 0;
 
-    // Set SM_CANCEL
-    setCancel();
-
-    // Send endFillByte 32 bytes at a time checking SM_CANCEL
-    // after each send.  If 2048 bytes or more are sent and
-    // SM_CANCEL still isn't clear need to do a soft reset.
-    // Potentially sending 2048 bytes, 32 bytes at a time, so 64 times.
-
-    uint8_t sends = 0;
-    for (; sends < 64; sends++)
+    if (_efb_bytes == 0)
+    {
+        efb = getEFB();
+        send(efb, 32);
+    }
+    else if (_efb_bytes < 2048)
     {
         send(efb, 32);
-
+    }
+    else if (_efb_bytes == 2048)
+    {
+        send(efb, 32);
+        setCancel();
+    }
+    else
+    {
+        send(efb, 32);
         if (cancelled())
-            break;
+            _efb_bytes = -1;
     }
 
-    // Maybe delay a microsecond to wait for
-    // HDAT0 and HDAT1
-    //delayUsecs(1);
-    if ((sends == 64) || !finished())
+    if (_efb_bytes != -1)
+        _efb_bytes += 32;
+
+    if (((_efb_bytes == -1) && !finished()) || (_efb_bytes == 4128))
         softReset();
-#endif
 }
 
 // Use this since cancel doesn't seem to work reliably
