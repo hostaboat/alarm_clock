@@ -3357,6 +3357,9 @@ UI::Alarm::Alarm(UI & ui)
 {
     _state = AS_OFF;
 
+    if (_ui._rtc.alarmInProgress())
+        _ui._rtc.alarmStop();
+
     if (!_ui._rtc.alarmIsSet())
         _ui._rtc.alarmStart();
 }
