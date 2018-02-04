@@ -599,7 +599,6 @@ static void start_clocks(void)
 #define SIM_CLKDIV1  (*(volatile uint32_t *)0x40048044)
 #define SIM_CLKDIV1_OUTDIV1(n)  ((uint32_t)(((n) & 0x0F) << 28))
 #define SIM_CLKDIV1_OUTDIV2(n)  ((uint32_t)(((n) & 0x0F) << 24))
-#define SIM_CLKDIV1_OUTDIV3(n)  ((uint32_t)(((n) & 0x0F) << 20))
 #define SIM_CLKDIV1_OUTDIV4(n)  ((uint32_t)(((n) & 0x0F) << 16))
 
 #define SIM_CLKDIV2  (*(volatile uint32_t *)0x40048048)
@@ -612,7 +611,7 @@ static void start_clocks(void)
 # if F_BUS == 48000000
     SIM_CLKDIV1 = SIM_CLKDIV1_OUTDIV1(0) | SIM_CLKDIV1_OUTDIV2(1) | SIM_CLKDIV1_OUTDIV4(3);
 # else
-#  error "F_BUS not supported for 98 MHz"
+#  error "F_BUS not supported for 96 MHz"
 # endif
     SIM_CLKDIV2 = SIM_CLKDIV2_USBDIV(1);
 #elif F_CPU == 72000000
@@ -625,7 +624,7 @@ static void start_clocks(void)
     SIM_CLKDIV2 = SIM_CLKDIV2_USBDIV(2) | SIM_CLKDIV2_USBFRAC;
 #elif F_CPU == 48000000
     // config divisors: 48 MHz core, 48 MHz bus, 24 MHz flash, USB = 96 / 2
-    SIM_CLKDIV1 = SIM_CLKDIV1_OUTDIV1(1) | SIM_CLKDIV1_OUTDIV2(1) | SIM_CLKDIV1_OUTDIV3(1) |  SIM_CLKDIV1_OUTDIV4(3);
+    SIM_CLKDIV1 = SIM_CLKDIV1_OUTDIV1(1) | SIM_CLKDIV1_OUTDIV2(1) | SIM_CLKDIV1_OUTDIV4(3);
     SIM_CLKDIV2 = SIM_CLKDIV2_USBDIV(1);
 #else
 # error "F_CPU must be 96, 72 or 48 MHz"
