@@ -59,6 +59,9 @@ class DevDisk : public DevSPI < CS, SPI, MOSI, MISO, SCK >
     public:
         virtual bool busy(void) = 0;
         virtual bool read(uint32_t address, uint8_t (&buf)[READ_BLK_LEN]) = 0;
+        virtual bool write(uint32_t address, uint8_t (&buf)[READ_BLK_LEN]) = 0;
+        virtual uint32_t capacity(void) = 0;  // In kilobytes
+        virtual uint32_t blocks(void) = 0;
 
     protected:
         DevDisk(void) {}

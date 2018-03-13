@@ -386,11 +386,7 @@ int Fat32File < DD >::read(uint8_t * buf, int amt)
         if (cpy > (uint32_t)(amt - n)) cpy = amt - n;
         if (cpy > this->_remaining) cpy = this->_remaining;
 
-        // Worried about getting an unaligned pointer and not sure if just
-        // checking the first few bits is sufficient.
-        //memcpy(buf + n, _dsb.a8 + _dsb_off, cpy);
-        for (uint32_t i = 0; i < cpy; i++)
-            buf[n+i] = _dsb.a8[_dsb_off+i];
+        memcpy(buf + n, _dsb.a8 + _dsb_off, cpy);
         n += cpy; _dsb_off += cpy; this->_remaining -= cpy;
     }
 

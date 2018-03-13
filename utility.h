@@ -71,6 +71,16 @@ inline void delay_usecs(uint32_t us)
         );
 }
 
+inline uint16_t ntohs(uint16_t val) { return ((val & 0x00FF) << 8) | ((val & 0xFF00) >> 8); }
+inline uint16_t htons(uint16_t val) { return ntohs(val); }
+
+inline uint32_t ntohl(uint32_t val)
+{
+    return ((val & 0x000000FF) << 24) | ((val & 0x0000FF00) <<  8) |
+           ((val & 0x00FF0000) >>  8) | ((val & 0xFF000000) >> 24);
+}
+inline uint32_t htonl(uint32_t val) { return ntohl(val); }
+
 // Set bit
 template < typename T, typename = typename enable_if < !is_pointer < T >::value >::type >
 inline void setBit(T & a, uint8_t offset) { a |= (1 << offset); }
@@ -191,6 +201,79 @@ class Toggle
         uint32_t _last_msec = 0;
         bool _on = true;
         bool _disabled = false;
+};
+
+template < typename T, int S >
+class Queue
+{
+    static_assert(S > 0, "Invalid Queue size - must be > 0");
+
+    public:
+        // Adding and removing an element
+        bool enqueue(T const & t)
+        {
+            if (isFull()) return false;
+            _enqueue(t);
+            return true;
+        }
+
+        bool dequeue(T & t)
+        {
+            if (isEmpty()) return false;
+            _dequeue(t);
+            return true;
+        }
+
+        // Direct access to first and last elements
+        bool head(T & t)
+        {
+            if (isEmpty()) return false;
+            _get(_head, t);
+            return true;
+        }
+
+        bool tail(T & t)
+        {
+            if (isEmpty()) return false;
+            _get(_tail, t);
+            return true;
+        }
+
+        // For iterating through elements
+        bool first(T & t)
+        {
+            if (isEmpty()) return false;
+            _begin(t);
+            return true;
+        }
+
+        bool next(T & t)
+        {
+            if (isEmpty() || (_curr == _tail)) return false;
+            _iter(t);
+            return true;
+        }
+
+        // Checks on status of queue
+        bool isEmpty(void) const { return _count == 0; }
+        bool isFull(void) const { return _count == S; }
+        int count(void) const { return _count; }
+        int available(void) const { return S - _count; }
+
+    private:
+        void _advance(int & i) { i = ((i + 1) == S) ? 0 : i + 1; }
+        void _get(int i, T & t) { t = _queue[i]; }
+        void _set(int i, T const & t) { _queue[i] = t; }
+        void _enqueue(T const & t) { _advance(_tail); _set(_tail, t); _count++; }
+        void _dequeue(T & t) { _get(_head, t); _advance(_head); _count--; }
+        void _begin(T & t) { _curr = _head; _get(_curr, t); }
+        void _iter(T & t) { _advance(_curr); _get(_curr, t); }
+
+        int _head = 0;
+        int _tail = -1;
+        int _curr = 0;
+        int _count = 0;
+        T _queue[S];
 };
 
 #endif

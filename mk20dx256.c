@@ -638,6 +638,15 @@ static void start_clocks(void)
     ////////////////////////////////////////////////////////////////////////////
     // Now in PEE mode /////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
+
+    // Add clock source for USB
+#define SIM_SOPT2  (*(volatile uint32_t *)0x40048004)
+#define SIM_SOPT2_USBSRC        ((uint32_t)0x00040000)
+#define SIM_SOPT2_PLLFLLSEL     ((uint32_t)0x00010000)
+#define SIM_SOPT2_TRACECLKSEL   ((uint32_t)0x00001000)
+#define SIM_SOPT2_CLKOUTSEL(n)  ((uint32_t)(((n) & 7) << 5))
+
+    SIM_SOPT2 = SIM_SOPT2_USBSRC | SIM_SOPT2_PLLFLLSEL | SIM_SOPT2_TRACECLKSEL | SIM_SOPT2_CLKOUTSEL(6);
 }
 
 char * __brkval = (char *)&_ebss;

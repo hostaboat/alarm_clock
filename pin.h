@@ -383,7 +383,7 @@ class PortX < PORTD > : public Port < PORTD >
 };
 
 template < >
-class PortX < PORTE > : public Port<PORTE>
+class PortX < PORTE > : public Port < PORTE >
 {
     friend void porte_isr(void);
     public:

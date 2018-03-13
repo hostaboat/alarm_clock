@@ -9,7 +9,7 @@ F_BUS = 48000000
 
 TOOLSPATH = ./tools/teensy_loader_cli
 
-GCCPATH = /opt/gcc-arm-none-eabi-6-2017-q2-update/bin
+GCCPATH = /opt/gcc-arm-none-eabi-7-2017-q4-major/bin
 CC = $(abspath $(GCCPATH))/arm-none-eabi-gcc
 CXX = $(abspath $(GCCPATH))/arm-none-eabi-g++
 OBJCOPY = $(abspath $(GCCPATH))/arm-none-eabi-objcopy
