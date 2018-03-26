@@ -108,7 +108,7 @@ int Scsi::request(uint8_t * req, uint8_t rlen)
             return SCSI_FAILED;
     }
 
-    if (status != SCSI_PASSED)
+    if (status != 0)
         return status;
 
     return rlen;
@@ -117,7 +117,7 @@ int Scsi::request(uint8_t * req, uint8_t rlen)
 int Scsi::testUnitReady(uint8_t * req)
 {
     _transfer_length = 0;
-    return SCSI_PASSED;
+    return 0;
 }
 
 int Scsi::requestSense(uint8_t * req)
@@ -136,7 +136,7 @@ int Scsi::requestSense(uint8_t * req)
     if (alloc_len < _transfer_length)
         _transfer_length = alloc_len;
 
-    return SCSI_PASSED;
+    return 0;
 }
 
 int Scsi::inquiry(uint8_t * req)
@@ -197,7 +197,7 @@ int Scsi::inquiry(uint8_t * req)
     if (alloc_len < _transfer_length)
         _transfer_length = alloc_len;
 
-    return SCSI_PASSED;
+    return 0;
 }
 
 int Scsi::modeSelect(uint8_t * req)
@@ -239,7 +239,7 @@ int Scsi::modeSelect(uint8_t * req)
 
     _transfer_length = param_list_len;
 
-    return SCSI_PASSED;
+    return 0;
 }
 
 int Scsi::modeSense(uint8_t * req)
@@ -364,7 +364,7 @@ int Scsi::modeSense(uint8_t * req)
     if (alloc_len < _transfer_length)
         _transfer_length = alloc_len;
 
-    return SCSI_PASSED;
+    return 0;
 }
 
 int Scsi::readFormatCapacities(uint8_t * req)
@@ -414,7 +414,7 @@ int Scsi::readFormatCapacities(uint8_t * req)
     if (alloc_len < _transfer_length)
         _transfer_length = alloc_len;
 
-    return SCSI_PASSED;
+    return 0;
 }
 
 int Scsi::readCapacity10(uint8_t * req)
@@ -427,7 +427,7 @@ int Scsi::readCapacity10(uint8_t * req)
 
     _transfer_length = 8;
 
-    return SCSI_PASSED;
+    return 0;
 }
 
 int Scsi::read10(uint8_t * req)
@@ -461,7 +461,9 @@ int Scsi::read10(uint8_t * req)
     _lba = lba;
     _transfer_length = num_blocks;
 
-    return SCSI_PASSED;
+    _disk_desc = _dd.open(lba, num_blocks, DD_READ);
+
+    return 0;
 }
 
 int Scsi::write10(uint8_t * req)
@@ -488,7 +490,9 @@ int Scsi::write10(uint8_t * req)
     _lba = lba;
     _transfer_length = num_blocks;
 
-    return SCSI_PASSED;
+    _disk_desc = _dd.open(lba, num_blocks, DD_WRITE);
+
+    return 0;
 }
 
 int Scsi::reportLuns(uint8_t * req)
@@ -520,7 +524,7 @@ int Scsi::reportLuns(uint8_t * req)
     if (alloc_len < _transfer_length)
         _transfer_length = alloc_len;
 
-    return SCSI_PASSED;
+    return 0;
 }
 
 int Scsi::read(uint8_t * buf, uint16_t blen)
@@ -620,8 +624,34 @@ int Scsi::paramWrite(uint8_t * data, uint16_t dlen)
     return cpy;
 }
 
+void Scsi::dataUpdate(uint16_t n)
+{
+    _doff += n;
+
+    if (_doff == _s_block_size)
+    {
+        _doff = 0;
+        _transferred++;
+
+        if (done())
+        {
+            _dd.close(_disk_desc);
+            _disk_desc = 0;
+        }
+    }
+}
+
 int Scsi::dataRead(uint8_t * buf, uint16_t blen)
 {
+    if (done()) return 0;
+
+    if (_disk_desc != 0)
+    {
+        uint16_t n = _dd.read(_disk_desc, buf, blen);
+        dataUpdate(n);
+        return n;
+    }
+
     auto read = [&](void) -> bool
     {
         bool ret;
@@ -679,6 +709,15 @@ int Scsi::dataRead(uint8_t * buf, uint16_t blen)
 
 int Scsi::dataWrite(uint8_t * data, uint16_t dlen)
 {
+    if (done()) return 0;
+
+    if (_disk_desc != 0)
+    {
+        uint16_t n = _dd.write(_disk_desc, data, dlen);
+        dataUpdate(n);
+        return n;
+    }
+
     auto write = [&](void) -> bool
     {
         bool success;

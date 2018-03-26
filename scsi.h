@@ -5,7 +5,6 @@
 #include "disk.h"
 #include <string.h>
 
-#define SCSI_PASSED   0
 #define SCSI_FAILED  -1
 #define SCSI_ERROR   -2
 
@@ -305,7 +304,6 @@ class Scsi
         int request(uint8_t * req, uint8_t rlen);
         int read(uint8_t * buf, uint16_t blen);
         int write(uint8_t * data, uint16_t dlen);
-
         bool done(void) { return _transferred == _transfer_length; }
 
     private:
@@ -329,10 +327,13 @@ class Scsi
         int paramWrite(uint8_t * data, uint16_t dlen);
         int dataWrite(uint8_t * data, uint16_t dlen);
 
+        void dataUpdate(uint16_t n);
+
         TDisk & _dd = TDisk::acquire();
         uint32_t const _num_blocks = _dd.blocks();
-        static constexpr uint16_t const _s_block_size = SD_READ_BLK_LEN;
+        static constexpr uint16_t const _s_block_size = SD_BLOCK_LEN;
 
+        dd_t _disk_desc = 0;
         op_code_e _op_code;
 
         uint32_t _lba = 0;

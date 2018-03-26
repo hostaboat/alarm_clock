@@ -517,6 +517,8 @@ class StreamPipe : public EndPoint
         virtual void unstall(void) { _bd[_bank]->unstall(); EndPoint::unstall(); }
         //virtual bool stalled(void);
 
+        virtual bool peek(UsbPkt * & pkt) { return _pkt_queue.first(pkt); }
+
     protected:
         virtual bool give(UsbPkt * p) = 0;
 
@@ -543,6 +545,8 @@ class StreamPipeOut : public StreamPipe
         //virtual void unstall(void);
         //virtual bool stalled(void);
 
+        //virtual bool peek(UsbPkt * & pkt);
+
         virtual bool recv(UsbPkt * & pkt) = 0;
         virtual bool canRecv(void) { return !_pkt_queue.isEmpty(); }
 
@@ -567,6 +571,8 @@ class StreamPipeIn : public StreamPipe
         //virtual void stall(void);
         //virtual void unstall(void);
         //virtual bool stalled(void);
+
+        //virtual bool peek(UsbPkt * & pkt);
 
         virtual bool send(UsbPkt * pkt) = 0;
         virtual bool canSend(void);

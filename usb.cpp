@@ -953,7 +953,7 @@ void BulkOnlyIface::command(void)
 
     int ret = _scsi.request(cbw->CBWCB, cbw->bCBWCBLength);
 
-    if ((ret >= SCSI_PASSED) && (_transfer_length != 0))
+    if ((ret >= 0) && (_transfer_length != 0))
         _state = DATA;
     else
         _state = STATUS;
@@ -980,12 +980,12 @@ void BulkOnlyIface::data(void)
     else
         ret = dataIn();
 
-    if (ret < SCSI_PASSED)
+    if (ret < 0)
     {
         _state = STATUS;
         _status = (ret == SCSI_FAILED) ? FAILED : PHASE_ERROR;
     }
-    else
+    else if (ret != 0)
     {
         // Sanity check
         if ((uint32_t)ret > (_transfer_length - _transferred))
@@ -1004,8 +1004,8 @@ void BulkOnlyIface::data(void)
 int BulkOnlyIface::dataOut(void)
 {
     UsbPkt * p;
-    if (!_ep_out.recv(p))
-        return SCSI_PASSED;
+    if (!_ep_out.peek(p))
+        return 0;
 
     uint16_t count;
     if ((_transfer_length - _transferred) < p->count)
@@ -1015,7 +1015,11 @@ int BulkOnlyIface::dataOut(void)
 
     int ret = _scsi.write(p->buffer, count);
 
-    UsbPkt::release(p);
+    if (ret != 0)
+    {
+        (void)_ep_out.recv(p);
+        UsbPkt::release(p);
+    }
 
     return ret;
 }
@@ -1023,11 +1027,11 @@ int BulkOnlyIface::dataOut(void)
 int BulkOnlyIface::dataIn(void)
 {
     if (!_ep_in.canSend())
-        return SCSI_PASSED;
+        return 0;
 
     UsbPkt * p = UsbPkt::acquire();
     if (p == nullptr)
-        return SCSI_PASSED;
+        return 0;
 
     uint16_t size;
     if ((_transfer_length - _transferred) < p->size)
@@ -1037,14 +1041,15 @@ int BulkOnlyIface::dataIn(void)
 
     int ret = _scsi.read(p->buffer, size);
 
-    if (ret < SCSI_PASSED)
+    if (ret <= 0)
     {
         UsbPkt::release(p);
-        return ret;
     }
-
-    p->count = (uint16_t)ret;
-    (void)_ep_in.send(p);  // Check done at beginning
+    else
+    {
+        p->count = (uint16_t)ret;
+        (void)_ep_in.send(p);  // Check done at beginning
+    }
 
     return ret;
 }

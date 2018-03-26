@@ -52,6 +52,9 @@ class DevSPI : public DevPin < PinOut, CS >
         uint32_t _cta;
 };
 
+using dd_t = void *;
+enum dd_e { DD_READ, DD_WRITE };
+
 template < uint16_t READ_BLK_LEN,
          pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
 class DevDisk : public DevSPI < CS, SPI, MOSI, MISO, SCK >
@@ -62,6 +65,10 @@ class DevDisk : public DevSPI < CS, SPI, MOSI, MISO, SCK >
         virtual bool write(uint32_t address, uint8_t (&buf)[READ_BLK_LEN]) = 0;
         virtual uint32_t capacity(void) = 0;  // In kilobytes
         virtual uint32_t blocks(void) = 0;
+        virtual dd_t open(uint32_t addr, uint16_t num_blocks, dd_e dir) = 0;
+        virtual uint16_t read(dd_t dd, uint8_t * buf, uint16_t blen) = 0;
+        virtual uint16_t write(dd_t dd, uint8_t * data, uint16_t dlen) = 0;
+        virtual bool close(dd_t dd) = 0;
 
     protected:
         DevDisk(void) {}

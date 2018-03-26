@@ -66,6 +66,10 @@ class SPI0 : public Module
         bool running(void) { return *_sr & SPI_SR_TXRXS; }
         bool restart(uint32_t cta) { return (_cta != cta) || rxFifoCount() || txFifoCount(); }
 
+        void dmaEnable(void);
+        void dmaDisable(void);
+        bool dmaEnabled(void) const { return *_rser & (SPI_RSER_TFFF_DIRS | SPI_RSER_RFDF_DIRS); }
+
         template < class CS > bool begin(CS & cs, uint32_t cta)
         {
             if (!begin(cta)) return false;
@@ -88,23 +92,23 @@ class SPI0 : public Module
         bool busy(void) { return _busy; }
 
         // Use for just sending data with no expectation of receiving anything back
-        void tx8(uint8_t tx) { txWait(3); push8(tx); }
-        void tx16(uint16_t tx) { txWait(3); push16(tx); }
-        void tx32(uint32_t tx) { txWait(2); push16(tx >> 16); push16(tx & 0xFFFF); }
+        void tx8(uint8_t tx = 0xFF) { txWait(3); push8(tx); }
+        void tx16(uint16_t tx = 0xFFFF) { txWait(3); push16(tx); }
+        void tx32(uint32_t tx = 0xFFFFFFFF) { txWait(2); push16(tx >> 16); push16(tx & 0xFFFF); }
         void tx(uint8_t const * tx, uint16_t tx_len);
         void tx(uint8_t tx, uint16_t num_times);
 
         // Use for full duplex send and receive
-        uint8_t txrx8(uint8_t tx) { tx8(tx); return (uint8_t)*_popr; }
-        uint16_t txrx16(uint16_t tx) { tx16(tx); return (uint16_t)*_popr; }
-        uint32_t txrx32(uint32_t tx) { tx32(tx); return (*_popr << 16) | *_popr; }
+        uint8_t txrx8(uint8_t tx = 0xFF) { tx8(tx); rxWait(1); return (uint8_t)*_popr; }
+        uint16_t txrx16(uint16_t tx = 0xFFFF) { tx16(tx); rxWait(1); return (uint16_t)*_popr; }
+        uint32_t txrx32(uint32_t tx = 0xFFFFFFFF) { tx32(tx); rxWait(2); return (*_popr << 16) | *_popr; }
         void txrx(uint8_t * tx, uint16_t tx_len);  // Will put rx data in tx buffer sent in
         void txrx(uint8_t const * tx, uint8_t * rx, uint16_t len);  // Separate rx buffer
 
         // Use for half duplex request / response type transaction
-        uint8_t trans8(uint8_t tx) { (void)txrx8(tx); return txrx8(0xFF); }
-        uint16_t trans16(uint16_t tx) { (void)txrx16(tx); return txrx16(0xFFFF); }
-        uint32_t trans32(uint32_t tx) { (void)txrx32(tx); return txrx32(0xFFFFFFFF); }
+        uint8_t trans8(uint8_t tx = 0xFF) { (void)txrx8(tx); return txrx8(); }
+        uint16_t trans16(uint16_t tx = 0xFFFF) { (void)txrx16(tx); return txrx16(); }
+        uint32_t trans32(uint32_t tx = 0xFFFFFFFF) { (void)txrx32(tx); return txrx32(); }
         void trans(uint8_t const * tx, uint16_t tx_len, uint8_t * rx, uint16_t rx_len);
 
         void complete(void) { while (!(*_sr & SPI_SR_TCF)); *_sr |= SPI_SR_TCF; }
@@ -124,6 +128,9 @@ class SPI0 : public Module
         void clearStatusFlags(void);
 
         uint16_t transfers(void) { return (*_tcr & 0xFFFF0000) >> 16; }
+
+        reg32 writeReg(void) { return _pushr; }
+        reg32 readReg(void) { return _popr; }
 
         SPI0(SPI0 const &) = delete;
         SPI0 & operator=(SPI0 const &) = delete;
@@ -179,7 +186,11 @@ void SPI0 < MOSI, MISO, SCK >::start(void)
     if (running())
         return;
 
-    *_mcr = SPI_MCR_MSTR | SPI_MCR_CLR_TXF | SPI_MCR_CLR_RXF;
+    *_mcr = SPI_MCR_MSTR | SPI_MCR_CLR_TXF | SPI_MCR_CLR_RXF | SPI_MCR_HALT;
+
+    clearStatusFlags();
+
+    *_mcr &= ~SPI_MCR_HALT;
 
     while (!running());
 }
@@ -193,6 +204,28 @@ void SPI0 < MOSI, MISO, SCK >::stop(void)
     *_mcr = SPI_MCR_HALT; // | SPI_MCR_PCSIS(0x1F) | SPI_MCR_MDIS
 
     while (running());
+}
+
+template < pin_t MOSI, pin_t MISO, pin_t SCK >
+void SPI0 < MOSI, MISO, SCK >::dmaEnable(void)
+{
+    if (dmaEnabled())
+        return;
+
+    stop();
+    *_rser |= SPI_RSER_TFFF_RE | SPI_RSER_TFFF_DIRS | SPI_RSER_RFDF_RE | SPI_RSER_RFDF_DIRS;
+    start();
+}
+
+template < pin_t MOSI, pin_t MISO, pin_t SCK >
+void SPI0 < MOSI, MISO, SCK >::dmaDisable(void)
+{
+    if (!dmaEnabled())
+        return;
+
+    stop();
+    *_rser &= ~(SPI_RSER_TFFF_RE | SPI_RSER_TFFF_DIRS | SPI_RSER_RFDF_RE | SPI_RSER_RFDF_DIRS);
+    start();
 }
 
 template < pin_t MOSI, pin_t MISO, pin_t SCK >
@@ -254,14 +287,14 @@ template < pin_t MOSI, pin_t MISO, pin_t SCK >
 void SPI0 < MOSI, MISO, SCK >::clearStatusFlags(void)
 {
     *_sr |=
-        SPI_SR_TCF
-        // | SPI_SR_TXRXS  // Don't think this should be cleared
-                           // Sounds like a w1c will stop the module.
-        | SPI_SR_EOQF
-        | SPI_SR_TFUF
-        | SPI_SR_TFFF
-        | SPI_SR_RFOF
-        | SPI_SR_RFDF;
+        SPI_SR_TCF |
+        // SPI_SR_TXRXS |  // Clearing will stop the module.
+        SPI_SR_EOQF |
+        SPI_SR_TFUF |
+        SPI_SR_TFFF |
+        SPI_SR_RFOF |
+        SPI_SR_RFDF |
+        0;
 }
 
 template < pin_t MOSI, pin_t MISO, pin_t SCK >
