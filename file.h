@@ -81,6 +81,7 @@ class FileSystem
         virtual int getFiles(FileInfo * infos, uint16_t num_infos, char const * const * exts) = 0;
         virtual File * open(FileInfo const & info) = 0;
         virtual bool valid(void) { return _dd.valid(); }
+        virtual bool busy(void) { return _dd.busy(); }
 
     protected:
         DD & _dd = DD::acquire();
@@ -325,9 +326,11 @@ class Fat32File : public TFile < DD, FST_FAT32 >
 
     protected:
         Fat32File(FileInfo const & info) : TFile < DD, FST_FAT32 > (info) { this->_taken = true; rewind(); }
-        Fat32File(void) {}
+        Fat32File(void) = default;
 
-        virtual void setInfo(FileInfo const & info) { this->_info = info; this->_taken = true; rewind(); }
+        virtual void setInfo(FileInfo const & info) {
+            this->_info = info; this->_taken = true; _rewind = false; rewind();
+        }
 
     private:
         bool nextSector(void);
@@ -341,6 +344,8 @@ class Fat32File : public TFile < DD, FST_FAT32 >
 
         uint32_t _ts = 0; // table sector
         sector_u _tsb;    // table buffer
+
+        bool _rewind = false;
 };
 
 template < class DD >
@@ -349,7 +354,7 @@ bool Fat32File < DD >::nextSector(void)
     auto get_sector = [&](uint32_t ds) -> bool
     {
         _ds = ds;
-        if (!this->_dd->read(_ds, _dsb.a8))
+        if (this->_dd->read(_ds, _dsb.a8) < 0)
             this->close();
         return this->valid();
     };
@@ -370,8 +375,11 @@ bool Fat32File < DD >::nextSector(void)
 template < class DD >
 int Fat32File < DD >::read(uint8_t * buf, int amt)
 {
-    if (!this->valid() || (buf == nullptr) || (amt < 0))
+    if (!this->valid() || (buf == nullptr) || (amt < 0) || (_rewind && !rewind()))
         return -1;
+
+    if (this->_dd->busy() || _rewind)
+        return 0;
 
     int n = 0;
     while (n != amt)
@@ -396,10 +404,10 @@ int Fat32File < DD >::read(uint8_t * buf, int amt)
 template < class DD >
 int Fat32File < DD >::read(uint8_t const ** p, uint8_t n)
 {
-    if (!this->valid() || (p == nullptr) || (n > sizeof(_dsb.a8)))
+    if (!this->valid() || (p == nullptr) || (n > sizeof(_dsb.a8)) || (_rewind && !rewind()))
         return -1;
 
-    if (this->eof())
+    if (this->eof() || this->_dd->busy() || _rewind)
         return 0;
 
     if ((_dsb_off == sizeof(_dsb.a8)) && !nextSector())
@@ -430,14 +438,21 @@ bool Fat32File < DD >::rewind(void)
     uint32_t ts = Fat32 < DD >::tableSector(_cluster);
     uint32_t ds = Fat32 < DD >::dataSector(_cluster);
 
-    if (((ts != _ts) && !this->_dd->read(ts, _tsb.a8))
-            || ((ds != _ds) && !this->_dd->read(ds, _dsb.a8)))
+    if (this->_dd->busy())
+    {
+        _rewind = true;
+        return true;
+    }
+
+    if (((ts != _ts) && (this->_dd->read(ts, _tsb.a8) != sizeof(_tsb.a8)))
+            || ((ds != _ds) && (this->_dd->read(ds, _dsb.a8) != sizeof(_dsb.a8))))
     {
         this->close();
     }
 
     _ts = ts;
     _ds = ds;
+    _rewind = false;
 
     return this->valid();
 }
@@ -465,6 +480,8 @@ class Fat32 : public FileSystem < DD, FST_FAT32 >
 
         int getFiles(uint32_t cluster, uint8_t level, FileInfo * infos,
                 uint16_t num_infos, uint16_t info_index, char const * const * exts);
+
+        static bool read(DD & dd, uint32_t sector, uint8_t (&buf)[SD_BLOCK_LEN]);
 
         static constexpr uint8_t const _s_dir_max_level = 5;
 
@@ -549,7 +566,7 @@ Fat32 < DD >::Fat32(void)
 
     static sector_u s;
 
-    if (!this->_dd.read(0, s.a8) || !s.isBoot())
+    if (!read(this->_dd, 0, s.a8) || !s.isBoot())
     {
         _valid = false;
         return;
@@ -564,7 +581,7 @@ Fat32 < DD >::Fat32(void)
     }
 
     // Don't need previous information so reuse sector enum
-    if (!this->_dd.read(_volume_sector_start, s.a8) || !s.isBoot())
+    if (!read(this->_dd, _volume_sector_start, s.a8) || !s.isBoot())
     {
         _valid = false;
         return;
@@ -583,6 +600,12 @@ Fat32 < DD >::Fat32(void)
     _s_sectors_per_cluster = f->sectors_per_cluster;
     _s_cluster_to_sector = __builtin_ctz(_s_sectors_per_cluster);
     _root_cluster = f->root_cluster;
+}
+
+template < class DD >
+bool Fat32 < DD >::read(DD & dd, uint32_t sector, uint8_t (&buf)[SD_BLOCK_LEN])
+{
+    return dd.read(sector, buf) == SD_BLOCK_LEN;
 }
 
 // Each entry in FAT table is 32 bits or 4 bytes so byte offset would be cluster
@@ -612,7 +635,7 @@ bool Fat32 < DD >::nextCluster(DD & dd, uint32_t & cluster, uint32_t & table_sec
     {
         table_sector = new_table_sector;
 
-        if (!dd.read(table_sector, table_sector_buffer.a8))
+        if (!read(dd, table_sector, table_sector_buffer.a8))
             return false;
     }
 
@@ -677,7 +700,7 @@ int Fat32 < DD >::getFiles(uint32_t cluster, uint8_t level, FileInfo * infos,
     uint32_t data_sector = dataSector(cluster);
     uint32_t table_sector = 0;
 
-    if (!this->_dd.read(data_sector, data_sectors[level].a8))
+    if (!read(this->_dd, data_sector, data_sectors[level].a8))
         return -1;
 
     DirEntry const * entry = (DirEntry const *)data_sectors[level].dir;
@@ -734,7 +757,7 @@ int Fat32 < DD >::getFiles(uint32_t cluster, uint8_t level, FileInfo * infos,
             data_sector = dataSector(cluster);
         }
 
-        if (!this->_dd.read(data_sector, data_sectors[level].a8))
+        if (!read(this->_dd, data_sector, data_sectors[level].a8))
             return -1;
 
         entry = (DirEntry const *)data_sectors[level].dir;

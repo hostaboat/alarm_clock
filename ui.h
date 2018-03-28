@@ -11,6 +11,7 @@
 #include "pit.h"
 #include "rtc.h"
 #include "tsi.h"
+#include "usb.h"
 #include "types.h"
 #include "utility.h"
 
@@ -231,7 +232,7 @@ class UI
 
         char const * const _err_strs[ERR_CNT] =
         {
-            "nonE"     // ERR_NONE
+            "nonE",    // ERR_NONE
             "C.SEL.",  // ERR_HW_RS
             "C.SEt.",  // ERR_HW_ENC_SWI
             "C.br.",   // ERR_HW_BR_ENC
@@ -1461,16 +1462,21 @@ class UI
                 bool stopped(void) const { return !running(); }
                 void stop(void) { if (running()) _audio.stop(); _paused = true; _stopping = false; }
                 bool playing(void) const { return running() && !paused(); }
-                bool stopping(void) { return _stopping; }
-                bool skipping(void) { return _next_track != _current_track; }
+                bool stopping(void) const { return _stopping; }
+                bool reloading(void) const { return _reloading; }
+                bool skipping(void) const { return _next_track != _current_track; }
                 bool occupied(void) const;
                 bool disabled(void) const { return _disabled; }
+                bool initialized(void) const { return _initialized; }
                 uint16_t numTracks(void) const { return _num_tracks; }
                 uint16_t currentTrack(void) const { return _current_track; }
                 uint16_t nextTrack(void) const { return _next_track; }
                 bool setTrack(uint16_t track);
 
             private:
+                bool init(void);
+                bool getTracks(void);
+                void reloadTracks(void);
                 bool newTrack(void);
                 void disable(void);
                 void start(void) { if (!running()) _audio.start(); _paused = false; }
@@ -1487,10 +1493,13 @@ class UI
                 File * _track = nullptr;
                 bool _paused = false;
                 bool _stopping = false;
+                bool _reloading = false;
                 bool _disabled = false;
+                bool _initialized = false;
 
                 // 2 or more seconds of continuous press on play/pause pushbutton stops player
                 static constexpr uint32_t const _s_stop_time = 2000;
+                static constexpr uint32_t const _s_reload_time = 2000;
                 static constexpr uint32_t const _s_skip_msecs = 1024;
                 static constexpr uint16_t const _s_max_tracks = 4096;
                 char const * const _track_exts[3] = { "MP3", "M4A", nullptr };
@@ -1662,6 +1671,10 @@ class UI
             &_set_power,
             &_set_nlc,
         };
+
+#ifdef USB_ENABLED
+        Usb & _usb = Usb::acquire();
+#endif
 };
 
 #endif

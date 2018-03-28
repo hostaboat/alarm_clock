@@ -333,7 +333,7 @@ class Scsi
         uint32_t const _num_blocks = _dd.blocks();
         static constexpr uint16_t const _s_block_size = SD_BLOCK_LEN;
 
-        dd_t _disk_desc = 0;
+        dd_desc_t _disk_desc = 0;
         op_code_e _op_code;
 
         uint32_t _lba = 0;

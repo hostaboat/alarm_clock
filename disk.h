@@ -20,16 +20,18 @@ class DevSD : public DevDisk < SD_BLOCK_LEN, CS, SPI, MOSI, MISO, SCK >
         virtual bool valid(void) { return Tdisk::valid() && _valid; }
         virtual bool busy(void) { return _busy; }
 
-        virtual bool read(uint32_t addr, uint8_t (&buf)[SD_BLOCK_LEN]);
-        virtual bool write(uint32_t addr, uint8_t (&buf)[SD_BLOCK_LEN]);
+        virtual int read(uint32_t addr, uint8_t (&buf)[SD_BLOCK_LEN]);
+        virtual int write(uint32_t addr, uint8_t (&buf)[SD_BLOCK_LEN]);
+
+        virtual dd_desc_t open(uint32_t addr, uint16_t num_blocks, dd_dir_e dir);
+        virtual int read(dd_desc_t dd, uint8_t * buf, uint16_t blen);
+        virtual int write(dd_desc_t dd, uint8_t * data, uint16_t dlen);
+        virtual int close(dd_desc_t dd);
 
         virtual uint32_t capacity(void) { return _csd.cardCapacity(); }
         virtual uint32_t blocks(void) { return _csd.numBlocks(); }
 
-        virtual dd_t open(uint32_t addr, uint16_t num_blocks, dd_e dir);
-        virtual uint16_t read(dd_t dd, uint8_t * buf, uint16_t blen);
-        virtual uint16_t write(dd_t dd, uint8_t * data, uint16_t dlen);
-        virtual bool close(dd_t dd);
+        //virtual dd_err_e errno(void);
 
         DevSD(DevSD const &) = delete;
         DevSD & operator=(DevSD const &) = delete;
@@ -264,7 +266,7 @@ class DevSD : public DevDisk < SD_BLOCK_LEN, CS, SPI, MOSI, MISO, SCK >
                 bool stalled(void) const { return _stalled; }
                 bool error(void) const { return _error; }
 
-                bool start(uint32_t total, dd_e dir);
+                bool start(uint32_t total, dd_dir_e dir);
                 void resume(void);
                 void stop(void);
 
@@ -277,6 +279,7 @@ class DevSD : public DevDisk < SD_BLOCK_LEN, CS, SPI, MOSI, MISO, SCK >
                 void init(void);
                 void read(void);
                 void write(void);
+                void abort(void);
 
                 enum dds_e : uint8_t
                 {
@@ -291,7 +294,7 @@ class DevSD : public DevDisk < SD_BLOCK_LEN, CS, SPI, MOSI, MISO, SCK >
                 dds_e volatile _state;
 
                 chunk_e const _chunk = C64;
-                dd_e volatile _dir = DD_READ;
+                dd_dir_e volatile _dir = DD_READ;
 
                 uint8_t volatile _pushr;
                 uint8_t volatile _popr;
@@ -327,6 +330,12 @@ class DevSD : public DevDisk < SD_BLOCK_LEN, CS, SPI, MOSI, MISO, SCK >
         bool readCID(void);
 
         uint32_t address(uint32_t addr) { return _hc ? addr : (addr << 9); }
+        int error(dd_err_e errno, bool abort = false)
+        {
+            this->_errno = errno;
+            if (abort) endCmd();
+            return -1;
+        }
 
         static constexpr uint8_t const _s_start_bit = 0x00;
         static constexpr uint8_t const _s_trans_bit = 0x40;
@@ -1042,31 +1051,27 @@ bool DevSD < CS, SPI, MOSI, MISO, SCK >::readCID(void)
 
 // uint32_t addr - a sector on the disk
 template < pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
-bool DevSD < CS, SPI, MOSI, MISO, SCK >::read(uint32_t addr, uint8_t (&buf)[SD_BLOCK_LEN])
+int DevSD < CS, SPI, MOSI, MISO, SCK >::read(uint32_t addr, uint8_t (&buf)[SD_BLOCK_LEN])
 {
     static uint32_t const read_timeout = 100;
-    
+
     addr = address(addr);
 
-    if (busy() || (addr >= blocks()))
-        return false;
+    if (addr >= blocks())
+        return error(DD_ERR_INVAL);
+    else if (busy())
+        return error(DD_ERR_BUSY);
 
     uint8_t resp = sendCmd(READ_SINGLE_BLOCK, addr);
 
     if (r1Error(resp))
-    {
-        endCmd();
-        return false;
-    }
+        return error(DD_ERR_IO, true);
 
     uint32_t ts = msecs();
     while (((resp = this->_spi.txrx8()) == TOKEN_HIGH) && ((msecs() - ts) < read_timeout));
 
     if (resp != TOKEN_START_BLOCK)
-    {
-        endCmd();
-        return false;
-    }
+        return error(DD_ERR_TIMED_OUT, true);
 
     // Total of 514 bytes, 512 bytes data + CRC16
     this->_spi.trans(nullptr, 0, buf, SD_BLOCK_LEN);
@@ -1074,26 +1079,25 @@ bool DevSD < CS, SPI, MOSI, MISO, SCK >::read(uint32_t addr, uint8_t (&buf)[SD_B
 
     endCmd();
 
-    return true;
+    return SD_BLOCK_LEN;
 }
 
 // uint32_t addr - a sector on the disk
 template < pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
-bool DevSD < CS, SPI, MOSI, MISO, SCK >::write(uint32_t addr, uint8_t (&buf)[SD_BLOCK_LEN])
+int DevSD < CS, SPI, MOSI, MISO, SCK >::write(uint32_t addr, uint8_t (&buf)[SD_BLOCK_LEN])
 {
     static uint32_t const write_timeout = 250;
 
     addr = address(addr);
 
-    if (busy() || (addr >= blocks()))
-        return false;
+    if (addr >= blocks())
+        return error(DD_ERR_INVAL);
+    else if (busy())
+        return error(DD_ERR_BUSY);
 
     uint8_t resp = sendCmd(WRITE_BLOCK, addr);
     if (r1Error(resp))
-    {
-        endCmd();
-        return false;
-    }
+        return error(DD_ERR_IO, true);
 
     // Total of 515 bytes, Start Block Token + 512 bytes data + CRC16
     this->_spi.tx8(TOKEN_START_BLOCK);
@@ -1105,29 +1109,41 @@ bool DevSD < CS, SPI, MOSI, MISO, SCK >::write(uint32_t addr, uint8_t (&buf)[SD_
     resp = this->_spi.txrx8();
     if (!drtAccepted(resp))
     {
-        endCmd();
+        (void)error(DD_ERR_IO, true);
 
         // XXX Check status
         //uint16_t status = sendStatus();
 
-        return false;
+        return -1;
     }
 
     uint32_t ts = msecs();
     while (((resp = this->_spi.txrx8()) == TOKEN_BUSY) && ((msecs() - ts) < write_timeout));
 
+    if (resp == TOKEN_BUSY)
+        return error(DD_ERR_TIMED_OUT, true);
+
     endCmd();
 
-    return (resp != TOKEN_BUSY);
+    return SD_BLOCK_LEN;
 }
 
 template < pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
-dd_t DevSD < CS, SPI, MOSI, MISO, SCK >::open(uint32_t addr, uint16_t num_blocks, dd_e dir)
+dd_desc_t DevSD < CS, SPI, MOSI, MISO, SCK >::open(uint32_t addr, uint16_t num_blocks, dd_dir_e dir)
 {
+    auto open_error = [&](dd_err_e errno, bool abort = false) -> dd_desc_t
+    {
+        (void)error(errno, abort);
+        return nullptr;
+    };
+
     addr = address(addr);
 
-    if (busy() || (num_blocks == 0) || ((addr + num_blocks) > blocks()) || ((addr + num_blocks) < addr))
-        return nullptr;
+    if (busy())
+        return open_error(DD_ERR_BUSY);
+
+    if ((num_blocks == 0) || ((addr + num_blocks) > blocks()) || ((addr + num_blocks) < addr))
+        return open_error(DD_ERR_INVAL);
 
     uint8_t r1;
 
@@ -1137,66 +1153,60 @@ dd_t DevSD < CS, SPI, MOSI, MISO, SCK >::open(uint32_t addr, uint16_t num_blocks
         r1 = sendCmd(WRITE_MULTIPLE_BLOCK, addr);
 
     if (r1Error(r1))
-    {
-        endCmd();
-        return 0;
-    }
+        return open_error(DD_ERR_IO, true);
 
     if (!_disk_desc.start((uint32_t)num_blocks * SD_BLOCK_LEN, dir))
-        return 0;
+    {
+        close(&_disk_desc);
+        return open_error(DD_ERR_BUSY, true);
+    }
 
     return &_disk_desc;
 }
 
 template < pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
-uint16_t DevSD < CS, SPI, MOSI, MISO, SCK >::read(dd_t dd, uint8_t * buf, uint16_t blen)
+int DevSD < CS, SPI, MOSI, MISO, SCK >::read(dd_desc_t dd, uint8_t * buf, uint16_t blen)
 {
-    if (!busy() || (dd != &_disk_desc) || (_disk_desc.dir() != DD_READ) || _disk_desc.consumeDone())
+    if (!busy() || (dd != &_disk_desc) || (_disk_desc.dir() != DD_READ))
+        return error(DD_ERR_BADF);
+
+    if (_disk_desc.error())
+        return error(DD_ERR_BADFD);
+
+    uint16_t n;
+    if (_disk_desc.consumeDone() || ((n = _disk_desc.consume(buf, blen)) == 0))
         return 0;
-
-    if (_disk_desc.error()) { /* ??? */ }
-
-    __disable_irq();
-    uint16_t ret = _disk_desc.consume(buf, blen);
-    __enable_irq();
-
-    if (ret == 0)
-        return ret;
 
     if (_disk_desc.stalled())
         _disk_desc.resume();
 
-    return ret;
+    return n;
 }
 
 template < pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
-uint16_t DevSD < CS, SPI, MOSI, MISO, SCK >::write(dd_t dd, uint8_t * data, uint16_t dlen)
+int DevSD < CS, SPI, MOSI, MISO, SCK >::write(dd_desc_t dd, uint8_t * data, uint16_t dlen)
 {
-    if (!busy() || (dd != &_disk_desc) || (_disk_desc.dir() != DD_WRITE) || _disk_desc.produceDone())
+    if (!busy() || (dd != &_disk_desc) || (_disk_desc.dir() != DD_WRITE))
+        return error(DD_ERR_BADF);
+
+    if (_disk_desc.error())
+        return error(DD_ERR_BADFD);
+
+    uint16_t n;
+    if (_disk_desc.produceDone() || ((n = _disk_desc.produce(data, dlen)) == 0))
         return 0;
-
-    if (_disk_desc.error()) { /* ??? */ }
-
-    __disable_irq();
-    uint16_t ret = _disk_desc.produce(data, dlen);
-    __enable_irq();
-
-    if (ret == 0)
-        return ret;
 
     if (_disk_desc.stalled())
         _disk_desc.resume();
 
-    return ret;
+    return n;
 }
 
 template < pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
-bool DevSD < CS, SPI, MOSI, MISO, SCK >::close(dd_t dd)
+int DevSD < CS, SPI, MOSI, MISO, SCK >::close(dd_desc_t dd)
 {
     if (!busy() || (dd != &_disk_desc))
-        return false;
-
-    while (!_disk_desc.done());
+        return error(DD_ERR_BADF);
 
     _disk_desc.stop();
 
@@ -1212,17 +1222,15 @@ bool DevSD < CS, SPI, MOSI, MISO, SCK >::close(dd_t dd)
 
         uint8_t r1b = sendCmd(STOP_TRANSMISSION);
         if (r1b == TOKEN_HIGH) // Timeout
-        {
-            endCmd();
-            return false;
-        }
+            return error(DD_ERR_TIMED_OUT, true);
 
         uint32_t ts = msecs();
         while (((r1b = this->_spi.txrx8()) == TOKEN_BUSY) && ((msecs() - ts) < read_timeout));
 
-        endCmd();
+        if (r1b == TOKEN_BUSY)
+            return error(DD_ERR_TIMED_OUT, true);
 
-        return (r1b != TOKEN_BUSY);
+        endCmd();
     }
     else
     {
@@ -1239,20 +1247,20 @@ bool DevSD < CS, SPI, MOSI, MISO, SCK >::close(dd_t dd)
 
         while (((status = this->_spi.txrx8()) != TOKEN_HIGH) && ((msecs() - ts) < write_timeout));
 
-        endCmd();
-
         if (status != TOKEN_HIGH)
-            return false;
+            return error(DD_ERR_TIMED_OUT, true);
+
+        endCmd();
 
         // XXX Actually check status
         status = sendStatus();
-
-        return true;
     }
+
+    return 0;
 }
 
 template < pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
-bool DevSD < CS, SPI, MOSI, MISO, SCK >::DiskDesc::start(uint32_t total, dd_e dir)
+bool DevSD < CS, SPI, MOSI, MISO, SCK >::DiskDesc::start(uint32_t total, dd_dir_e dir)
 {
     _ch_tx = DMA::acquire();
     _ch_rx = DMA::acquire();
@@ -1298,6 +1306,13 @@ void DevSD < CS, SPI, MOSI, MISO, SCK >::DiskDesc::resume(void)
 
 template < pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
 void DevSD < CS, SPI, MOSI, MISO, SCK >::DiskDesc::stop(void)
+{
+    while (!done());
+    abort();
+}
+
+template < pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
+void DevSD < CS, SPI, MOSI, MISO, SCK >::DiskDesc::abort(void)
 {
     _spi.dmaDisable();
     DMA::release(_ch_tx);
@@ -1418,6 +1433,9 @@ void DevSD < CS, SPI, MOSI, MISO, SCK >::DiskDesc::read(void)
         default: _error = true; break;
     }
 
+    if (error())
+        abort();
+
     if (!error() && !done() && !stalled())
         resume();
 }
@@ -1509,6 +1527,9 @@ void DevSD < CS, SPI, MOSI, MISO, SCK >::DiskDesc::write(void)
         case WAIT_BUSY: wait_busy(); break;
         default: _error = true; break;
     }
+
+    if (error())
+        abort();
 
     if (!error() && !done() && !stalled())
         resume();

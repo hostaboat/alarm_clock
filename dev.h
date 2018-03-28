@@ -52,8 +52,17 @@ class DevSPI : public DevPin < PinOut, CS >
         uint32_t _cta;
 };
 
-using dd_t = void *;
-enum dd_e { DD_READ, DD_WRITE };
+using dd_desc_t = void *;
+enum dd_dir_e { DD_READ, DD_WRITE };
+enum dd_err_e : int
+{
+    DD_ERR_BUSY      = -1,  // Device or resource busy
+    DD_ERR_INVAL     = -2,  // Invalid argument
+    DD_ERR_BADF      = -3,  // Bad file descriptor
+    DD_ERR_BADFD     = -4,  // File descriptor in bad state
+    DD_ERR_IO        = -5,  // I/O error
+    DD_ERR_TIMED_OUT = -6,  // Connection timed out
+};
 
 template < uint16_t READ_BLK_LEN,
          pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
@@ -61,17 +70,24 @@ class DevDisk : public DevSPI < CS, SPI, MOSI, MISO, SCK >
 {
     public:
         virtual bool busy(void) = 0;
-        virtual bool read(uint32_t address, uint8_t (&buf)[READ_BLK_LEN]) = 0;
-        virtual bool write(uint32_t address, uint8_t (&buf)[READ_BLK_LEN]) = 0;
+
+        virtual int read(uint32_t address, uint8_t (&buf)[READ_BLK_LEN]) = 0;
+        virtual int write(uint32_t address, uint8_t (&buf)[READ_BLK_LEN]) = 0;
+
+        virtual dd_desc_t open(uint32_t addr, uint16_t num_blocks, dd_dir_e dir) = 0;
+        virtual int read(dd_desc_t dd, uint8_t * buf, uint16_t blen) = 0;
+        virtual int write(dd_desc_t dd, uint8_t * data, uint16_t dlen) = 0;
+        virtual int close(dd_desc_t dd) = 0;
+
         virtual uint32_t capacity(void) = 0;  // In kilobytes
         virtual uint32_t blocks(void) = 0;
-        virtual dd_t open(uint32_t addr, uint16_t num_blocks, dd_e dir) = 0;
-        virtual uint16_t read(dd_t dd, uint8_t * buf, uint16_t blen) = 0;
-        virtual uint16_t write(dd_t dd, uint8_t * data, uint16_t dlen) = 0;
-        virtual bool close(dd_t dd) = 0;
+
+        virtual dd_err_e errno(void) const final { return _errno; }
 
     protected:
         DevDisk(void) {}
+
+        dd_err_e _errno;
 };
 
 template < uint8_t ADDR, template < pin_t, pin_t > class I2C, pin_t SDA, pin_t SCL >

@@ -89,7 +89,7 @@ class SPI0 : public Module
         bool begin(uint32_t cta);
         void end(void);
 
-        bool busy(void) { return _busy; }
+        bool busy(void) { return _busy || dmaEnabled(); }
 
         // Use for just sending data with no expectation of receiving anything back
         void tx8(uint8_t tx = 0xFF) { txWait(3); push8(tx); }

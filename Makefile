@@ -22,6 +22,10 @@ SIZE = $(abspath $(GCCPATH))/arm-none-eabi-size
 RTC = -DRTC_VBAT
 #RTC =
 
+# Set if device is USB enabled
+USB = -DUSB_ENABLED
+#USB =
+
 # Set this on first use.  Value should be one of 32, 64, 128, 512, 1024 or 2048
 EEPROM_SIZE = -DEEPROM_SIZE=64
 
@@ -32,7 +36,7 @@ CFLAGS = $(OPT) -g -Wall $(PFLAGS) -ffunction-sections -fdata-sections -nostdlib
 # Possible additional CFLAGS : -fsingle-precision-constant
 CXXFLAGS = $(CFLAGS) -std=$(STD) -felide-constructors -fno-exceptions -fno-rtti
 # Possible additional CXXFLAGS : -fstrict-enums -fno-threadsafe-statics
-CPPFLAGS = -DF_CPU=$(F_CPU) -DF_BUS=$(F_BUS) $(RTC)
+CPPFLAGS = -DF_CPU=$(F_CPU) -DF_BUS=$(F_BUS) $(RTC) $(USB)
 INCLUDES = -I.
 
 LDSCRIPT = $(MCU).ld

@@ -643,15 +643,6 @@ void Scsi::dataUpdate(uint16_t n)
 
 int Scsi::dataRead(uint8_t * buf, uint16_t blen)
 {
-    if (done()) return 0;
-
-    if (_disk_desc != 0)
-    {
-        uint16_t n = _dd.read(_disk_desc, buf, blen);
-        dataUpdate(n);
-        return n;
-    }
-
     auto read = [&](void) -> bool
     {
         bool ret;
@@ -686,6 +677,26 @@ int Scsi::dataRead(uint8_t * buf, uint16_t blen)
         return true;
     };
 
+    ////////////////////////////////////////////////////////////////////////////
+
+    if (done()) return 0;
+
+    if (_disk_desc != 0)
+    {
+        int n = _dd.read(_disk_desc, buf, blen);
+        if (n >= 0)
+        {
+            dataUpdate(n);
+            return n;
+        }
+
+        _dd.close(_disk_desc);
+        _disk_desc = 0;
+
+        if (!read())
+            return SCSI_FAILED;
+    }
+
     if ((_transferred == 0) && (_doff == 0) && !read())
         return SCSI_FAILED;
 
@@ -709,15 +720,6 @@ int Scsi::dataRead(uint8_t * buf, uint16_t blen)
 
 int Scsi::dataWrite(uint8_t * data, uint16_t dlen)
 {
-    if (done()) return 0;
-
-    if (_disk_desc != 0)
-    {
-        uint16_t n = _dd.write(_disk_desc, data, dlen);
-        dataUpdate(n);
-        return n;
-    }
-
     auto write = [&](void) -> bool
     {
         bool success;
@@ -752,6 +754,25 @@ int Scsi::dataWrite(uint8_t * data, uint16_t dlen)
 
         return true;
     };
+
+    ////////////////////////////////////////////////////////////////////////////
+
+    if (done()) return 0;
+
+    if (_disk_desc != 0)
+    {
+        int n = _dd.write(_disk_desc, data, dlen);
+        if (n >= 0)
+        {
+            dataUpdate(n);
+            return n;
+        }
+
+        _dd.close(_disk_desc);
+        _disk_desc = 0;
+
+        return SCSI_FAILED;
+    }
 
     bool success = true;
     uint16_t n = 0;

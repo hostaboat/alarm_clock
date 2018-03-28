@@ -1129,6 +1129,16 @@ Usb::Usb(void)
     *_control = USB_CONTROL_DPPULLUPNONOTG;
 }
 
+void Usb::process(void)
+{
+    NVIC::disable(IRQ_USBOTG);
+
+    _ep0.process();
+    _iface.process();
+
+    NVIC::enable(IRQ_USBOTG);
+}
+
 void Usb::setAddress(uint16_t address)
 {
     if (address > 127)
@@ -1158,16 +1168,6 @@ void Usb::isr(void)
     } while (istat);
 
     *_istat = 0xFF;
-}
-
-void Usb::process(void)
-{
-    NVIC::disable(IRQ_USBOTG);
-
-    _ep0.process();
-    _iface.process();
-
-    NVIC::enable(IRQ_USBOTG);
 }
 
 void Usb::usbrst(void)
@@ -1237,6 +1237,7 @@ void Usb::softok(void)
     // If device is in the SUSPEND state, operation is resumed
 
     _suspended = false;
+    _sof_ts = msecs();
 }
 
 void Usb::tokdne(void)
@@ -1276,7 +1277,7 @@ void Usb::sleep(void)
     // DEVICE_REMOTE_WAKEUP would have to be processed.
     //
     // The following should be used for resume / remote wakeup
-    // delay_ms(2);  // Already 3 ms have elapsed
+    // delay_msecs(2);  // 3 ms have already elapsed
     // *_s_ctl |= USB_CTL_RESUME;
     // delay(5);  // Between 1 ms and 15 ms
     // *_s_ctl &= ~USB_CTL_RESUME;

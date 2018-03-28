@@ -375,8 +375,12 @@ void UI::process(void)
 
     _controls.process();
 
-    // Player first since both Alarm and Power rely on Player state.
-    // Alarm second since Power relies on Alarm state.
+    // Usb first since Player (paritially) and Power rely on Usb.
+    // Player second since both Alarm and Power rely on Player state.
+    // Alarm third since Power relies on Alarm state.
+#ifdef USB_ENABLED
+    _usb.process();
+#endif
     _player.process();
     _alarm.process(_controls.turn(ENC_SWI) != EV_ZERO, _controls.closed(SWI_ENC));
     _power.process(*_states[_state]);
@@ -384,7 +388,8 @@ void UI::process(void)
     ev_e bev = EV_ZERO;
 
     // These events will cause a display update to alert user that event happened.
-    if (_player.stopping() || _player.skipping() || _alarm.stopped() || _alarm.snoozed())
+    if (_alarm.stopped() || _alarm.snoozed()
+            || _player.stopping() || _player.reloading() || _player.skipping())
     {
         // Wake so display can be updated
         if (!_power.awake())
@@ -412,6 +417,8 @@ void UI::process(void)
 
     if (_player.stopping())
         _display.showString("STOP");
+    else if (_player.reloading())
+        _display.showString("LOAD");
     else if (_player.skipping())
         _display.showInteger(_player.nextTrack() + 1);
 
@@ -2899,16 +2906,13 @@ UI::Player::Player(UI & ui)
         return;
     }
 
-    int num_tracks = _fs.getFiles(_tracks, _s_max_tracks, _track_exts);
-    if (num_tracks <= 0)
-    {
-        _ui._errno = ERR_PLAYER_GET_FILES;
-        _disabled = true;
-        return;
-    }
+    (void)init();
+}
 
-    // Max tracks is less than UINT16_MAX
-    _num_tracks = (uint16_t)num_tracks;
+bool UI::Player::init(void)
+{
+    if (!getTracks())
+        return false;
 
     if (!_ui._eeprom.getTrack(_current_track) || (_current_track >= _num_tracks))
     {
@@ -2923,8 +2927,42 @@ UI::Player::Player(UI & ui)
     {
         _ui._errno = ERR_PLAYER_OPEN_FILE;
         _disabled = true;
-        return;
+        return false;
     }
+
+    _initialized = true;
+
+    return true;
+}
+
+bool UI::Player::getTracks(void)
+{
+    if (_fs.busy())
+        return false;
+
+    int num_tracks = _fs.getFiles(_tracks, _s_max_tracks, _track_exts);
+    if (num_tracks <= 0)
+    {
+        _ui._errno = ERR_PLAYER_GET_FILES;
+        _disabled = true;
+        return false;
+    }
+
+    // Max tracks is less than UINT16_MAX
+    _num_tracks = (uint16_t)num_tracks;
+
+    return true;
+}
+
+void UI::Player::reloadTracks(void)
+{
+    if (running() && !_track->eof())
+        _audio.cancel(_track);
+
+    if (!init())
+        return;
+
+    _reloading = false;
 }
 
 void UI::Player::play(void)
@@ -2964,8 +3002,16 @@ bool UI::Player::pressing(void)
     if ((play_ptime == 0) && (prev_ptime == 0) && (next_ptime == 0))
         return false;
 
-    if (stopping())
+    if (stopping() || reloading())
         return true;
+
+    if ((play_ptime != 0) && (next_ptime != 0))
+    {
+        if ((play_ptime >= _s_reload_time) && (next_ptime >= _s_reload_time))
+            _reloading = true;
+
+        return true;
+    }
 
     if (running() && (play_ptime >= _s_stop_time))
     {
@@ -2992,12 +3038,18 @@ bool UI::Player::pressing(void)
 
 void UI::Player::process(void)
 {
-    if (disabled() || pressing())
+    if ((!initialized() && !init()) || disabled() || pressing())
         return;
 
     bool play_pressed = _ui._controls.pressed(SWI_PLAY);
     bool next_pressed = _ui._controls.pressed(SWI_NEXT);
     bool prev_pressed = _ui._controls.pressed(SWI_PREV);
+
+    if (reloading())
+    {
+        reloadTracks();
+        return;
+    }
 
     // XXX If the MCU is asleep only the play/pause pushbutton will wake it.
     if (!running() && play_pressed)
@@ -3197,7 +3249,11 @@ void UI::Power::updateMarks(void)
         _stop_mark = _sleep_mark = m;
         rtm = cts = true;
     }
-    else if (_ui._alarm.beeping())
+    else if (_ui._alarm.beeping()
+#ifdef USB_ENABLED
+            || _ui._usb.active()
+#endif
+            )
     {
         _sleep_mark = m;
         rtm = cts = true;
@@ -3213,6 +3269,10 @@ void UI::Power::updateMarks(void)
 
     if (!touching && _touch_wait)
         _touch_wait = false;
+
+    // If touch sleep got cancelled, have to "wake" things up.
+    if ((_state == PS_WAIT_SLEEP) && !_touch_sleep)
+        wake(-1);
 }
 
 bool UI::Power::canSleep(void)

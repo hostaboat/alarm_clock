@@ -912,6 +912,7 @@ class Usb : public Module
     public:
         static Usb & acquire(void) { static Usb usb; return usb; }
         void process(void);
+        bool active(void) const { return ((msecs() - _sof_ts) < _s_inactive); }
 
     private:
         Usb(void);
@@ -935,10 +936,13 @@ class Usb : public Module
         // Can Suspend from POWERED to CONFIGURED
 
         ds_e _state = ATTACHED;
-        bool _suspended = false;
+        bool volatile _suspended = false;
         bool _remote_wakeup = false;
         //static constexpr bool const _s_self_powered = true;
         static constexpr bool const _s_self_powered = false;
+
+        uint32_t volatile _sof_ts = msecs();
+        static constexpr uint32_t const _s_inactive = 1000;
 
         // Interrupt handling
         static Usb * _s_usb; // Pointer to instance for ISR
