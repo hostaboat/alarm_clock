@@ -79,6 +79,8 @@ class DevDisk : public DevSPI < CS, SPI, MOSI, MISO, SCK >
         virtual int write(dd_desc_t dd, uint8_t * data, uint16_t dlen) = 0;
         virtual int close(dd_desc_t dd) = 0;
 
+        virtual uint32_t reserve(uint32_t bytes) = 0;
+
         virtual uint32_t capacity(void) = 0;  // In kilobytes
         virtual uint32_t blocks(void) = 0;
 

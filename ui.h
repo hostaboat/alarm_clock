@@ -900,7 +900,7 @@ class UI
                 static constexpr uint32_t const _s_touch_time = _s_touch_activate * 1000;
                 // Time out for inactivity after track number update
                 static constexpr uint32_t const _s_track_idle_time = 15000;
-                uint16_t _track = 0;
+                int _track = 0;
 
                 uint32_t _touch_mark = 0;
                 static constexpr uint32_t const _s_touch_wait = 1500;
@@ -1468,22 +1468,21 @@ class UI
                 bool occupied(void) const;
                 bool disabled(void) const { return _disabled; }
                 bool initialized(void) const { return _initialized; }
-                uint16_t numTracks(void) const { return _num_tracks; }
-                uint16_t currentTrack(void) const { return _current_track; }
-                uint16_t nextTrack(void) const { return _next_track; }
-                bool setTrack(uint16_t track);
+                int numTracks(void) const { return _num_tracks; }
+                int currentTrack(void) const { return _current_track; }
+                int nextTrack(void) const { return _next_track; }
+                bool setTrack(int track);
 
             private:
                 bool init(void);
-                bool getTracks(void);
-                void reloadTracks(void);
+                void reload(void);
                 bool newTrack(void);
                 void disable(void);
                 void start(void) { if (!running()) _audio.start(); _paused = false; }
                 bool rewind(void);
                 bool pressing(void);
-                int32_t skip(uint32_t t);
-                uint16_t skipTracks(int32_t skip);
+                int skip(uint32_t t);
+                int skipTracks(int skip);
 
                 TAudio & _audio = TAudio::acquire();
                 TFs & _fs = TFs::acquire();
@@ -1501,12 +1500,10 @@ class UI
                 static constexpr uint32_t const _s_stop_time = 2000;
                 static constexpr uint32_t const _s_reload_time = 2000;
                 static constexpr uint32_t const _s_skip_msecs = 1024;
-                static constexpr uint16_t const _s_max_tracks = 4096;
                 char const * const _track_exts[3] = { "MP3", "M4A", nullptr };
-                FileInfo _tracks[_s_max_tracks] = {};
-                uint16_t _num_tracks = 0;
-                uint16_t _current_track = 0;
-                uint16_t _next_track = 0;
+                int _num_tracks = 0;
+                int _current_track = 0;
+                int _next_track = 0;
         };
 
         class Alarm

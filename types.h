@@ -17,6 +17,9 @@ using reg32 = v32 * const;
 
 using pin_t = uint8_t;
 
+using chr_t = uint8_t;
+using wchr_t = uint16_t;  // Expects one 16-bit code unit in UTF-16LE
+
 // Pointer check
 template < typename T >
 struct is_pointer { static const bool value = false; };

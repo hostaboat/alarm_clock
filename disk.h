@@ -28,8 +28,10 @@ class DevSD : public DevDisk < SD_BLOCK_LEN, CS, SPI, MOSI, MISO, SCK >
         virtual int write(dd_desc_t dd, uint8_t * data, uint16_t dlen);
         virtual int close(dd_desc_t dd);
 
-        virtual uint32_t capacity(void) { return _csd.cardCapacity(); }
-        virtual uint32_t blocks(void) { return _csd.numBlocks(); }
+        virtual uint32_t reserve(uint32_t bytes);
+
+        virtual uint32_t capacity(void);  // In kilobytes
+        virtual uint32_t blocks(void);
 
         //virtual dd_err_e errno(void);
 
@@ -346,6 +348,9 @@ class DevSD : public DevDisk < SD_BLOCK_LEN, CS, SPI, MOSI, MISO, SCK >
 
         bool _busy = false;
         bool _valid = true;
+
+        uint32_t _blocks = 0;
+        uint32_t _reserved = 0;
 
         bool _crc = true;
         uint8_t _crc7_table[256];
@@ -711,6 +716,27 @@ DevSD < CS, SPI, MOSI, MISO, SCK >::DevSD(void)
     }
 
     (void)readCID();
+
+    _blocks = _csd.numBlocks();
+}
+
+template < pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
+uint32_t DevSD < CS, SPI, MOSI, MISO, SCK >::reserve(uint32_t bytes)
+{
+    _reserved += ceiling(bytes, SD_BLOCK_LEN);
+    return _blocks - _reserved;
+}
+
+template < pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
+uint32_t DevSD < CS, SPI, MOSI, MISO, SCK >::capacity(void)
+{
+    return (_blocks - _reserved) / 2;
+}
+
+template < pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
+uint32_t DevSD < CS, SPI, MOSI, MISO, SCK >::blocks(void)
+{
+    return _blocks - _reserved;
 }
 
 template < pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
@@ -1057,7 +1083,7 @@ int DevSD < CS, SPI, MOSI, MISO, SCK >::read(uint32_t addr, uint8_t (&buf)[SD_BL
 
     addr = address(addr);
 
-    if (addr >= blocks())
+    if (addr >= _blocks)
         return error(DD_ERR_INVAL);
     else if (busy())
         return error(DD_ERR_BUSY);
@@ -1090,7 +1116,7 @@ int DevSD < CS, SPI, MOSI, MISO, SCK >::write(uint32_t addr, uint8_t (&buf)[SD_B
 
     addr = address(addr);
 
-    if (addr >= blocks())
+    if (addr >= _blocks)
         return error(DD_ERR_INVAL);
     else if (busy())
         return error(DD_ERR_BUSY);
@@ -1142,7 +1168,7 @@ dd_desc_t DevSD < CS, SPI, MOSI, MISO, SCK >::open(uint32_t addr, uint16_t num_b
     if (busy())
         return open_error(DD_ERR_BUSY);
 
-    if ((num_blocks == 0) || ((addr + num_blocks) > blocks()) || ((addr + num_blocks) < addr))
+    if ((num_blocks == 0) || ((addr + num_blocks) > _blocks) || ((addr + num_blocks) < addr))
         return open_error(DD_ERR_INVAL);
 
     uint8_t r1;

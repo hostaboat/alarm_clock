@@ -241,14 +241,23 @@ bool Eeprom::getClock(eClock & clock) const
     return true;
 }
 
-bool Eeprom::setTrack(uint16_t track)
+bool Eeprom::setTrack(int track)
 {
-    return write(EEI_TRACK, track);
+    uint16_t l = track & 0xFFFF;
+    uint16_t h = track >> 16;
+
+    return write(EEI_TRACK_LOW, l) && write(EEI_TRACK_HIGH, h);
 }
 
-bool Eeprom::getTrack(uint16_t & track) const
+bool Eeprom::getTrack(int & track) const
 {
-    return read(EEI_TRACK, track);
+    uint16_t l, h;
+    if (!read(EEI_TRACK_LOW, l) || !read(EEI_TRACK_HIGH, h))
+        return false;
+
+    track = ((uint32_t)h << 16) | (uint32_t)l;
+
+    return true;
 }
 
 bool Eeprom::setTouch(eTouch const & touch)

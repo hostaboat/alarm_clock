@@ -75,7 +75,7 @@ enum op_code_e : uint8_t
 // 1B        O          OPEN/CLOSE IMPORT/EXPORT ELEMENT
 // 1C  O OO OOOM OOO    RECEIVE DIAGNOSTIC RESULTS
 // 1D  MOMM MMOM MMM    SEND DIAGNOSTIC
-// 1E  O O OOO   O O    PREVENT ALLOW MEDIUM REMOVAL
+/* 1E  O O OOO   O O */ PREVENT_ALLOW_MEDIUM_REMOVAL = 0x1E,
 // 1F
 // 20  V   VV    V
 // 21  V   VV    V
@@ -313,6 +313,7 @@ class Scsi
         int inquiry(uint8_t * req);
         int modeSelect(uint8_t * req);
         int modeSense(uint8_t * req);
+        int preventAllowMediumRemoval(uint8_t * req);
         int readFormatCapacities(uint8_t * req);
         int readCapacity10(uint8_t * req);
         int read10(uint8_t * req);
@@ -653,14 +654,20 @@ class Scsi
         template < sk_e SK, uint8_t ASC, uint8_t ASCQ >
         void noSense_notReady(uint16_t progress_indication);
 
-        void noSense(void) {
-            noSense_notReady < NO_SENSE, 0x00, 0x00 > (0);
-        }
+        void noSense(void) { noSense_notReady < NO_SENSE, 0x00, 0x00 > (0); }
 
         template < uint8_t ASC, uint8_t ASCQ >
         void notReady(uint16_t progress_indication) {
             noSense_notReady < NOT_READY, ASC, ASCQ > (progress_indication);
         };
+
+        // LOGICAL UNIT NOT READY, INITIALIZING COMMAND REQUIRED
+        void initComRequired(void)  { notReady < 0x04, 0x02 > (0); }
+
+        // LOGICAL UNIT NOT READY, LOGICAL UNIT RESET REQUIRED
+        void LUresetRequired(void)  { notReady < 0x04, 0x20 > (0); }
+
+        void mediumNotPresent(void) { notReady < 0x3A, 0x00 > (0); }
 
         template < uint8_t ASC, uint8_t ASCQ >
         void noSense(uint16_t progress_indication) {
@@ -683,7 +690,10 @@ class Scsi
 
         // UNIT ATTENTION
         template < uint8_t ASC, uint8_t ASCQ >
-        void unitAttention(bool overflow);
+        void unitAttention(bool overflow = false);
+
+        void deviceInternalReset(void) { unitAttention < 0x29, 0x04 > (); }
+        void inquiryDataChanged(void) { unitAttention < 0x3F, 0x03 > (); }
 
         // Add Sense Data
         template < sk_e SK, uint8_t ASC, uint8_t ASCQ >
@@ -868,7 +878,7 @@ class Scsi
                 // Set all of these to 0
                 struct
                 {
-                    uint8_t mmc6   : 2;  // Restricted for MMC-6 - dont' use
+                    uint8_t mmc6   : 2;  // Restricted for MMC-6 - don't use
                     uint8_t ro5    : 3;
                     uint8_t mwr    : 2;  // Misaligned Write Reporting
                     uint8_t lbpere : 1;  // Logical Block Provisioning Error Reporting Enabled
@@ -1241,7 +1251,10 @@ void Scsi::unitAttention(bool overflow)
     } __attribute__ ((packed));
 
     memset(_sks, 0, sizeof(_sks));
+
     ua_s * ua = (ua_s *)_sks;
+
+    ua->sksv = 1;
     ua->overflow = overflow;
 
     addSense < UNIT_ATTENTION, ASC, ASCQ > ();

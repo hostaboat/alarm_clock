@@ -1644,14 +1644,20 @@ bool UI::Clock::clockUpdate(bool force)
 
 void UI::Clock::changeTrack(void)
 {
-    if (_state != CS_SHOW_TRACK) _state = CS_SHOW_TRACK;
+    if (_state != CS_SHOW_TRACK)
+        _state = CS_SHOW_TRACK;
+
     _track = _ui._player.currentTrack();
+
     _alt_display.reset(_s_flash_time);
 }
 
 void UI::Clock::updateTrack(ev_e ev)
 {
-    evUpdate < uint16_t > (_track, ev, 0, _ui._player.numTracks() - 1);
+    if (_ui._player.numTracks() == 0)
+        return;
+
+    evUpdate < int > (_track, ev, 0, _ui._player.numTracks() - 1);
 }
 
 void UI::Clock::display(void)
@@ -1676,7 +1682,12 @@ void UI::Clock::displayYear(void)
 
 void UI::Clock::displayTrack(void)
 {
-    _ui._display.showInteger(_track + 1);
+    if (_ui._player.numTracks() == 0)
+        _ui._display.showString("----");
+    else if ((_track + 1) <= 9999)
+        _ui._display.showInteger(_track + 1);
+    else
+        _ui._display.showInteger((_track + 1) % 10000, DF_LZ);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2911,55 +2922,61 @@ UI::Player::Player(UI & ui)
 
 bool UI::Player::init(void)
 {
-    if (!getTracks())
-        return false;
-
-    if (!_ui._eeprom.getTrack(_current_track) || (_current_track >= _num_tracks))
-    {
-        _current_track = 0;
-        (void)_ui._eeprom.setTrack(_current_track);
-    }
-
-    _next_track = _current_track;
-
-    _track = _fs.open(_tracks[_current_track]);
-    if (_track == nullptr)
-    {
-        _ui._errno = ERR_PLAYER_OPEN_FILE;
-        _disabled = true;
-        return false;
-    }
-
-    _initialized = true;
-
-    return true;
-}
-
-bool UI::Player::getTracks(void)
-{
     if (_fs.busy())
         return false;
 
-    int num_tracks = _fs.getFiles(_tracks, _s_max_tracks, _track_exts);
-    if (num_tracks <= 0)
+    _num_tracks = _fs.sort(_track_exts);
+
+    if (_num_tracks < 0)
     {
         _ui._errno = ERR_PLAYER_GET_FILES;
         _disabled = true;
-        return false;
+        _num_tracks = 0;
+    }
+    else if (_num_tracks > 0)
+    {
+        if (!_ui._eeprom.getTrack(_current_track) || (_current_track >= _num_tracks))
+        {
+            _current_track = 0;
+            (void)_ui._eeprom.setTrack(_current_track);
+        }
+
+        _next_track = _current_track;
+
+        _track = _fs.open(_current_track);
+        if (_track == nullptr)
+        {
+            _ui._errno = ERR_PLAYER_OPEN_FILE;
+            _disabled = true;
+        }
     }
 
-    // Max tracks is less than UINT16_MAX
-    _num_tracks = (uint16_t)num_tracks;
+    if (_num_tracks == 0)
+    {
+        if (!stopped())
+            stop();
 
-    return true;
+        _current_track = _next_track = 0;
+    }
+
+    if (!_initialized)
+        _initialized = true;
+
+    return !_disabled;
 }
 
-void UI::Player::reloadTracks(void)
+void UI::Player::reload(void)
 {
-    if (running() && !_track->eof())
+    if (running() && (_track != nullptr) && !_track->eof())
         _audio.cancel(_track);
 
-    if (!init())
+    if (_track != nullptr)
+    {
+        _track->close();
+        _track = nullptr;
+    }
+
+    if (!init() && !disabled())
         return;
 
     _reloading = false;
@@ -2967,7 +2984,7 @@ void UI::Player::reloadTracks(void)
 
 void UI::Player::play(void)
 {
-    if (disabled() || playing())
+    if (disabled() || playing() || (_num_tracks == 0))
         return;
 
     if (!running() && !_track->rewind())
@@ -3028,7 +3045,7 @@ bool UI::Player::pressing(void)
     if (prev_ptime >= _s_skip_msecs)
         prev_ptime -= _s_skip_msecs;
 
-    int32_t s = skip(next_ptime) - skip(prev_ptime);
+    int s = skip(next_ptime) - skip(prev_ptime);
     if (s == 0) return true;
 
     _next_track = skipTracks(s);
@@ -3047,7 +3064,7 @@ void UI::Player::process(void)
 
     if (reloading())
     {
-        reloadTracks();
+        reload();
         return;
     }
 
@@ -3089,7 +3106,7 @@ void UI::Player::process(void)
                 uint32_t npt = _ui._controls.pressTime(SWI_NEXT);
                 uint32_t ppt = _ui._controls.pressTime(SWI_PREV);
 
-                int32_t s = skip(npt) - skip(ppt);
+                int s = skip(npt) - skip(ppt);
                 if ((s < 0) && rewind()) s++;  // Increment so as not to count it
                 _next_track = skipTracks(s);
             }
@@ -3115,14 +3132,14 @@ bool UI::Player::rewind(void)
     return true;
 }
 
-int32_t UI::Player::skip(uint32_t t)
+int UI::Player::skip(uint32_t t)
 {
-    static constexpr uint16_t const ss = 5;
+    static constexpr uint32_t const ss = 5;
     static constexpr uint32_t const sm = ss * _s_skip_msecs;
 
     if (t == 0) return 0;
 
-    uint16_t speed = t / sm;
+    uint32_t speed = t / sm;
     if (speed > 5) speed = 5;
 
     uint32_t s = (ss * ((1 << speed) - 1)) + ((t - (sm * speed)) / (_s_skip_msecs / (1 << speed)));
@@ -3133,17 +3150,23 @@ int32_t UI::Player::skip(uint32_t t)
     return s + 1;
 }
 
-uint16_t UI::Player::skipTracks(int32_t skip)
+int UI::Player::skipTracks(int skip)
 {
-    int32_t track = ((int32_t)_current_track + skip) % _num_tracks;
-    if (track < 0)
-        track = (int32_t)_num_tracks + track;
+    if (_num_tracks == 0)
+        return 0;
 
-    return (uint16_t)track;
+    int track = (_current_track + skip) % _num_tracks;
+    if (track < 0)
+        track = _num_tracks + track;
+
+    return track;
 }
 
 bool UI::Player::newTrack(void)
 {
+    if (_num_tracks == 0)
+        return false;
+
     if (_next_track == _current_track)
     {
         if (_track->rewind())
@@ -3154,7 +3177,7 @@ bool UI::Player::newTrack(void)
         _current_track = _next_track;
         _track->close();
 
-        _track = _fs.open(_tracks[_current_track]);
+        _track = _fs.open(_current_track);
         if (_track != nullptr)
             return true;
     }
@@ -3165,15 +3188,15 @@ bool UI::Player::newTrack(void)
     return false;
 }
 
-bool UI::Player::setTrack(uint16_t track)
+bool UI::Player::setTrack(int track)
 {
-    if (track >= _num_tracks)
+    if ((track < 0) || (track >= _num_tracks))
         return false;
 
     if (running() && !_track->eof())
         _audio.cancel(_track);
 
-    _next_track = skipTracks((int32_t)track - (int32_t)_current_track);
+    _next_track = skipTracks(track - _current_track);
     if (!newTrack())
         return false;
 
@@ -3493,7 +3516,7 @@ void UI::Alarm::check(void)
     if (!_ui._rtc.alarmIsAwake())
         return;
 
-    if (_ui._rtc.alarmIsMusic()
+    if (_ui._rtc.alarmIsMusic() && (_ui._player.numTracks() != 0)
             && !_ui._player.disabled() && !_ui._player.occupied())
     {
         _ui._player.play();
