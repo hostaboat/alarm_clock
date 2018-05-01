@@ -914,7 +914,6 @@ bool FileSystem < DD, FST >::FileSort::ReadList::fill(void)
 #define FAT32_CLUSTER_EOC   0x0FFFFFF8   // End of Chain
 #define FAT32_CLUSTER_BAD   0x0FFFFFF7
 #define FAT32_CLUSTER_MASK  0x0FFFFFFF
-#define FAT32_CLUSTER_ERROR 0xFFFFFFFF
 #define FAT32_CLUSTER_FREE  0x00000000
 
 // Partition types
@@ -929,6 +928,20 @@ enum pt_e : uint8_t
     PT_FAT16_LBA13h   = 0x0E,
     PT_EXT_DOS_LBA13h = 0x0F,
 };
+
+// 16 bytes
+struct PartInfo
+{
+    uint8_t current_state;
+    uint8_t partition_head_start;
+    uint16_t partition_cylinder_start;
+    uint8_t partition_type;
+    uint8_t partition_head_end;
+    uint16_t partition_cylinder_end;
+    uint32_t sector_offset;
+    uint32_t num_sectors;
+
+} __attribute__ ((packed));
 
 struct FatInfo
 {
@@ -1141,7 +1154,7 @@ struct FatDirEntry
     bool isHidden(void) const { return isShortName() && (attrs & ATTR_HIDDEN); }
     bool isSystem(void) const { return isShortName() && (attrs & ATTR_SYSTEM); }
     bool isVolumeID(void) const { return isShortName() && (attrs & ATTR_VOLUME_ID); }
-    bool isFile(void) const { return isShortName() && !(attrs & ATTR_DIRECTORY); }
+    bool isFile(void) const { return isShortName() && !isVolumeID() && !(attrs & ATTR_DIRECTORY); }
     bool isDirectory(void) const { return isShortName() && (attrs & ATTR_DIRECTORY); }
 
 } __attribute__ ((packed));
@@ -1155,20 +1168,6 @@ union sector_u
 
     bool isBoot(void) { return a16[255] == BOOT_RECORD_SIGNATURE; }
 };
-
-// 16 bytes
-struct PartInfo
-{
-    uint8_t current_state;
-    uint8_t partition_head_start;
-    uint16_t partition_cylinder_start;
-    uint8_t partition_type;
-    uint8_t partition_head_end;
-    uint16_t partition_cylinder_end;
-    uint32_t sector_offset;
-    uint32_t num_sectors;
-
-} __attribute__ ((packed));
 
 ////////////////////////////////////////////////////////////////////////////////
 // Fat32 File //////////////////////////////////////////////////////////////////
@@ -1218,9 +1217,6 @@ class Fat32File : public TFile < DD, FST_FAT32 >
         uint32_t _dsb_off = 0;  // data buffer offset
         sector_u _dsb;          // data buffer
 
-        uint32_t _ts = 0; // table sector
-        sector_u _tsb;    // table buffer
-
         bool _rewind = false;
         bool _flush = false;
 
@@ -1240,6 +1236,7 @@ void Fat32File < DD >::set(FileInfo const & info, uint8_t oflags)
 
     this->_taken = true;
     _flush = _rewind = false;
+    _ds = 0;
 
     if (oflags & O_TRUNC)
         Fat32 < DD >::update(*this);
@@ -1253,12 +1250,8 @@ bool Fat32File < DD >::rewind(void)
     if (!this->valid())
         return false;
 
-    this->_offset = 0;
+    this->_offset = _sofc = _dsb_off = 0;
     _cluster = this->_info.address();
-    _sofc = _dsb_off = 0;
-
-    uint32_t ts = Fat32 < DD >::tableSector(_cluster);
-    uint32_t ds = Fat32 < DD >::dataSector(_cluster);
 
     if (this->_dd->busy())
     {
@@ -1266,13 +1259,11 @@ bool Fat32File < DD >::rewind(void)
         return true;
     }
 
-    if (((ts != _ts) && (this->_dd->read(ts, _tsb.a8) != sizeof(_tsb.a8)))
-            || ((ds != _ds) && (this->_dd->read(ds, _dsb.a8) != sizeof(_dsb.a8))))
-    {
-        this->close();
-    }
+    uint32_t ds = Fat32 < DD >::dataSector(_cluster);
 
-    _ts = ts;
+    if ((ds != _ds) && (this->_dd->read(ds, _dsb.a8) != sizeof(_dsb.a8)))
+        this->close();
+
     _ds = ds;
     _rewind = false;
 
@@ -1310,7 +1301,7 @@ bool Fat32File < DD >::readNext(void)
 
     _sofc = 0;
 
-    if (Fat32 < DD >::nextCluster(*this->_dd, _cluster, _ts, _tsb))
+    if (Fat32 < DD >::nextCluster(*this->_dd, _cluster))
         return next_sector(Fat32 < DD >::dataSector(_cluster));
 
     this->close();
@@ -1454,7 +1445,7 @@ int Fat32File < DD >::read(FileInfo & info)
             name.prepend(ln.str(), ln.len());
             ln_ord--;
         }
-        else if (entry->isShortName())
+        else if (entry->isShortName() && !entry->isVolumeID())
         {
             uint32_t cluster = entry->cluster();
             uint32_t ds = Fat32 < DD >::dataSector(cluster);
@@ -1882,19 +1873,10 @@ int Fat32File < DD >::_write(uint8_t const * buf, int amt, bool flush)
         if (++_sofc != Fat32 < DD >::_s_sectors_per_cluster)
             return next_sector(_ds + 1);
 
-        uint32_t cluster;
-
         _sofc = 0;
 
-        if (Fat32 < DD >::nextCluster(*this->_dd, cluster, _ts, _tsb))
-        {
-            _cluster = cluster;
+        if (Fat32 < DD >::newCluster(*this->_dd, _cluster))
             return next_sector(Fat32 < DD >::dataSector(_cluster));
-        }
-        else if (Fat32 < DD >::isEOC(cluster) && Fat32 < DD >::newCluster(*this->_dd, _cluster, _ts, _tsb))
-        {
-            return next_sector(Fat32 < DD >::dataSector(_cluster));
-        }
 
         this->close();
         return this->valid();
@@ -1966,28 +1948,31 @@ class Fat32 : public FileSystem < DD, FST_FAT32 >
         static constexpr uint8_t const _s_dir_max_level = 5;
 
         uint32_t _volume_sector_start = 0;
-        uint32_t _root_cluster = 0;
         bool _valid = true;
 
-        static bool isEOC(uint32_t cluster) { return (cluster & FAT32_CLUSTER_MASK) == FAT32_CLUSTER_EOC; }
+        static uint32_t tsEntry(uint32_t cluster) { return cluster & ((FAT32_SECTOR_SIZE / 4) - 1); }
+
+        static bool isEOC(uint32_t cluster) { return (cluster & FAT32_CLUSTER_MASK) >= FAT32_CLUSTER_EOC; }
         static bool isBad(uint32_t cluster) { return (cluster & FAT32_CLUSTER_MASK) == FAT32_CLUSTER_BAD; }
         static bool isFree(uint32_t cluster) { return (cluster & FAT32_CLUSTER_MASK) == FAT32_CLUSTER_FREE; }
-        static uint32_t tsEntry(uint32_t cluster) { return cluster & ((FAT32_SECTOR_SIZE / 4) - 1); }
+        static bool isUsed(uint32_t cluster) { return !isEOC(cluster) && !isBad(cluster) && !isFree(cluster); }
+
+        // Value needs to be >= EOC so just add mask
+        static void markEOC(uint32_t & cluster) { cluster |= FAT32_CLUSTER_MASK; };
+
         static void markFree(uint32_t & cluster) {
             cluster &= ~FAT32_CLUSTER_MASK; cluster |= FAT32_CLUSTER_FREE;
         };
-        static void markEOC(uint32_t & cluster) {
-            cluster &= ~FAT32_CLUSTER_MASK; cluster |= FAT32_CLUSTER_EOC;
-        };
+
         static void markUsed(uint32_t & cluster, uint32_t next_cluster) {
             cluster &= ~FAT32_CLUSTER_MASK; cluster |= next_cluster;
         };
 
         static uint32_t tableSector(uint32_t cluster);
         static uint32_t dataSector(uint32_t cluster);
-        static bool nextCluster(DD & dd, uint32_t & cluster, uint32_t & ts, sector_u & tsb);
+        static bool nextCluster(DD & dd, uint32_t & cluster);
         static bool findFree(DD & dd, uint32_t & cluster);
-        static bool newCluster(DD & dd, uint32_t & cluster, uint32_t & ts, sector_u & tsb);
+        static bool newCluster(DD & dd, uint32_t & cluster);
         static bool update(Fat32File < DD > & file);
 
         static uint32_t _s_table_sector_start;
@@ -1995,6 +1980,7 @@ class Fat32 : public FileSystem < DD, FST_FAT32 >
         static uint32_t _s_data_sector_start;
         static uint32_t _s_sectors_per_cluster;
         static uint32_t _s_cluster_to_sector;
+        static uint32_t _s_root_cluster;
 
         static constexpr uint8_t const _s_num_files = 4;
         static Fat32File < DD > _s_files[_s_num_files];
@@ -2004,6 +1990,7 @@ class Fat32 : public FileSystem < DD, FST_FAT32 >
         static constexpr chr_t const * _s_sort_name = (chr_t const *)"songlist.txt";
 
         static sector_u _s_tsb;
+        static uint32_t _s_ts;
         static sector_u _s_dsb;
 };
 
@@ -2012,10 +1999,12 @@ template < class DD > uint32_t Fat32 < DD >::_s_num_fat_sectors = 0;
 template < class DD > uint32_t Fat32 < DD >::_s_data_sector_start = 0;
 template < class DD > uint32_t Fat32 < DD >::_s_sectors_per_cluster = 0;
 template < class DD > uint32_t Fat32 < DD >::_s_cluster_to_sector = 0;
+template < class DD > uint32_t Fat32 < DD >::_s_root_cluster = 0;
 template < class DD > Fat32File < DD > Fat32 < DD >::_s_files[_s_num_files] = {};
 template < class DD > FileInfo Fat32 < DD >::_s_root_dir;
 template < class DD > String < NS > Fat32 < DD >::_s_name;
 template < class DD > sector_u Fat32 < DD >::_s_tsb;
+template < class DD > uint32_t Fat32 < DD >::_s_ts = 0;
 template < class DD > sector_u Fat32 < DD >::_s_dsb;
 
 template < class DD >
@@ -2108,9 +2097,9 @@ Fat32 < DD >::Fat32(void)
     _s_data_sector_start = _s_table_sector_start + (f->num_FAT_sectors32 * f->num_FATs);
     _s_sectors_per_cluster = f->sectors_per_cluster;
     _s_cluster_to_sector = __builtin_ctz(_s_sectors_per_cluster);
-    _root_cluster = f->root_cluster;
+    _s_root_cluster = f->root_cluster;
 
-    _s_root_dir.set(FileInfo::FT_DIR, _root_cluster, 0, 0);
+    _s_root_dir.set(FileInfo::FT_DIR, _s_root_cluster, 0, 0);
 }
 
 // Each entry in FAT table is 32 bits or 4 bytes so byte offset would be cluster
@@ -2127,26 +2116,31 @@ uint32_t Fat32 < DD >::tableSector(uint32_t cluster)
 template < class DD >
 uint32_t Fat32 < DD >::dataSector(uint32_t cluster)
 {
-    return _s_data_sector_start + ((cluster - 2) << _s_cluster_to_sector);
+    if (cluster < 2)
+        return UINT32_MAX;
+    else
+        return _s_data_sector_start + ((cluster - 2) << _s_cluster_to_sector);
 }
 
 template < class DD >
-bool Fat32 < DD >::nextCluster(DD & dd, uint32_t & cluster, uint32_t & ts, sector_u & tsb)
+bool Fat32 < DD >::nextCluster(DD & dd, uint32_t & cluster)
 {
-    uint32_t new_ts = tableSector(cluster);
+    if (!isUsed(cluster))
+        return false;
 
-    // Need to get a new sector in the FAT table
-    if (ts != new_ts)
+    uint32_t ts = tableSector(cluster);
+
+    if (_s_ts != ts)
     {
-        ts = new_ts;
-
-        if (!read(dd, ts, tsb.a8))
+        if (!read(dd, ts, _s_tsb.a8))
             return false;
+
+        _s_ts = ts;
     }
 
-    cluster = tsb.a32[tsEntry(cluster)] & FAT32_CLUSTER_MASK;
+    cluster = _s_tsb.a32[tsEntry(cluster)] & FAT32_CLUSTER_MASK;
 
-    return !isEOC(cluster) && !isBad(cluster);
+    return isUsed(cluster);
 }
 
 template < class DD >
@@ -2154,53 +2148,82 @@ bool Fat32 < DD >::findFree(DD & dd, uint32_t & cluster)
 {
     uint32_t const entries_per_sector = FAT32_SECTOR_SIZE / 4;
 
-    uint32_t sectors = _s_num_fat_sectors;
     cluster = 0;
 
-    do
-    {
-        uint32_t ts = tableSector(cluster);
+    uint32_t sectors = _s_num_fat_sectors;
+    uint32_t ts = tableSector(cluster);
 
+    while (0 != sectors--)
+    {
         if (!read(dd, ts, _s_tsb.a8))
             return false;
 
+        _s_ts = ts++;
+
         for (uint32_t i = 0; i < entries_per_sector; i++, cluster++)
         {
-            if (isFree(_s_tsb.a32[i]))
+            if ((cluster > _s_root_cluster) && isFree(_s_tsb.a32[i]))
             {
                 markEOC(_s_tsb.a32[i]);
-
-                if (!write(dd, ts, _s_tsb.a8))
-                    return false;
-
-                break;
+                return write(dd, _s_ts, _s_tsb.a8);
             }
         }
+    }
 
-    } while ((--sectors != 0) && ((cluster % entries_per_sector) == 0));
-
-    return (sectors != 0);
+    return false;
 }
 
 template < class DD >
-bool Fat32 < DD >::newCluster(DD & dd, uint32_t & cluster, uint32_t & ts, sector_u & tsb)
+bool Fat32 < DD >::newCluster(DD & dd, uint32_t & cluster)
 {
+    if (!isUsed(cluster))
+        return false;
+
     uint32_t cl = cluster;
 
-    if (!nextCluster(dd, cl, ts, tsb) || !isEOC(cl))
+    if (nextCluster(dd, cluster))
+        return true;
+
+    if (!isEOC(cluster))
         return false;
 
-    if (!findFree(dd, cl))
-        return false;
+    cluster = 0;
 
-    markUsed(tsb.a32[tsEntry(cluster)], cl);
+    uint32_t const entries_per_sector = FAT32_SECTOR_SIZE / 4;
 
-    if (!write(dd, ts, tsb.a8))
-        return false;
+    uint32_t sectors = _s_num_fat_sectors;
+    uint32_t ts = tableSector(cluster);
 
-    cluster = cl;
+    while (0 != sectors--)
+    {
+        if (!read(dd, ts, _s_tsb.a8))
+            return false;
 
-    return true;
+        _s_ts = ts++;
+
+        for (uint32_t i = 0; i < entries_per_sector; i++, cluster++)
+        {
+            if ((cluster > _s_root_cluster) && isFree(_s_tsb.a32[i]))
+            {
+                markEOC(_s_tsb.a32[i]);
+
+                ts = tableSector(cl);
+                if (ts != _s_ts)
+                {
+                    if (!write(dd, _s_ts, _s_tsb.a8) || !read(dd, ts, _s_tsb.a8))
+                        return false;
+
+                    _s_ts = ts;
+                }
+
+                markUsed(_s_tsb.a32[tsEntry(cl)], cluster);
+
+                return write(dd, _s_ts, _s_tsb.a8);
+            }
+        }
+    }
+
+    return false;
 }
 
 template < class DD >
@@ -2288,17 +2311,14 @@ File * Fat32 < DD >::open(Fat32File < DD > & dir, String < NS > const & name, ui
 
     auto truncate = [&](uint32_t cluster) -> bool
     {
-        uint32_t curr_ts = tableSector(cluster);
-        uint32_t ts = curr_ts;
-
         auto write_ts = [&](void) -> bool
         {
-            return (this->_dd.write(curr_ts, _s_tsb.a8) > 0);
+            return (this->_dd.write(_s_ts, _s_tsb.a8) > 0);
         };
 
-        auto next_ts = [&](void) -> bool
+        auto next_ts = [&](uint32_t ts) -> bool
         {
-            if (curr_ts == ts)
+            if (_s_ts == ts)
                 return true;
             else if (!write_ts())
                 return false;
@@ -2306,18 +2326,29 @@ File * Fat32 < DD >::open(Fat32File < DD > & dir, String < NS > const & name, ui
             return (this->_dd.read(ts, _s_tsb.a8) > 0);
         };
 
-        if (this->_dd.read(curr_ts, _s_tsb.a8) < 0)
+        uint32_t cnum = 0;
+        uint32_t ts =  tableSector(cluster);
+
+        if (this->_dd.read(ts, _s_tsb.a8) < 0)
             return false;
 
-        uint32_t cnum = 0;
+        _s_ts = ts;
 
         while (true)
         {
             uint32_t & cl = _s_tsb.a32[tsEntry(cluster)];
+
             if (isEOC(cl))
             {
                 if (cnum != 0)
                     markFree(cl);
+
+                break;
+            }
+            else if (isFree(cl) || isBad(cl))
+            {
+                if (cnum == 0)
+                    markEOC(cl);
 
                 break;
             }
@@ -2327,10 +2358,10 @@ File * Fat32 < DD >::open(Fat32File < DD > & dir, String < NS > const & name, ui
 
             (0 == cnum++) ? markEOC(cl) : markFree(cl);
 
-            if (!next_ts())
+            if (!next_ts(ts))
                 return false;
 
-            curr_ts = ts;
+            _s_ts = ts;
         }
 
         return write_ts();
@@ -2403,7 +2434,6 @@ bool Fat32 < DD >::update(Fat32File < DD > & file)
 
     uint32_t cluster = file.parent();
     uint32_t ds = dataSector(cluster);
-    uint32_t ts = 0;
 
     do
     {
@@ -2413,6 +2443,9 @@ bool Fat32 < DD >::update(Fat32File < DD > & file)
         for (uint8_t i = 0; i < sizeof(_s_dsb.a8) / sizeof(FatDirEntry); i++)
         {
             FatDirEntry & entry = _s_dsb.dir[i];
+
+            if (entry.isLast())
+                return false;
 
             if (entry.isShortName() && (entry.cluster() == file.address()))
             {
@@ -2428,7 +2461,7 @@ bool Fat32 < DD >::update(Fat32File < DD > & file)
 
         if (++ds == _s_sectors_per_cluster)
         {
-            if (!nextCluster(*file._dd, cluster, ts, _s_tsb))
+            if (!nextCluster(*file._dd, cluster))
                 return false;
 
             ds = dataSector(cluster);
