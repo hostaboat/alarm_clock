@@ -1118,7 +1118,7 @@ Usb::Usb(void)
     // Enable Reset interrupt
     *_inten = USB_INTEN_USBRSTEN;
 
-    NVIC::setPriority(IRQ_USBOTG, 112);
+    //NVIC::setPriority(IRQ_USBOTG, 112);
     NVIC::enable(IRQ_USBOTG);
 
     _state = POWERED;  // XXX Or should it be ATTACHED?
