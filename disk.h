@@ -282,6 +282,7 @@ class DevSD : public DevDisk < SD_BLOCK_LEN, CS, SPI, MOSI, MISO, SCK >
                 void read(void);
                 void write(void);
                 void abort(void);
+                void _resume(void);
 
                 enum dds_e : uint8_t
                 {
@@ -1320,11 +1321,21 @@ bool DevSD < CS, SPI, MOSI, MISO, SCK >::DiskDesc::start(uint32_t total, dd_dir_
 template < pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
 void DevSD < CS, SPI, MOSI, MISO, SCK >::DiskDesc::resume(void)
 {
-    if ((_ch_tx == nullptr) || (_ch_rx == nullptr))
+    if ((_ch_tx == nullptr) || (_ch_rx == nullptr)
+            || ((_dir == DD_READ) && !canProduce(_chunk))
+            || ((_dir == DD_WRITE) && !canConsume(_chunk)))
+    {
         return;
+    }
 
     _stalled = false;
 
+    _resume();
+}
+
+template < pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
+void DevSD < CS, SPI, MOSI, MISO, SCK >::DiskDesc::_resume(void)
+{
     // Must resume RX first or risk missing a signal if TX finishes before RX start
     _ch_rx->resume();
     _ch_tx->resume();
@@ -1463,7 +1474,7 @@ void DevSD < CS, SPI, MOSI, MISO, SCK >::DiskDesc::read(void)
         abort();
 
     if (!error() && !done() && !stalled())
-        resume();
+        _resume();
 }
 
 template < pin_t CS, template < pin_t, pin_t, pin_t > class SPI, pin_t MOSI, pin_t MISO, pin_t SCK >
@@ -1558,7 +1569,7 @@ void DevSD < CS, SPI, MOSI, MISO, SCK >::DiskDesc::write(void)
         abort();
 
     if (!error() && !done() && !stalled())
-        resume();
+        _resume();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
