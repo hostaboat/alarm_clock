@@ -75,7 +75,7 @@ enum op_code_e : uint8_t
 // 1B        O          OPEN/CLOSE IMPORT/EXPORT ELEMENT
 // 1C  O OO OOOM OOO    RECEIVE DIAGNOSTIC RESULTS
 // 1D  MOMM MMOM MMM    SEND DIAGNOSTIC
-/* 1E  O O OOO   O O */ PREVENT_ALLOW_MEDIUM_REMOVAL = 0x1E,
+// 1E  O O OOO   O O    PREVENT ALLOW MEDIUM REMOVAL
 // 1F
 // 20  V   VV    V
 // 21  V   VV    V
@@ -313,7 +313,6 @@ class Scsi
         int inquiry(uint8_t * req);
         int modeSelect(uint8_t * req);
         int modeSense(uint8_t * req);
-        int preventAllowMediumRemoval(uint8_t * req);
         int readFormatCapacities(uint8_t * req);
         int readCapacity10(uint8_t * req);
         int read10(uint8_t * req);

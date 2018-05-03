@@ -88,9 +88,6 @@ int Scsi::request(uint8_t * req, uint8_t rlen)
         case MODE_SENSE_10:
             status = modeSense(req);
             break;
-        case PREVENT_ALLOW_MEDIUM_REMOVAL:
-            status = preventAllowMediumRemoval(req);
-            break;
         case READ_FORMAT_CAPACITIES:
             status = readFormatCapacities(req);
             break;
@@ -367,12 +364,6 @@ int Scsi::modeSense(uint8_t * req)
     if (alloc_len < _transfer_length)
         _transfer_length = alloc_len;
 
-    return 0;
-}
-
-int Scsi::preventAllowMediumRemoval(uint8_t * req)
-{
-    _transfer_length = 0;
     return 0;
 }
 

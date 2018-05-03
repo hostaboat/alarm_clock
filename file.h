@@ -103,6 +103,7 @@ class File
         virtual bool rewind(void) = 0;
 
         virtual bool eof(void) const { return _offset >= _info.size(); }
+        virtual uint32_t offset(void) const { return _offset; }
         virtual uint32_t remaining(void) const { return eof() ? 0 : _info.size() - _offset; }
         virtual uint32_t size(void) const { return _info.size(); }
         virtual uint32_t address(void) const { return _info.address(); }
@@ -1149,6 +1150,7 @@ struct FatDirEntry
     uint8_t lnOrd(void) const { return isLongName() ? order_num & 0x3F : 0; }
 
     bool isShortName(void) const { return !isFree() && !isLongName(); }
+    bool hasExt(void) const { return isShortName() && (name[SN_PRE_LEN] != ' '); }
 
     bool isReadOnly(void) const { return isShortName() && (attrs & ATTR_READ_ONLY); }
     bool isHidden(void) const { return isShortName() && (attrs & ATTR_HIDDEN); }
@@ -1156,6 +1158,10 @@ struct FatDirEntry
     bool isVolumeID(void) const { return isShortName() && (attrs & ATTR_VOLUME_ID); }
     bool isFile(void) const { return isShortName() && !isVolumeID() && !(attrs & ATTR_DIRECTORY); }
     bool isDirectory(void) const { return isShortName() && (attrs & ATTR_DIRECTORY); }
+
+    bool isDot(void) const {
+        return isShortName() && (name[0] == '.') && ((name[1] == ' ') || ((name[1] == '.') && (name[2] == ' ')));
+    }
 
 } __attribute__ ((packed));
 
@@ -1402,6 +1408,10 @@ int Fat32File < DD >::read(FileInfo & info)
 
     auto free_entry = [&](bool flush = false) -> void
     {
+        return;
+
+        // XXX Don't modify any entries.
+
         FatDirEntry * bad = (FatDirEntry *)entry;
 
         bad->setFree();
@@ -1445,8 +1455,14 @@ int Fat32File < DD >::read(FileInfo & info)
             name.prepend(ln.str(), ln.len());
             ln_ord--;
         }
-        else if (entry->isShortName() && !entry->isVolumeID())
+        else if (entry->isShortName())
         {
+            if (entry->isVolumeID() || entry->isDot())
+            {
+                init();
+                continue;
+            }
+
             uint32_t cluster = entry->cluster();
             uint32_t ds = Fat32 < DD >::dataSector(cluster);
             uint32_t size = entry->file_size;
@@ -1466,9 +1482,13 @@ int Fat32File < DD >::read(FileInfo & info)
             {
                 name.set(entry->name, SNL1);
                 name.rstrip();
-                name += '.';
-                name.postpend(&entry->name[SNL1], SNL2);
-                name.rstrip();
+
+                if (entry->hasExt())
+                {
+                    name += '.';
+                    name.postpend(&entry->name[SNL1], SNL2);
+                    name.rstrip();
+                }
 
                 if (name[0] == FatDirEntry::FREE_REPLACE_CHAR)
                     name[0] = FatDirEntry::DIR_ENTRY_FREE;
@@ -1944,8 +1964,6 @@ class Fat32 : public FileSystem < DD, FST_FAT32 >
         static bool write(DD & dd, uint32_t sector, uint8_t (&buf)[SD_BLOCK_LEN]) {
             return dd.write(sector, buf) == SD_BLOCK_LEN;
         }
-
-        static constexpr uint8_t const _s_dir_max_level = 5;
 
         uint32_t _volume_sector_start = 0;
         bool _valid = true;

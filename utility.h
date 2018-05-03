@@ -774,7 +774,10 @@ class String
                 i--;
 
             if (i != (_len - 1))
-                _str[i+1] = 0;
+            {
+                _len = i + 1;
+                _str[_len] = 0;
+            }
         }
 
         void lstrip(chr_t c = ' ')
@@ -791,7 +794,8 @@ class String
                 while (i < _len)
                     _str[j++] = _str[i++];
 
-                _str[j] = 0;
+                _len = j;
+                _str[_len] = 0;
             }
         }
 
