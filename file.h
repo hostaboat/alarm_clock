@@ -1009,8 +1009,7 @@ struct FatInfo
 // 512 bytes
 struct FsInfo
 {
-    uint32_t lead_sig;            // 0x41615252 - validates that this
-                                  //   is an FSInfo sector
+    uint32_t lead_sig;            // 0x41615252 - validates that this is an FSInfo sector
     uint8_t reserved1[480];
     uint32_t struct_sig;          // 0x61417272 - another signature
     uint32_t free_count;          // Last known free cluster on the volume.
@@ -1018,7 +1017,15 @@ struct FsInfo
     uint32_t next_free;           // Cluster number driver should start
                                   //   looking for free clusters - A hint.
     uint8_t reserved2[12];
-    uint32_t trail_sig;           // 0xAA55 - like the boot record signature
+    uint32_t trail_sig;           // 0xAA550000 - like the boot record signature
+
+    static constexpr uint32_t const LSIG = 0x41615252;
+    static constexpr uint32_t const SSIG = 0x61417272;
+    static constexpr uint32_t const TSIG = 0xAA550000;
+
+    bool isValid(void) const {
+        return (lead_sig == LSIG) && (struct_sig == SSIG) && (trail_sig == TSIG);
+    }
 
 } __attribute__ ((packed));
 
@@ -1207,7 +1214,7 @@ class Fat32File : public TFile < DD, FST_FAT32 >
 
     private:
         bool read(void) { return this->_dd->read(_ds, _dsb.a8) > 0; }
-        bool write(void) { return (_dsb_off == 0) ? true : this->_dd->write(_ds, _dsb.a8) > 0; }
+        bool write(void) { _flush = false; return (_dsb_off == 0) ? true : this->_dd->write(_ds, _dsb.a8) > 0; }
         uint8_t checksum(chr_t const * name);
         bool readNext(void);
         int readEntry(FatDirEntry const * & entry);
@@ -1560,10 +1567,12 @@ bool Fat32File < DD >::flush(void)
     if (!this->isReg() || !this->canWrite())
         return false;
 
-    if (_flush && (!write() || !update()))
+    if (!_flush)
+        return true;
+    else if (!write() || !update())
         return false;
-    else if (_flush)
-        _flush = false;
+
+    _flush = false;
 
     return true;
 }
@@ -1626,13 +1635,14 @@ int Fat32File < DD >::write(FileInfo const & info)
 
     static FileInfo cinfo;
 
-    while (read(cinfo) > 0)
+    int err;
+    while ((err = read(cinfo)) > 0)
     {
         if (cinfo.name() == name)
             return -1;
     }
 
-    if (!rewind())
+    if ((err != 0) || !rewind())
         return -1;
 
     chr_t short_name[SNL];
@@ -1698,7 +1708,7 @@ int Fat32File < DD >::write(FileInfo const & info)
     {
         FatDirEntry const * entry;
 
-        while (readEntry(entry) > 0)
+        while ((err = readEntry(entry)) > 0)
         {
             if (entry->isShortName() && (memcmp(entry->name, short_name, SNL) == 0))
                 return true;
@@ -1758,7 +1768,7 @@ int Fat32File < DD >::write(FileInfo const & info)
             entry.attrs = FatDirEntry::ATTR_LONG_NAME;
             entry.chksum = chksum;
 
-            if (_write((uint8_t const *)&entry, sizeof(FatDirEntry)) < 0)
+            if (_write((uint8_t const *)&entry, sizeof(FatDirEntry), false) < 0)
                 return false;
         }
 
@@ -1787,7 +1797,21 @@ int Fat32File < DD >::write(FileInfo const & info)
         entry.cdate = entry.adate = entry.wdate =
             FatDirEntry::date(rtc.clockYear(), rtc.clockMonth(), rtc.clockDay());
 
-        return (_write((uint8_t const *)&entry, sizeof(FatDirEntry)) > 0);
+        if (_write((uint8_t const *)&entry, sizeof(FatDirEntry), false) < 0)
+            return false;
+
+        // Make sure next entry is marked last
+        FatDirEntry const * next;
+
+        if ((err = readEntry(next)) < 0)
+            return false;
+        else if (err == 0) // It's the last
+            return write();
+
+        FatDirEntry * last = (FatDirEntry *)next;
+        last->setLast();
+
+        return write();
     };
 
     if (!lossy)
@@ -1810,8 +1834,10 @@ int Fat32File < DD >::write(FileInfo const & info)
     {
         short_name[base+1] = i + '0';
 
-        if (!find())
+        if (!find() && (err == 0))
             return create() ? sizeof(FileInfo) : -1;
+        else if (err < 0)
+            return -1;
 
         if (!rewind())
             return -1;
@@ -1849,8 +1875,10 @@ int Fat32File < DD >::write(FileInfo const & info)
             n >>= 4;
         }
 
-        if (!find())
+        if (!find() && (err == 0))
             return create() ? sizeof(FileInfo) : -1;
+        else if (err < 0)
+            return -1;
 
         if (!rewind())
             return -1;
@@ -1870,7 +1898,7 @@ int Fat32File < DD >::_write(uint8_t const * buf, int amt, bool flush)
     if ((amt == 0) || this->_dd->busy() || _rewind)
         return 0;
 
-    auto write_next = [&](void) -> bool
+    auto next = [&](void) -> bool
     {
         auto next_sector = [&](uint32_t ds) -> bool
         {
@@ -1881,12 +1909,6 @@ int Fat32File < DD >::_write(uint8_t const * buf, int amt, bool flush)
 
             return this->valid();
         };
-
-        if (!write())
-        {
-            this->close();
-            return this->valid();
-        }
 
         _dsb_off = 0;
 
@@ -1902,6 +1924,9 @@ int Fat32File < DD >::_write(uint8_t const * buf, int amt, bool flush)
         return this->valid();
     };
 
+    if ((_dsb_off == sizeof(_dsb.a8)) && !next())
+        return -1;
+
     int n = 0;
     while (n != amt)
     {
@@ -1914,16 +1939,24 @@ int Fat32File < DD >::_write(uint8_t const * buf, int amt, bool flush)
 
         n += cpy; _dsb_off += cpy; this->_offset += cpy;
 
-        if ((_dsb_off == sizeof(_dsb.a8)) && !write_next())
+        if ((_dsb_off == sizeof(_dsb.a8)) && (!write() || !next()))
+        {
+            this->close();
             return -1;
+        }
     }
 
-    if (flush && (!write() || !update()))
+    if (flush)
     {
-        this->close();
-        return -1;
+        if (!write() || !update())
+        {
+            this->close();
+            return -1;
+        }
+
+        _flush = false;
     }
-    else if (!flush && (_dsb_off != 0))
+    else if (_dsb_off != 0)
     {
         _flush = true;
     }
@@ -1968,7 +2001,8 @@ class Fat32 : public FileSystem < DD, FST_FAT32 >
         uint32_t _volume_sector_start = 0;
         bool _valid = true;
 
-        static uint32_t tsEntry(uint32_t cluster) { return cluster & ((FAT32_SECTOR_SIZE / 4) - 1); }
+        static constexpr uint32_t const _s_entries_per_sector = FAT32_SECTOR_SIZE / 4;
+        static uint32_t tsEntry(uint32_t cnum) { return cnum % _s_entries_per_sector; }
 
         static bool isEOC(uint32_t cluster) { return (cluster & FAT32_CLUSTER_MASK) >= FAT32_CLUSTER_EOC; }
         static bool isBad(uint32_t cluster) { return (cluster & FAT32_CLUSTER_MASK) == FAT32_CLUSTER_BAD; }
@@ -1995,10 +2029,12 @@ class Fat32 : public FileSystem < DD, FST_FAT32 >
 
         static uint32_t _s_table_sector_start;
         static uint32_t _s_num_fat_sectors;
+        static uint32_t _s_num_clusters;
         static uint32_t _s_data_sector_start;
         static uint32_t _s_sectors_per_cluster;
         static uint32_t _s_cluster_to_sector;
         static uint32_t _s_root_cluster;
+        static uint32_t _s_next_free;  // Next free cluster per FsInfo structure
 
         static constexpr uint8_t const _s_num_files = 4;
         static Fat32File < DD > _s_files[_s_num_files];
@@ -2014,10 +2050,12 @@ class Fat32 : public FileSystem < DD, FST_FAT32 >
 
 template < class DD > uint32_t Fat32 < DD >::_s_table_sector_start = 0;
 template < class DD > uint32_t Fat32 < DD >::_s_num_fat_sectors = 0;
+template < class DD > uint32_t Fat32 < DD >::_s_num_clusters = 0;
 template < class DD > uint32_t Fat32 < DD >::_s_data_sector_start = 0;
 template < class DD > uint32_t Fat32 < DD >::_s_sectors_per_cluster = 0;
 template < class DD > uint32_t Fat32 < DD >::_s_cluster_to_sector = 0;
 template < class DD > uint32_t Fat32 < DD >::_s_root_cluster = 0;
+template < class DD > uint32_t Fat32 < DD >::_s_next_free = 0;
 template < class DD > Fat32File < DD > Fat32 < DD >::_s_files[_s_num_files] = {};
 template < class DD > FileInfo Fat32 < DD >::_s_root_dir;
 template < class DD > String < NS > Fat32 < DD >::_s_name;
@@ -2112,12 +2150,21 @@ Fat32 < DD >::Fat32(void)
 
     _s_table_sector_start = _volume_sector_start + f->reserved_sectors;
     _s_num_fat_sectors = f->num_FAT_sectors32;
+    _s_num_clusters = _s_num_fat_sectors << 7;
     _s_data_sector_start = _s_table_sector_start + (f->num_FAT_sectors32 * f->num_FATs);
     _s_sectors_per_cluster = f->sectors_per_cluster;
     _s_cluster_to_sector = __builtin_ctz(_s_sectors_per_cluster);
     _s_root_cluster = f->root_cluster;
 
     _s_root_dir.set(FileInfo::FT_DIR, _s_root_cluster, 0, 0);
+
+    if (read(this->_dd, _volume_sector_start + f->fs_info_sector, _s_dsb.a8))
+    {
+        FsInfo const * finfo = (FsInfo const *)_s_dsb.a8;
+
+        if (finfo->isValid())
+            _s_next_free = finfo->next_free;
+    }
 }
 
 // Each entry in FAT table is 32 bits or 4 bytes so byte offset would be cluster
@@ -2127,6 +2174,9 @@ Fat32 < DD >::Fat32(void)
 template < class DD >
 uint32_t Fat32 < DD >::tableSector(uint32_t cluster)
 {
+    if (cluster >= _s_num_clusters)
+        return UINT32_MAX;
+
     return _s_table_sector_start + (cluster >> 7);
 }
 
@@ -2134,10 +2184,10 @@ uint32_t Fat32 < DD >::tableSector(uint32_t cluster)
 template < class DD >
 uint32_t Fat32 < DD >::dataSector(uint32_t cluster)
 {
-    if (cluster < 2)
+    if ((cluster < 2) || (cluster >= _s_num_clusters))
         return UINT32_MAX;
-    else
-        return _s_data_sector_start + ((cluster - 2) << _s_cluster_to_sector);
+
+    return _s_data_sector_start + ((cluster - 2) << _s_cluster_to_sector);
 }
 
 template < class DD >
@@ -2164,27 +2214,42 @@ bool Fat32 < DD >::nextCluster(DD & dd, uint32_t & cluster)
 template < class DD >
 bool Fat32 < DD >::findFree(DD & dd, uint32_t & cluster)
 {
-    uint32_t const entries_per_sector = FAT32_SECTOR_SIZE / 4;
+    cluster = _s_next_free;
 
-    cluster = 0;
+    uint32_t ts_start = tableSector(cluster);
+    uint32_t ts_end = _s_table_sector_start + _s_num_fat_sectors;
+    uint32_t ts = ts_start;
+    uint32_t ts_entry = tsEntry(cluster);
 
-    uint32_t sectors = _s_num_fat_sectors;
-    uint32_t ts = tableSector(cluster);
-
-    while (0 != sectors--)
+    while (ts != ts_end)
     {
         if (!read(dd, ts, _s_tsb.a8))
             return false;
 
         _s_ts = ts++;
 
-        for (uint32_t i = 0; i < entries_per_sector; i++, cluster++)
+        for (; ts_entry < _s_entries_per_sector; ts_entry++, cluster++)
         {
-            if ((cluster > _s_root_cluster) && isFree(_s_tsb.a32[i]))
+            if ((cluster > _s_root_cluster) && isFree(_s_tsb.a32[ts_entry]))
             {
-                markEOC(_s_tsb.a32[i]);
-                return write(dd, _s_ts, _s_tsb.a8);
+                markEOC(_s_tsb.a32[ts_entry]);
+
+                if (!write(dd, _s_ts, _s_tsb.a8))
+                    return false;
+
+                _s_next_free = cluster;
+
+                return true;
             }
+        }
+
+        ts_entry = 0;
+
+        if (ts == ts_end)
+        {
+            cluster = 0;
+            ts_end = ts_start;
+            ts_start = ts = _s_table_sector_start;
         }
     }
 
@@ -2205,25 +2270,25 @@ bool Fat32 < DD >::newCluster(DD & dd, uint32_t & cluster)
     if (!isEOC(cluster))
         return false;
 
-    cluster = 0;
+    cluster = _s_next_free;
 
-    uint32_t const entries_per_sector = FAT32_SECTOR_SIZE / 4;
+    uint32_t ts_start = tableSector(cluster);
+    uint32_t ts_end = _s_table_sector_start + _s_num_fat_sectors;
+    uint32_t ts = ts_start;
+    uint32_t ts_entry = tsEntry(cluster);
 
-    uint32_t sectors = _s_num_fat_sectors;
-    uint32_t ts = tableSector(cluster);
-
-    while (0 != sectors--)
+    while (ts != ts_end)
     {
         if (!read(dd, ts, _s_tsb.a8))
             return false;
 
         _s_ts = ts++;
 
-        for (uint32_t i = 0; i < entries_per_sector; i++, cluster++)
+        for (; ts_entry < _s_entries_per_sector; ts_entry++, cluster++)
         {
-            if ((cluster > _s_root_cluster) && isFree(_s_tsb.a32[i]))
+            if ((cluster > _s_root_cluster) && isFree(_s_tsb.a32[ts_entry]))
             {
-                markEOC(_s_tsb.a32[i]);
+                markEOC(_s_tsb.a32[ts_entry]);
 
                 ts = tableSector(cl);
                 if (ts != _s_ts)
@@ -2236,8 +2301,22 @@ bool Fat32 < DD >::newCluster(DD & dd, uint32_t & cluster)
 
                 markUsed(_s_tsb.a32[tsEntry(cl)], cluster);
 
-                return write(dd, _s_ts, _s_tsb.a8);
+                if (!write(dd, _s_ts, _s_tsb.a8))
+                    return false;
+
+                _s_next_free = cluster;
+
+                return true;
             }
+        }
+
+        ts_entry = 0;
+
+        if (ts == ts_end)
+        {
+            cluster = 0;
+            ts_end = ts_start;
+            ts_start = ts = _s_table_sector_start;
         }
     }
 
@@ -2345,7 +2424,7 @@ File * Fat32 < DD >::open(Fat32File < DD > & dir, String < NS > const & name, ui
         };
 
         uint32_t cnum = 0;
-        uint32_t ts =  tableSector(cluster);
+        uint32_t ts = tableSector(cluster);
 
         if (this->_dd.read(ts, _s_tsb.a8) < 0)
             return false;
