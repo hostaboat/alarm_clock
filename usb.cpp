@@ -114,6 +114,9 @@ void StreamPipeOut::enable(void)
 {
     if (enabled()) return;
 
+    _dataX = DATA0;
+    _bank = EVEN;
+
     UsbPkt * p = UsbPkt::acquire(*this);
     if (p != nullptr)
     {
@@ -123,8 +126,6 @@ void StreamPipeOut::enable(void)
         if (p != nullptr)
             _bd[_bank ^ 1]->set(p->buffer, p->size, DATA1);
     }
-
-    _dataX = DATA0;
 
     *_endptN |= USB_ENDPTn_EPHSHK | USB_ENDPTn_EPRXEN;
 }
@@ -150,6 +151,7 @@ void StreamPipeIn::enable(void)
     if (enabled()) return;
 
     _dataX = DATA0;
+    _bank = EVEN;
 
     *_endptN |= USB_ENDPTn_EPHSHK | USB_ENDPTn_EPTXEN;
 }
@@ -177,9 +179,11 @@ void MessagePipe::enable(void)
 {
     if (enabled()) return;
 
-    _bd[_rx_bank]->set(_setup_pkt->buffer, _setup_pkt->size, DATA0);
     _state = STATUS;
     _dataX = DATA0;
+    _rx_bank = _tx_bank = EVEN;
+
+    _bd[(OUT << 1) | _rx_bank]->set(_setup_pkt->buffer, _setup_pkt->size, DATA0);
 
     *_endptN = USB_ENDPTn_EPHSHK | USB_ENDPTn_EPTXEN | USB_ENDPTn_EPRXEN;
 }
@@ -1131,6 +1135,16 @@ Usb::Usb(void)
 
 void Usb::process(void)
 {
+    if (!connected())
+    {
+        // Wait until not connected to reactivate the interface so when
+        // ejected, though still connected, it stays ejected.
+        if (!_iface.active())
+            _iface.reset();
+
+        return;
+    }
+
     NVIC::disable(IRQ_USBOTG);
 
     _ep0.process();
@@ -1172,6 +1186,10 @@ void Usb::isr(void)
 
 void Usb::usbrst(void)
 {
+    // Have to do this since upon ejecting Windows will send a request and reset
+    // without waiting for a response.
+    *_ctl = USB_CTL_ODDRST;
+
     EndPoint::reset();
     _ep0.enable();
 
@@ -1201,6 +1219,10 @@ void Usb::usbrst(void)
         0;
 
     *_addr = 0;
+
+    // For some reason this is necessary when setting the ODDRST flag even if
+    // just or'ing the flag into the register.
+    *_ctl = USB_CTL_USBENSOFEN;
 
     // Reset wakes device from SUSPENDED state
     _suspended = false;
@@ -1278,12 +1300,12 @@ void Usb::sleep(void)
     //
     // The following should be used for resume / remote wakeup
     // delay_msecs(2);  // 3 ms have already elapsed
-    // *_s_ctl |= USB_CTL_RESUME;
+    // *_ctl |= USB_CTL_RESUME;
     // delay(5);  // Between 1 ms and 15 ms
-    // *_s_ctl &= ~USB_CTL_RESUME;
+    // *_ctl &= ~USB_CTL_RESUME;
     //
     // Enable RESUME interrupt only if remote wakeup is enabled
-    // *_s_inten |= USB_INTEN_RESUMEEN;
+    // *_inten |= USB_INTEN_RESUMEEN;
 }
 
 void Usb::resume(void)
@@ -1291,7 +1313,7 @@ void Usb::resume(void)
     _suspended = false;
 
     // Disable RESUME interrupt only necessary if remote wakeup is enabled
-    // *_s_inten &= ~USB_INTEN_RESUMEEN;
+    // *_inten &= ~USB_INTEN_RESUMEEN;
 }
 
 void Usb::stall(void)

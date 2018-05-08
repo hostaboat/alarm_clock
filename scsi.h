@@ -68,14 +68,14 @@ enum op_code_e : uint8_t
 // 18  Z ZZZO    Z      COPY
 // 19  V MVV            ERASE(6)
 /* 1A  O M  OOOO OO  */ MODE_SENSE_6 = 0x1A,
-// 1B  OM  OO O MO O    START STOP UNIT
+/* 1B  OM  OO O MO O */ START_STOP_UNIT = 0x1B,
 // 1B    O        M     LOAD UNLOAD
 // 1B                   SCAN
 // 1B                   STOP PRINT
 // 1B        O          OPEN/CLOSE IMPORT/EXPORT ELEMENT
 // 1C  O OO OOOM OOO    RECEIVE DIAGNOSTIC RESULTS
 // 1D  MOMM MMOM MMM    SEND DIAGNOSTIC
-// 1E  O O OOO   O O    PREVENT ALLOW MEDIUM REMOVAL
+/* 1E  O O OOO   O O */ PREVENT_ALLOW_MEDIUM_REMOVAL = 0x1E,
 // 1F
 // 20  V   VV    V
 // 21  V   VV    V
@@ -305,6 +305,9 @@ class Scsi
         int read(uint8_t * buf, uint16_t blen);
         int write(uint8_t * data, uint16_t dlen);
         bool done(void) { return _transferred == _transfer_length; }
+        void reset(void);
+        bool active(void) const { return _active; }
+        bool ejected(void) const { return _ejected; }
 
     private:
         // Client Requests
@@ -313,6 +316,8 @@ class Scsi
         int inquiry(uint8_t * req);
         int modeSelect(uint8_t * req);
         int modeSense(uint8_t * req);
+        int preventAllowMediumRemoval(uint8_t * req);
+        int startStopUnit(uint8_t * req);
         int readFormatCapacities(uint8_t * req);
         int readCapacity10(uint8_t * req);
         int read10(uint8_t * req);
@@ -332,6 +337,11 @@ class Scsi
         TDisk & _dd = TDisk::acquire();
         uint32_t const _num_blocks = _dd.blocks();
         static constexpr uint16_t const _s_block_size = SD_BLOCK_LEN;
+
+        // Probably not an effective difference between these two in this
+        // scenario, but keep them separate anyway.
+        bool _active = true;
+        bool _ejected = false;
 
         dd_desc_t _disk_desc = 0;
         op_code_e _op_code;

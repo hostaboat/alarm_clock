@@ -9,6 +9,21 @@ Scsi::Scsi(void)
     memcpy(_si.prod_rev, _s_prod_rev, sizeof(_si.prod_rev));
 }
 
+void Scsi::reset(void)
+{
+    _active = true;
+    _ejected = false;
+
+    if (_disk_desc)
+    {
+        _dd.close(_disk_desc);
+        _disk_desc = 0;
+    }
+
+    _lba = _transfer_length = _transferred = _doff = 0;
+    _have_sense = false;
+}
+
 int Scsi::request(uint8_t * req, uint8_t rlen)
 {
     enum type_e { FIXED_6, FIXED_10, FIXED_12, FIXED_16, VARIABLE, EXTENDED, VENDOR, RESERVED };
@@ -72,6 +87,8 @@ int Scsi::request(uint8_t * req, uint8_t rlen)
     switch (_op_code)
     {
         case TEST_UNIT_READY:
+            if (!_active || _ejected)
+                return SCSI_FAILED;
             status = testUnitReady(req);
             break;
         case REQUEST_SENSE:
@@ -88,16 +105,28 @@ int Scsi::request(uint8_t * req, uint8_t rlen)
         case MODE_SENSE_10:
             status = modeSense(req);
             break;
+        case START_STOP_UNIT:
+            status = startStopUnit(req);
+            break;
+        case PREVENT_ALLOW_MEDIUM_REMOVAL:
+            status = preventAllowMediumRemoval(req);
+            break;
         case READ_FORMAT_CAPACITIES:
             status = readFormatCapacities(req);
             break;
         case READ_CAPACITY_10:
+            if (!_active || _ejected)
+                return SCSI_FAILED;
             status = readCapacity10(req);
             break;
         case READ_10:
+            if (!_active || _ejected)
+                return SCSI_FAILED;
             status = read10(req);
             break;
         case WRITE_10:
+            if (!_active || _ejected)
+                return SCSI_FAILED;
             status = write10(req);
             break;
         case REPORT_LUNS:
@@ -129,7 +158,14 @@ int Scsi::requestSense(uint8_t * req)
     }
 
     if (!_have_sense)
-        noSense();
+    {
+        if (_ejected)
+            mediumNotPresent();
+        else if (!_active)
+            initComRequired();
+        else
+            noSense();
+    }
 
     uint8_t alloc_len = req[4];
 
@@ -364,6 +400,103 @@ int Scsi::modeSense(uint8_t * req)
     if (alloc_len < _transfer_length)
         _transfer_length = alloc_len;
 
+    return 0;
+}
+
+int Scsi::startStopUnit(uint8_t * req)
+{
+    // Power Condition
+    enum pc_e : uint8_t
+    {
+        START_VALID,
+        ACTIVE,
+        IDLE,
+        STANDBY,
+        LU_CONTROL = 0x07,
+        FORCE_IDLE_0 = 0x0A,
+        FORCE_STANDBY_0,
+    };
+
+    // Start Stop Unit
+    struct SSU
+    {
+        uint8_t immed : 1;
+        uint8_t r0    : 7;
+
+        uint8_t r1;
+
+        uint8_t pcm : 4;  // Power Condition Modifier
+        uint8_t r2  : 4;
+
+        uint8_t start    : 1;
+        uint8_t loej     : 1;  // Load or Eject
+        uint8_t no_flush : 1;
+        uint8_t r3       : 1;
+        uint8_t pc       : 4;  // Power Condition
+
+    } __attribute__ ((packed));
+
+    _transfer_length = 0;
+
+    SSU * ssu = (SSU *)&req[1];
+
+    uint8_t max_pcm;
+
+    switch (ssu->pc)
+    {
+        case START_VALID:
+        case ACTIVE:
+        case LU_CONTROL:
+            max_pcm = 0;
+            break;
+
+        case IDLE:
+        case FORCE_IDLE_0:
+            max_pcm = 2;
+            break;
+
+        case STANDBY:
+        case FORCE_STANDBY_0:
+            max_pcm = 1;
+
+        default:
+            invalidBitField(4, 4);
+            return SCSI_FAILED;
+    }
+
+    if (ssu->pcm > max_pcm)
+    {
+        invalidBitField(3, 0);
+        return SCSI_FAILED;
+    }
+
+    if (ssu->pc == START_VALID)
+    {
+        // Process START bit and LOEJ bit
+
+        if (ssu->start == 0)
+            _active = false;
+        else
+            _active = true;
+
+        if (ssu->loej)
+            _ejected = !_active;
+    }
+    else if (ssu->pc == ACTIVE)
+    {
+        _active = true;
+        _ejected = false;
+    }
+
+    return 0;
+}
+
+int Scsi::preventAllowMediumRemoval(uint8_t * req)
+{
+    // Mac and Windows will not send a START_STOP_UNIT command upon
+    // ejecting the medium unless this command is supported.
+
+    _transfer_length = 0;
     return 0;
 }
 

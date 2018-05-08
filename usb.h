@@ -858,9 +858,10 @@ class BulkOnlyIface
         BulkOnlyIface(void) = default;
 
         void process(void);
-        void reset(void) { _state = COMMAND; }
+        void reset(void) { _state = COMMAND; _scsi.reset(); }
         void enable(void);
         void disable(void);
+        bool active(void) const { return _scsi.active() && !_scsi.ejected(); }
 
     private:
         state_e _state = COMMAND;
@@ -912,7 +913,8 @@ class Usb : public Module
     public:
         static Usb & acquire(void) { static Usb usb; return usb; }
         void process(void);
-        bool active(void) const { return ((msecs() - _sof_ts) < _s_inactive); }
+        bool connected(void) const { return (msecs() - _sof_ts) < _s_inactive; }
+        bool active(void) const { return !_iface.active() ? false : connected(); }
 
     private:
         Usb(void);
