@@ -11,9 +11,12 @@
 #include "pit.h"
 #include "rtc.h"
 #include "tsi.h"
-#include "usb.h"
 #include "types.h"
 #include "utility.h"
+
+#ifdef USB_ENABLED
+# include "usb.h"
+#endif
 
 template < class DSW >
 class MomSwitch  // Momentary Switch
@@ -393,6 +396,9 @@ class UI
         // Times are in seconds.
         static constexpr uint32_t const _s_touch_activate = 1;
         static constexpr uint32_t const _s_touch_sleep = _s_touch_activate + 1;
+
+        // Displayed when USB connected and player use is attempted
+        static constexpr char const * _s_player_busy = "BUSY";
 
         class UIState
         {
@@ -1468,6 +1474,7 @@ class UI
                 bool occupied(void) const;
                 bool disabled(void) const { return _disabled; }
                 bool initialized(void) const { return _initialized; }
+                bool active(void) const { return !disabled() && _playable && (_num_tracks != 0); }
                 int numTracks(void) const { return _num_tracks; }
                 int currentTrack(void) const { return _current_track; }
                 int nextTrack(void) const { return _next_track; }
@@ -1475,7 +1482,8 @@ class UI
 
             private:
                 bool init(void);
-                void reload(void);
+                void error(err_e errno);
+                void reload(bool s1, bool s2);
                 bool newTrack(void);
                 void disable(void);
                 void start(void) { if (!running()) _audio.start(); _paused = false; }
@@ -1483,6 +1491,7 @@ class UI
                 bool pressing(void);
                 int skip(uint32_t t);
                 int skipTracks(int skip);
+                void cancel(bool close = true);
 
                 TAudio & _audio = TAudio::acquire();
                 TFs & _fs = TFs::acquire();
@@ -1490,11 +1499,15 @@ class UI
                 UI & _ui;
 
                 File * _track = nullptr;
+                bool _playable = true;
                 bool _paused = false;
                 bool _stopping = false;
-                bool _reloading = false;
                 bool _disabled = false;
                 bool _initialized = false;
+                bool _reloading = false;
+                // Switch pressed for reload initiation
+                bool _rs1 = false;
+                bool _rs2 = false;
 
                 // 2 or more seconds of continuous press on play/pause pushbutton stops player
                 static constexpr uint32_t const _s_stop_time = 2000;

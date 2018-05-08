@@ -375,7 +375,7 @@ void UI::process(void)
 
     _controls.process();
 
-    // Usb first since Player (paritially) and Power rely on Usb.
+    // Usb first since Player and Power rely on Usb.
     // Player second since both Alarm and Power rely on Player state.
     // Alarm third since Power relies on Alarm state.
 #ifdef USB_ENABLED
@@ -389,7 +389,8 @@ void UI::process(void)
 
     // These events will cause a display update to alert user that event happened.
     if (_alarm.stopped() || _alarm.snoozed()
-            || _player.stopping() || _player.reloading() || _player.skipping())
+            || _player.stopping() || _player.reloading() || _player.skipping()
+            || (!_player.active() && _player.occupied()))
     {
         // Wake so display can be updated
         if (!_power.awake())
@@ -415,7 +416,9 @@ void UI::process(void)
     // Update brightness before displaying anything
     updateBrightness((bev == EV_ZERO) ? _controls.turn(ENC_BRI) : bev);
 
-    if (_player.stopping())
+    if (!_player.active() && _player.occupied())
+        _display.showString(_s_player_busy);
+    else if (_player.stopping())
         _display.showString("STOP");
     else if (_player.reloading())
         _display.showString("LOAD");
@@ -1558,8 +1561,24 @@ void UI::Clock::uisUpdate(ev_e ev)
 
 void UI::Clock::uisChange(void)
 {
+    bool show = true;
+
     if (_state == CS_SET_TRACK)
-        _ui._player.setTrack(_track);
+    {
+        if (!_ui._player.active())
+        {
+            if (!_ui._player.disabled() && (_ui._player.numTracks() != 0))
+                _ui._display.showString(_s_player_busy);
+            else
+                _ui._display.showString("----");
+
+            show = false;
+        }
+        else
+        {
+            _ui._player.setTrack(_track);
+        }
+    }
 
     _state = _next_states[_state];
 
@@ -1578,7 +1597,8 @@ void UI::Clock::uisChange(void)
         clockUpdate(true);
     }
 
-    display();
+    if (show)
+        display();
 }
 
 void UI::Clock::uisReset(ps_e ps)
@@ -1683,7 +1703,7 @@ void UI::Clock::displayYear(void)
 void UI::Clock::displayTrack(void)
 {
     if (_ui._player.numTracks() == 0)
-        _ui._display.showString("----");
+        _ui._display.showString("nOnE");
     else if ((_track + 1) <= 9999)
         _ui._display.showInteger(_track + 1);
     else
@@ -2911,13 +2931,26 @@ void UI::SetNLC::displayDone(df_t flags)
 UI::Player::Player(UI & ui)
     : _ui{ui}
 {
-    if (!_audio.valid() || !_fs.valid())
-    {
+    if (_audio.valid() && _fs.valid())
+        (void)init();
+    else
         _disabled = true;
-        return;
-    }
+}
 
-    (void)init();
+void UI::Player::error(err_e errno)
+{
+    _ui._errno = errno;
+
+    cancel();
+    stop();
+
+    _paused = _stopping = _reloading = false;
+
+    if (errno == ERR_PLAYER_GET_FILES)
+        _num_tracks = _current_track = _next_track = 0;
+
+    if (!_audio.valid() || !_fs.valid())
+        _disabled = true;
 }
 
 bool UI::Player::init(void)
@@ -2927,70 +2960,95 @@ bool UI::Player::init(void)
 
     _num_tracks = _fs.sort(_track_exts);
 
-    if (_num_tracks < 0)
+    if (_num_tracks > 0)
     {
-        _ui._errno = ERR_PLAYER_GET_FILES;
-        _disabled = true;
-        _num_tracks = 0;
-    }
-    else if (_num_tracks > 0)
-    {
-        if (!_ui._eeprom.getTrack(_current_track) || (_current_track >= _num_tracks))
+        if (!_initialized && !_ui._eeprom.getTrack(_current_track))
         {
             _current_track = 0;
             (void)_ui._eeprom.setTrack(_current_track);
         }
 
-        _next_track = _current_track;
-
-        _track = _fs.open(_current_track);
-        if (_track == nullptr)
+        if (_current_track >= _num_tracks)
         {
-            _ui._errno = ERR_PLAYER_OPEN_FILE;
-            _disabled = true;
-        }
-    }
-
-    if (_num_tracks == 0)
-    {
-        if (!stopped())
+            cancel();
             stop();
 
+            _current_track %= _num_tracks;
+
+            if (!_initialized)
+                (void)_ui._eeprom.setTrack(_current_track);
+        }
+
+        _next_track = _current_track;
+
+        if ((_track == nullptr) && ((_track = _fs.open(_current_track)) == nullptr))
+            error(ERR_PLAYER_OPEN_FILE);
+    }
+    else if (_num_tracks == 0)
+    {
+        cancel();
+        stop();
+
         _current_track = _next_track = 0;
+    }
+    else
+    {
+        error(ERR_PLAYER_GET_FILES);
     }
 
     if (!_initialized)
         _initialized = true;
 
-    return !_disabled;
+    return true;
 }
 
-void UI::Player::reload(void)
+void UI::Player::cancel(bool close)
 {
-    if (running() && (_track != nullptr) && !_track->eof())
+    if (_track == nullptr)
+        return;
+
+    if (running() && !_track->eof())
         _audio.cancel(_track);
 
-    if (_track != nullptr)
+    if (close)
     {
         _track->close();
         _track = nullptr;
     }
+}
 
-    if (!init() && !disabled())
+void UI::Player::reload(bool s1, bool s2)
+{
+    if (!reloading())
         return;
 
-    _reloading = false;
+    if (s1 && !_rs1)
+        _rs1 = true;
+
+    if (s2 && !_rs2)
+        _rs2 = true;
+
+    if (!(_rs1 && _rs2) || !init())
+        return;
+
+    _rs1 = _rs2 = _reloading = false;
 }
 
 void UI::Player::play(void)
 {
-    if (disabled() || playing() || (_num_tracks == 0))
+    if (!active() || playing())
         return;
+
+    if (_track == nullptr)
+    {
+        // Force reload trigger
+        _rs1 = _rs2 = _reloading = true;
+        return;
+    }
 
     if (!running() && !_track->rewind())
     {
-        _ui._errno = ERR_PLAYER_OPEN_FILE;
-        _disabled = true;
+        error(ERR_PLAYER_OPEN_FILE);
         return;
     }
 
@@ -3055,18 +3113,46 @@ bool UI::Player::pressing(void)
 
 void UI::Player::process(void)
 {
-    if ((!initialized() && !init()) || disabled() || pressing())
+    if ((!initialized() && !init()) || disabled())
         return;
 
     bool play_pressed = _ui._controls.pressed(SWI_PLAY);
     bool next_pressed = _ui._controls.pressed(SWI_NEXT);
     bool prev_pressed = _ui._controls.pressed(SWI_PREV);
 
-    if (reloading())
+#ifdef USB_ENABLED
+    if (_ui._usb.active() && _playable)
     {
-        reload();
+        cancel(); stop();
+        _playable = false;
+    }
+    else if (reloading() && !_playable)
+    {
+        // Will fall into this after below.  Forcibly set to reload
+        _playable = play_pressed = next_pressed = true;
+    }
+    else if (!_ui._usb.active() && !_playable)
+    {
+        // Return here so "reloading" message is displayed
+        _reloading = true;
         return;
     }
+#endif
+
+    if (reloading())
+    {
+        bool soft_trig = _rs1 && _rs2;
+
+        reload(play_pressed, next_pressed);
+
+        if (!soft_trig || (_track == nullptr))
+            return;
+
+        start();
+    }
+
+    if (!active() || pressing())
+        return;
 
     // XXX If the MCU is asleep only the play/pause pushbutton will wake it.
     if (!running() && play_pressed)
@@ -3117,19 +3203,12 @@ void UI::Player::process(void)
     }
 
     if (_audio.ready() && !_audio.send(_track, 32) && !_track->valid())
-    {
-        _ui._errno = ERR_PLAYER_AUDIO;
-        _disabled = true;
-    }
+        error(ERR_PLAYER_AUDIO);
 }
 
 bool UI::Player::rewind(void)
 {
-    if ((_track == nullptr)
-            || ((_track->size() - _track->remaining()) < (_track->size() / 4)))
-        return false;
-
-    return true;
+    return (_track != nullptr) && (_track->offset() > (_track->size() / 4));
 }
 
 int UI::Player::skip(uint32_t t)
@@ -3169,32 +3248,28 @@ bool UI::Player::newTrack(void)
 
     if (_next_track == _current_track)
     {
-        if (_track->rewind())
+        if ((_track != nullptr) && _track->rewind())
             return true;
     }
-    else
-    {
-        _current_track = _next_track;
+
+    _current_track = _next_track;
+
+    if (_track != nullptr)
         _track->close();
 
-        _track = _fs.open(_current_track);
-        if (_track != nullptr)
-            return true;
-    }
+    _track = _fs.open(_current_track);
+    if (_track == nullptr)
+        error(ERR_PLAYER_OPEN_FILE);
 
-    _ui._errno = ERR_PLAYER_OPEN_FILE;
-    _disabled = true;
-
-    return false;
+    return _track != nullptr;
 }
 
 bool UI::Player::setTrack(int track)
 {
-    if ((track < 0) || (track >= _num_tracks))
+    if (!active() || (track < 0) || (track >= _num_tracks))
         return false;
 
-    if (running() && !_track->eof())
-        _audio.cancel(_track);
+    cancel(false);
 
     _next_track = skipTracks(track - _current_track);
     if (!newTrack())
@@ -3516,8 +3591,7 @@ void UI::Alarm::check(void)
     if (!_ui._rtc.alarmIsAwake())
         return;
 
-    if (_ui._rtc.alarmIsMusic() && (_ui._player.numTracks() != 0)
-            && !_ui._player.disabled() && !_ui._player.occupied())
+    if (_ui._rtc.alarmIsMusic() && _ui._player.active() && !_ui._player.occupied())
     {
         _ui._player.play();
         _alarm_music = true;
