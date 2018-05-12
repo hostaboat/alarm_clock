@@ -367,8 +367,8 @@ struct UsbDesc
             REMOTE_WAKEUP = (1 << 5),
         };
 
-        static constexpr uint8_t const attrs = RSVD_ONE | SELF_POWERED;
-        static constexpr uint8_t const max_power = 50;  // 100 mA
+        static constexpr uint8_t const attrs = RSVD_ONE;
+        static constexpr uint8_t const max_power = 250;  // 500 mA
         static constexpr uint8_t const num_ifaces = 1;
         static constexpr uint8_t const conf_value = 1;
 
@@ -913,8 +913,10 @@ class Usb : public Module
     public:
         static Usb & acquire(void) { static Usb usb; return usb; }
         void process(void);
-        bool connected(void) const { return (msecs() - _sof_ts) < _s_inactive; }
-        bool active(void) const { return !_iface.active() ? false : connected(); }
+        bool suspended(void) const { return _suspended; }
+        bool connected(void) const { return _state >= DEFAULT; }
+        bool idle(void) const { return !connected() || suspended(); }
+        bool active(void) const { return !_iface.active() ? false : !idle(); }
 
     private:
         Usb(void);
@@ -940,11 +942,7 @@ class Usb : public Module
         ds_e _state = ATTACHED;
         bool volatile _suspended = false;
         bool _remote_wakeup = false;
-        //static constexpr bool const _s_self_powered = true;
         static constexpr bool const _s_self_powered = false;
-
-        uint32_t volatile _sof_ts = msecs();
-        static constexpr uint32_t const _s_inactive = 1000;
 
         // Interrupt handling
         static Usb * _s_usb; // Pointer to instance for ISR

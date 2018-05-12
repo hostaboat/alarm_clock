@@ -3349,7 +3349,7 @@ void UI::Power::updateMarks(void)
     }
     else if (_ui._alarm.beeping()
 #ifdef USB_ENABLED
-            || _ui._usb.connected()
+            || _ui._usb.active()
 #endif
             )
     {

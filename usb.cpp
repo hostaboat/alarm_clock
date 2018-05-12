@@ -922,6 +922,9 @@ void BulkOnlyIface::enable(void)
     if (!_ep_in.enabled())
         _ep_in.enable();
 
+    if (!_scsi.ejected())
+        _scsi.reset();
+
     _state = COMMAND;
 }
 
@@ -1135,11 +1138,9 @@ Usb::Usb(void)
 
 void Usb::process(void)
 {
-    if (!connected())
+    if (idle())
     {
-        // Wait until not connected to reactivate the interface so when
-        // ejected, though still connected, it stays ejected.
-        if (!_iface.active())
+        if (suspended() && !_iface.active())
             _iface.reset();
 
         return;
@@ -1176,9 +1177,16 @@ void Usb::isr(void)
 {
     uint8_t istat = *_istat;
 
-    do {
+    do
+    {
         MFC(_isr_handlers[__builtin_ctz(istat)])();
+
+        // Don't process any other interrupts when a reset is detected.
+        if (istat & USB_ISTAT_USBRST)
+            return;
+
         istat &= istat - 1;
+
     } while (istat);
 
     *_istat = 0xFF;
@@ -1251,7 +1259,7 @@ void Usb::error(void)
 
 void Usb::softok(void)
 {
-    // Sent out once every 1.00 ms += 0x0005 ms for full speed.
+    // Sent out once every 1.00 ms += 0.0005 ms for full speed.
     //
     // Full-speed devices that have no particular need for bus timing
     // information may ignore the SOF packet.
@@ -1259,7 +1267,6 @@ void Usb::softok(void)
     // If device is in the SUSPEND state, operation is resumed
 
     _suspended = false;
-    _sof_ts = msecs();
 }
 
 void Usb::tokdne(void)
@@ -1310,7 +1317,9 @@ void Usb::sleep(void)
 
 void Usb::resume(void)
 {
-    _suspended = false;
+    // Only set if remote wakeup is enabled.  The USB_ISTAT_RESUME flag can get
+    // set regardless of whether or not an interrupt is set to be generated.
+    // _suspended = false;
 
     // Disable RESUME interrupt only necessary if remote wakeup is enabled
     // *_inten &= ~USB_INTEN_RESUMEEN;

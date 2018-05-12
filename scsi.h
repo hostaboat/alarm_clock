@@ -338,9 +338,8 @@ class Scsi
         uint32_t const _num_blocks = _dd.blocks();
         static constexpr uint16_t const _s_block_size = SD_BLOCK_LEN;
 
-        // Probably not an effective difference between these two in this
-        // scenario, but keep them separate anyway.
-        bool _active = true;
+        // Consider ejection an event that has yet to occur
+        bool _active = false;
         bool _ejected = false;
 
         dd_desc_t _disk_desc = 0;
