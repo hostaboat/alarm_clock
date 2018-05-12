@@ -227,6 +227,7 @@ class UI
             ERR_HW_AUDIO,
             ERR_PLAYER,
             ERR_PLAYER_GET_FILES,
+            ERR_PLAYER_LIST_FILES,
             ERR_PLAYER_OPEN_FILE,
             ERR_PLAYER_AUDIO,
             ERR_TIMER,
@@ -250,6 +251,7 @@ class UI
             "Aud.",    // ERR_HW_AUDIO
             "PLAY",    // ERR_PLAYER
             "P.FIL.",  // ERR_PLAYER_GET_FILES
+            "P.LIS.",  // ERR_PLAYER_LIST_FILES
             "P.OPE.",  // ERR_PLAYER_OPEN_FILE
             "P.Aud.",  // ERR_PLAYER_AUDIO
             "T.PIt.",  // ERR_TIMER
@@ -1470,6 +1472,7 @@ class UI
                 bool playing(void) const { return running() && !paused(); }
                 bool stopping(void) const { return _stopping; }
                 bool reloading(void) const { return _reloading; }
+                bool listing(void) const { return _listing; }
                 bool skipping(void) const { return _next_track != _current_track; }
                 bool occupied(void) const;
                 bool disabled(void) const { return _disabled; }
@@ -1483,7 +1486,8 @@ class UI
             private:
                 bool init(void);
                 void error(err_e errno);
-                void reload(bool s1, bool s2);
+                void reload(void);
+                void list(bool s1, bool s2);
                 bool newTrack(void);
                 void disable(void);
                 void start(void) { if (!running()) _audio.start(); _paused = false; }
@@ -1505,13 +1509,14 @@ class UI
                 bool _disabled = false;
                 bool _initialized = false;
                 bool _reloading = false;
-                // Switch pressed for reload initiation
+                bool _listing = false;
+                // Switch pressed for printing song list initiation
                 bool _rs1 = false;
                 bool _rs2 = false;
 
                 // 2 or more seconds of continuous press on play/pause pushbutton stops player
                 static constexpr uint32_t const _s_stop_time = 2000;
-                static constexpr uint32_t const _s_reload_time = 2000;
+                static constexpr uint32_t const _s_list_time = 2000;
                 static constexpr uint32_t const _s_skip_msecs = 1024;
                 char const * const _track_exts[3] = { "MP3", "M4A", nullptr };
                 int _num_tracks = 0;

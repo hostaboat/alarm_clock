@@ -388,7 +388,7 @@ void UI::process(void)
     ev_e bev = EV_ZERO;
 
     // These events will cause a display update to alert user that event happened.
-    if (_alarm.stopped() || _alarm.snoozed()
+    if (_alarm.stopped() || _alarm.snoozed() || _player.listing()
             || _player.stopping() || _player.reloading() || _player.skipping()
             || (!_player.active() && _player.occupied()))
     {
@@ -422,6 +422,8 @@ void UI::process(void)
         _display.showString("STOP");
     else if (_player.reloading())
         _display.showString("LOAD");
+    else if (_player.listing())
+        _display.showString("LIST");
     else if (_player.skipping())
         _display.showInteger(_player.nextTrack() + 1);
 
@@ -2944,7 +2946,7 @@ void UI::Player::error(err_e errno)
     cancel();
     stop();
 
-    _paused = _stopping = _reloading = false;
+    _paused = _stopping = _reloading = _listing = false;
 
     if (errno == ERR_PLAYER_GET_FILES)
         _num_tracks = _current_track = _next_track = 0;
@@ -2997,7 +2999,12 @@ bool UI::Player::init(void)
     }
 
     if (!_initialized)
+    {
+        if (_fs.list() < 0)
+            error(ERR_PLAYER_LIST_FILES);
+
         _initialized = true;
+    }
 
     return true;
 }
@@ -3017,9 +3024,9 @@ void UI::Player::cancel(bool close)
     }
 }
 
-void UI::Player::reload(bool s1, bool s2)
+void UI::Player::list(bool s1, bool s2)
 {
-    if (!reloading())
+    if (!listing())
         return;
 
     if (s1 && !_rs1)
@@ -3028,10 +3035,21 @@ void UI::Player::reload(bool s1, bool s2)
     if (s2 && !_rs2)
         _rs2 = true;
 
-    if (!(_rs1 && _rs2) || !init())
+    if (!(_rs1 && _rs2))
         return;
 
-    _rs1 = _rs2 = _reloading = false;
+    _rs1 = _rs2 = _listing = false;
+
+    if (_fs.list() < 0)
+        error(ERR_PLAYER_LIST_FILES);
+}
+
+void UI::Player::reload(void)
+{
+    if (!reloading() || !init())
+        return;
+
+    _reloading = false;
 }
 
 void UI::Player::play(void)
@@ -3041,8 +3059,7 @@ void UI::Player::play(void)
 
     if (_track == nullptr)
     {
-        // Force reload trigger
-        _rs1 = _rs2 = _reloading = true;
+        _reloading = true;
         return;
     }
 
@@ -3077,16 +3094,18 @@ bool UI::Player::pressing(void)
     if ((play_ptime == 0) && (prev_ptime == 0) && (next_ptime == 0))
         return false;
 
-    if (stopping() || reloading())
+    if (stopping() || listing())
         return true;
 
+#ifdef USB_ENABLED
     if ((play_ptime != 0) && (next_ptime != 0))
     {
-        if ((play_ptime >= _s_reload_time) && (next_ptime >= _s_reload_time))
-            _reloading = true;
+        if ((play_ptime >= _s_list_time) && (next_ptime >= _s_list_time))
+            _listing = true;
 
         return true;
     }
+#endif
 
     if (running() && (play_ptime >= _s_stop_time))
     {
@@ -3128,8 +3147,8 @@ void UI::Player::process(void)
     }
     else if (reloading() && !_playable)
     {
-        // Will fall into this after below.  Forcibly set to reload
-        _playable = play_pressed = next_pressed = true;
+        // Will fall into this after below.
+        _playable = true;
     }
     else if (!_ui._usb.active() && !_playable)
     {
@@ -3141,14 +3160,13 @@ void UI::Player::process(void)
 
     if (reloading())
     {
-        bool soft_trig = _rs1 && _rs2;
-
-        reload(play_pressed, next_pressed);
-
-        if (!soft_trig || (_track == nullptr))
-            return;
-
-        start();
+        reload();
+        return;
+    }
+    else if (listing())
+    {
+        list(play_pressed, next_pressed);
+        return;
     }
 
     if (!active() || pressing())

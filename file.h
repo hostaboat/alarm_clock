@@ -168,6 +168,7 @@ class FileSystem
         virtual bool valid(void) { return _dd.valid(); }
         virtual bool busy(void) { return _dd.busy(); }
         virtual int sort(char const * const * exts = nullptr) = 0;
+        virtual int list(void) = 0;
 
     protected:
         class FileSort
@@ -176,6 +177,7 @@ class FileSystem
                 FileSort(FileSystem & fs);
                 int sort(FileInfo const & dir, char const * const * exts);
                 int retrieve(uint32_t file_index, FileInfo & info);
+                uint32_t numFiles(void) const { return _files; }
 
             private:
                 static constexpr uint16_t const _s_block_size = SD_BLOCK_LEN;
@@ -1982,6 +1984,7 @@ class Fat32 : public FileSystem < DD, FST_FAT32 >
         virtual File * open(String < NS > const & name, uint8_t oflags = O_READ);
 
         virtual int sort(char const * const * exts = nullptr);
+        virtual int list(void);
 
         Fat32(Fat32 const &) = delete;
         Fat32 & operator=(Fat32 const &) = delete;
@@ -2572,17 +2575,25 @@ bool Fat32 < DD >::update(Fat32File < DD > & file)
 template < class DD >
 int Fat32 < DD >::sort(char const * const * exts)
 {
-    int num_files = this->_fs.sort(_s_root_dir, exts);
+    return this->_fs.sort(_s_root_dir, exts);
+}
 
-    if (num_files <= 0)
+template < class DD >
+int Fat32 < DD >::list(void)
+{
+    uint32_t num_files = this->_fs.numFiles();
+
+    if (num_files == 0)
         return num_files;
 
     File * file = open(_s_sort_name, O_WRITE | O_CREATE | O_TRUNC);
     if (file == nullptr)
         return -1;
 
+    int err;
     uint8_t c;
-    int i = 0, err;
+    uint32_t i = 0;
+
     for (; i < num_files; i++)
     {
         FileInfo info;
