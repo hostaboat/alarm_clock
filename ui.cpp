@@ -3042,6 +3042,8 @@ void UI::Player::list(bool s1, bool s2)
 
     if (_fs.list() < 0)
         error(ERR_PLAYER_LIST_FILES);
+
+    _ui._usb.reconnect();
 }
 
 void UI::Player::reload(void)

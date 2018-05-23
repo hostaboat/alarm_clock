@@ -917,6 +917,7 @@ class Usb : public Module
         bool connected(void) const { return _state >= DEFAULT; }
         bool idle(void) const { return !connected() || suspended(); }
         bool active(void) const { return !_iface.active() ? false : !idle(); }
+        void reconnect(void) { _iface.reset(); }
 
     private:
         Usb(void);
