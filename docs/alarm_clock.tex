@@ -615,8 +615,9 @@ hyperfootnotes=true
 \newcommand{\cLi}[1]{\control{#1}{LIGHTING}}
 \newcommand{\cBe}[1]{\control{#1}{BEEPER}}
 \newcommand{\cPA}[1]{\control{#1}{POWER ADAPTER}}
-\newcommand{\cPP}[1]{\control{#1}{POWER / CHARGE PORT}}
+\newcommand{\cPP}[1]{\control{#1}{USB PORT}}
 \newcommand{\cUSB}[1]{\control{#1}{USB 2.0 MICRO-B}}
+\newcommand{\cUsb}[1]{\control{#1}{USB CABLE}}
 \newcommand{\cRB}[1]{\control{#1}{RECHARGEABLE BATTERY}}
 \newcommand{\cCC}[1]{\control{#1}{COIN CELL BATTERY}}
 \newcommand{\cMSD}[1]{\control{#1}{MICRO SD CARD}}
@@ -968,6 +969,11 @@ hyperfootnotes=true
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Components
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% USB
+\newcommand{\mUsb}[1]{\mode{#1}{USB}}
+\newcommand{\sUsbCo}[1]{\state{#1}{CONNECTED}}
+\newcommand{\sUsbEj}[1]{\state{#1}{EJECTED}}
+
 % Audio
 \newcommand{\mAu}[1]{\mode{#1}{AUDIO}}
 \newcommand{\sAuPl}[1]{\state{#1}{PLAY}}
@@ -1356,18 +1362,19 @@ hyperfootnotes=true
 \begin{table}[H]
 \begin{tabu}{X[1,l,m] X[1,r,m]}
   \fontTGA{h}{\bfseries \project{}}
-    & \fontTGA{ss}{Designed, Coded and Assembled by Todd Wease} \\
+    & \fontTGA{ss}{Designed, coded and assembled by Todd Wease} \\
 \end{tabu}
 \end{table}
 
 \begin{table}[H]
 \ers{3}
 \begin{tabu}{X[1,l,m] X[1,l,m]}
-  \multirow{4}{*}{\includegraphics{images/alarm_clock.png}}
+  \multirow{5}{*}{\includegraphics{images/alarm_clock.png}}
     & \fontTGA{n}{Portable with Rechargeable Lithium Ion Battery} \\
-  & \fontTGA{n}{Micro USB connection for Powering and Charging} \\
+  & \fontTGA{n}{USB connectivity allows for managing music on the device} \\
+  & \fontTGA{n}{USB Micro port also used for powering and charging} \\
   & \fontTGA{n}{Low Battery Indicator} \\
-  & \fontTGA{n}{Controllable Display and Lighting Brightness} \\
+  & \fontTGA{n}{Controllable Display and Lighting brightness} \\
 \end{tabu}
 \end{table}
 
@@ -1398,7 +1405,6 @@ hyperfootnotes=true
   \fontTGA{s}{\bfseries Audio}
   \footnotesize \qag
   \begin{itemize}[label=, leftmargin=1pt, itemsep=1pt]
-    \item Play up to 4096 songs
     \item Dedicated Conrols
       \begin{itemize}[label=-, leftmargin=*, topsep=0mm, itemsep=0mm]
         \item Play \& Pause
@@ -1504,6 +1510,7 @@ hyperfootnotes=true
 % Components
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \part{Components} \label{Components}
+\input{usb.tex}
 \input{audio.tex}
 \input{alarm.tex}
 \input{power.tex}

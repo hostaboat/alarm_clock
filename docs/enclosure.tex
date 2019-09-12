@@ -412,8 +412,9 @@ scraping the finish on the wood.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Back} \label{Back}
 
-On the \cBa{f} of the device is the \cPP{f} that is used to both power the
-device and charge the \hyperref[Rechargeable Battery]{\cRB{f}} inside.
+On the \cBa{f} of the device is the \cPP{f} that is used for adding/removing
+songs to/from the device and to both power the device and charge the
+\hyperref[Rechargeable Battery]{\cRB{f}} inside.
 
 \begin{figure}[H]
 \centering
@@ -431,19 +432,22 @@ the \cBe{f} and removable \cMSD{f}.
 \end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Back - Power / Charge Port
+% Back - USB Port
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Power / Charge Port} \label{Power Port}
+\section{USB Port} \label{USB Port}
 
-The \cPP{f} is a \cUSB{f} port.
+The \cPP{f} is a \cUSB{f} port that allows for both data transfer and power
+to the device.
 
 \par\medskip
 
 A few items of note:
 
 \begin{itemize}
+  \item When connected to a computer, make sure the device is ``ejected'' before
+    unplugging the \hyperref[USB Cable]{\cUsb{f}}.
   \item The device can be \sON{f} or \sOFF{f} when plugging or unplugging the
-    \hyperref[Power Adapter]{\cPA{f}} or other USB cable.
+    \hyperref[Power Adapter]{\cPA{f}} or \hyperref[USB Cable]{\cUsb{f}}.
   \item The device can be \sON{f} or \sOFF{f} while charging.
   \item The device is fully functional while charging.
   \item The device never has to be unplugged.\footnote{ It should be unplugged
@@ -451,8 +455,11 @@ A few items of note:
     \hyperref[Disassembly]{disassembling}.}
 \end{itemize}
 
-See \hyperref[Powering and Recharging]{Powering \& Recharging} for more
-information.
+See \hyperref[Powering and Recharging]{Powering \& Recharging} and the
+\hyperref[USB]{USB} sections for more information.
+
+\danger{Always eject the device before unplugging it from a computer to
+avoid possible filesystem corruption.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Back - Beeper
@@ -524,7 +531,7 @@ The \cPA{f} is used to both power the device
 and charge the \hyperref[Rechargeable Battery]{\cRB{f}}.  It is a
 \mono{5.25\thinspace V}, \mono{2.4\thinspace A} switching AC/DC power adapter
 that terminates with a \cUSB{f} connector that plugs into the
-\hyperref[Power Port]{\cPP{f}}.  It can accept either \num{110} or \num{240}
+\hyperref[USB Port]{\cPP{f}}.  It can accept either \num{110} or \num{240}
 \mono{VAC} mains so works in the US as well as other countries.
 
 \par\medskip
@@ -543,13 +550,35 @@ The adapter should be rated for at least \mono{1\thinspace A} and no more than
 \mono{2.5\thinspace A}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Accessories - Usb Cable
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{USB Cable} \label{USB Cable}
+
+The \cUsb{f} is a \textit{USB 2.0 Standard Type-A Male to Micro Type-B Male}.
+Its primary use is to provide connectivity between a personal computer or
+laptop and the device in order to manage the songs that can be played on the
+device.  It can also be used to power and charge the device though the charge
+rate will be significantly slower compared to using the \cPA{f}.
+
+\begin{figure}[H]
+\centering
+  \includegraphics{images/usb_cable.png}
+\caption{USB 2.0 Standard Type-A Male to Micro Type-B Male}
+\end{figure}
+
+\info{The cable must be a USB 2.0 cable and \textbf{not} a USB 3.0 cable and
+must be a \textit{USB 2.0 Standard Type-A Male to Micro Type-B Male}.}
+
+\info{There is also a USB 2.0 Mini connector that is similar in appearance to
+the USB 2.0 Micro.  A USB Mini connector will \textbf{not} fit in the \cPP{f}.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Powering & Recharging
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Powering \& Recharging} \label{Powering and Recharging}
 
 The device can be both powered and charged using either the supplied
-\hyperref[Power Adapter]{\cPA{f}} or a \textit{USB 2.0 Standard Type-A Male to
-Micro Type-B Male} cable.
+\hyperref[Power Adapter]{\cPA{f}} or \hyperref[USB Cable]{\cUsb{f}}.
 
 \par\medskip
 
@@ -561,23 +590,24 @@ Micro Type-B Male} cable.
 \caption{USB 2.0 Micro-B}
 \end{figure}
 
-The figure below indicates how the USB 2.0 Micro-B plug should be oriented when
-\textit{facing} the \hyperref[Power Port]{\cPP{f}}.
+The figure below indicates how the \cUSB{f} plug should be oriented when
+\textit{facing} the \hyperref[USB Port]{\cPP{f}}.
 
 \begin{figure}[H]
 \centering
   \includegraphics{images/usb_orientation.png}
-\caption{USB 2.0 Micro-B $\longrightarrow$ Power / Charge Port Orientation}
+\caption{USB 2.0 Micro-B $\longrightarrow$ USB Port Orientation}
 \end{figure}
 
-Using the supplied \cPA{f}, plug the \cUSB{f} end into the \cPP{f} on the
-\cBa{f} of the device and the 2-prong end into a wall or power strip receptacle.
+Using the \hyperref[Power Adapter]{\cPA{f}}, plug the \cUSB{f} end into the
+\cPP{f} on the \cBa{f} of the device and the 2-prong end into a wall or power
+strip receptacle.
 
 \par\medskip
 
-If a \textit{USB 2.0 Standard Type-A Male to Micro Type-B Male} cable is used,
-connect the Micro-B end into the \cPP{f} and the Standard Type-A end into the
-USB port on a computer or USB hub.
+Using the \hyperref[USB Cable]{\cUsb{f}}, connect the Micro-B end into the
+\cPP{f} on the device and the Standard Type-A end into a USB port on a computer
+or USB hub.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Powering & Recharging - Recharging
@@ -586,10 +616,16 @@ USB port on a computer or USB hub.
 
 The \hyperref[Low Battery Indicator]{\cLB{f}} will light up when the device
 needs to be recharged.  Unfortunately there is no way to indicate that the
-battery has finished charging. Using the supplied
-\hyperref[Power Adapter]{\cPA{f}}, it should take about \num{8} hours to charge
-if the \cLB{f} is signaling - plug it in before going to bed and it should be
-charged by the time you wake up.  When using a \textit{USB 2.0 Standard Type-A
-Male to Micro Type-B Male} cable, charging may take longer since USB ports on a
-computer generally do not supply as much current as the \cPA{f} will.
+battery has finished charging.
 
+\par\medskip
+
+Using the \hyperref[Power Adapter]{\cPA{f}}, it should take about \num{8} hours
+to charge if the \hyperref[Low Battery Indicator]{\cLB{f}} is signaling - plug
+it in before going to bed and it should be charged by the time you wake up.
+
+\par\medskip
+
+Using the \hyperref[USB Cable]{\cUsb{f}}, charging will likely take longer since
+USB ports on a computer generally do not supply as much current as the
+\hyperref[Power Adapter]{\cPA{f}} will.

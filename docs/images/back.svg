@@ -11,7 +11,7 @@
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="6.5in"
+   width="5.5in"
    height="3.3in"
    viewBox="0 0 585 0"
    id="svg2"
@@ -19,7 +19,7 @@
    inkscape:version="0.91 r13725"
    sodipodi:docname="back.svg"
    style="enable-background:new"
-   inkscape:export-filename="/home/twease/alarm_clock_docs/images/back.png"
+   inkscape:export-filename="/home/twease/alarm_clock/docs/images/back.png"
    inkscape:export-xdpi="200"
    inkscape:export-ydpi="200">
   <defs
@@ -1284,14 +1284,14 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.98994949"
-     inkscape:cx="22.184394"
-     inkscape:cy="217.64582"
+     inkscape:cx="219.08815"
+     inkscape:cy="62.179061"
      inkscape:document-units="in"
      inkscape:current-layer="layer2"
      showgrid="true"
      units="in"
-     inkscape:window-width="1855"
-     inkscape:window-height="1056"
+     inkscape:window-width="1820"
+     inkscape:window-height="965"
      inkscape:window-x="65"
      inkscape:window-y="24"
      inkscape:window-maximized="1"
@@ -1319,7 +1319,7 @@
      inkscape:groupmode="layer"
      id="layer2"
      inkscape:label="background"
-     transform="translate(0,-253.00005)">
+     transform="translate(0,-253.00004)">
     <circle
        style="opacity:1;fill:#000000;fill-opacity:0.07843137;stroke:#000000;stroke-width:0.40500003;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;enable-background:new"
        id="path5285-3"
@@ -1488,21 +1488,21 @@
          sodipodi:type="star" />
     </g>
     <g
-       id="g27877"
-       transform="matrix(1.3400956,0,0,1.3400956,-73.663084,219.7454)">
+       id="g3699"
+       transform="translate(-77.781746,1.0101525)">
       <text
          sodipodi:linespacing="125%"
          id="text5491"
-         y="174.65318"
-         x="59.075863"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10px;line-height:125%;font-family:'TeX Gyre Adventor';-inkscape-font-specification:'TeX Gyre Adventor, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         y="453.08307"
+         x="98.361366"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.40124989px;line-height:125%;font-family:'TeX Gyre Adventor';-inkscape-font-specification:'TeX Gyre Adventor, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
          xml:space="preserve"><tspan
-           y="174.65318"
-           x="59.075863"
-           id="tspan6476"
-           sodipodi:role="line">POWER / CHARGE PORT</tspan></text>
+           y="453.08307"
+           x="98.361366"
+           id="tspan3697"
+           sodipodi:role="line">USB PORT</tspan></text>
       <g
-         transform="translate(184.16677,-284.34476)"
+         transform="matrix(1.3400956,0,0,1.3400956,173.13799,-161.30376)"
          id="g10200">
         <rect
            style="fill:#deb887;fill-opacity:1;stroke:#000000;stroke-width:0.13823859;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
@@ -1672,8 +1672,8 @@
       <path
          inkscape:connector-curvature="0"
          id="path5435-0-2-3"
-         d="m 179.62477,170.68777 24.95412,0"
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.54000002;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Lend-2-5-6);enable-background:new" />
+         d="m 167.05128,448.13131 33.44091,0"
+         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.72365165;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Lend-2-5-6);enable-background:new" />
     </g>
     <g
        id="g27802"
@@ -2104,15 +2104,15 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(0,-855.3622)" />
+     transform="translate(0,-855.36219)" />
   <g
      inkscape:groupmode="layer"
      id="layer4"
      inkscape:label="Dots"
-     transform="translate(0,-163.00005)" />
+     transform="translate(0,-163.00004)" />
   <g
      inkscape:groupmode="layer"
      id="layer3"
      inkscape:label="LED Digits"
-     transform="translate(0,-343.00005)" />
+     transform="translate(0,-343.00004)" />
 </svg>

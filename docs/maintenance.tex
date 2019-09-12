@@ -26,7 +26,7 @@ Unless you are just giving it a quick, dry wipe-down, before cleaning:
 \begin{enumerate}
   \item Switch the device \sOff{f} using the \hyperref[Power Switch]{\cPo{f}}.
   \item Unplug the \hyperref[Power Adapter]{\cPA{f}} from the
-    \hyperref[Power Port]{\cPP{f}}.
+    \hyperref[USB Port]{\cPP{f}}.
 \end{enumerate}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -37,12 +37,6 @@ Unless you are just giving it a quick, dry wipe-down, before cleaning:
 Disassembly should only be necessary once every several years to change the
 \cCC{f}.  The \cMSD{f} should last for quite a while and should not need
 replacement for many years.
-
-\par\medskip
-
-Unfortunately, there is no way to add and remove songs from the \cMSD{f} without
-disassembly and manually removing the card to do so.  However, it is recommended
-that this is kept to a minimum.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Disassembly - Warnings
@@ -114,7 +108,7 @@ will then be turned, flipped and placed on top of the enclosure.
 \begin{enumerate}
   \item Switch the device \sOff{f} using the \hyperref[Power Switch]{\cPo{f}}.
   \item Unplug the \hyperref[Power Adapter]{\cPA{f}} from the
-    \hyperref[Power Port]{\cPP{f}}.
+    \hyperref[USB Port]{\cPP{f}}.
 \end{enumerate}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -379,6 +373,11 @@ see \hyperref[Removing the Screws]{Removing the screws} in the
     \end{figure}
 \end{enumerate}}
 
+\iffalse
+% Adding USB capability deprecates the following section which requires
+% removing the microSD card in order to add and remove songs.  However,
+% do not remove it in case USB capability is not compiled in.
+ 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Removing the Micro SD Card - Adding / Removing Songs
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -389,11 +388,6 @@ Disassembly is primarily meant for maintenance and changing the \cCC{f}
 and should \textit{not} be done often.  Unfortunately the only way to
 add / remove songs from the \cMSD{f} is to partially disassemble the enclosure
 - see \hyperref[Disassembly]{Disassembly} for instructions.
-
-\par\medskip
-
-The \cMSD{f} can have any number of songs on it, however, the \textit{maximum}
-number of songs that the device will be able to play is \num{4096}.
 
 \par\medskip
 
@@ -489,6 +483,10 @@ enclosure.
   \item Reassemble the enclosure - refer to \hyperref[Reassembly]{Reassembly}
     for instructions.
 \end{enumerate}}
+% Adding USB capability deprecates the above section which requires
+% removing the microSD card in order to add and remove songs.  However,
+% do not remove it in case USB capability is not compiled in.
+\fi
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Removing the Micro SD Card - Replace SD Card
@@ -499,7 +497,7 @@ enclosure.
 The \cMSD{f} may eventually fail and need to be replaced.  This section will
 only focus on formatting the new card.  See the
 \hyperref[Disassembly]{Disassembly} section and the preceding sections for
-removing the card from the enclosure and adding songs.
+removing the card from the enclosure.
 
 \par\medskip
 
@@ -609,4 +607,9 @@ of that card.}
 \caption{Micro SD Card - Formatting Success}
 \end{figure}
 
-You can now add music to the card - see \hyperref[Adding Songs]{Adding Songs}.
+You can either install the card back in the device or add music directly to the
+card while it is out of the device.  Adding songs now will likely be
+significantly faster than adding them when the card is in the device, so if
+there is a sizeable amount of songs you want to add, it is advisable to add them
+now.  See \hyperref[Adding Songs]{Adding Songs} in the \hyperref[USB]{\mUsb{f}}
+section.
